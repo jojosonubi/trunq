@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { requireApiUser } from '@/lib/api-auth'
+
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  )
+}
+
+export async function PATCH(request: NextRequest) {
+  const auth = await requireApiUser()
+  if (auth.response) return auth.response
+
+  try {
+    const body = await request.json() as { ids?: string[]; folder_id?: string | null }
+    const { ids, folder_id } = body
+
+    // folder_id can be null (move to "Unfiled"), but ids must be present
+    if (!ids?.length) {
+      return NextResponse.json({ error: 'Missing ids' }, { status: 400 })
+    }
+
+    const supabase = getServiceClient()
+    const { error } = await supabase
+      .from('media_files')
+      .update({ folder_id: folder_id ?? null })
+      .in('id', ids)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ updated: ids.length })
+  } catch (err) {
+    console.error('[folders/assign] error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
