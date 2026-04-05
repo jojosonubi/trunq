@@ -155,10 +155,11 @@ export default function SearchPageClient({ initialQuery }: Props) {
 
   useEffect(() => {
     if (lightboxIndex === null) return
+    const idx = lightboxIndex
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape')     { setLightboxIndex(null); return }
-      if (e.key === 'ArrowLeft'  && lightboxIndex > 0)              setLightboxIndex(lightboxIndex - 1)
-      if (e.key === 'ArrowRight' && lightboxIndex < photos.length - 1) setLightboxIndex(lightboxIndex + 1)
+      if (e.key === 'ArrowLeft'  && idx > 0)              setLightboxIndex(idx - 1)
+      if (e.key === 'ArrowRight' && idx < photos.length - 1) setLightboxIndex(idx + 1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
