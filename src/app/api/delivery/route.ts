@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { writeAudit } from '@/lib/audit'
 
 function getServiceClient() {
   return createClient(
@@ -23,7 +25,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = getServiceClient()
 
-    // Return the existing token if one already exists for this event
     const { data: existing } = await supabase
       .from('delivery_links')
       .select('token')
@@ -46,6 +47,15 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    const service = createServiceClient()
+    await writeAudit(service, {
+      userId:     auth.user.id,
+      action:     'delivery_portal_created',
+      entityType: 'event',
+      entityId:   event_id,
+      metadata:   { token: data.token },
+    })
 
     return NextResponse.json({ token: data.token }, { status: 201 })
   } catch (err) {

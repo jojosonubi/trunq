@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { writeAudit } from '@/lib/audit'
 
 function getServiceClient() {
   return createClient(
@@ -11,6 +13,13 @@ function getServiceClient() {
 }
 
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'held'] as const
+
+const STATUS_ACTION: Record<string, string> = {
+  approved: 'photo_approved',
+  rejected: 'photo_rejected',
+  held:     'photo_held',
+  pending:  'photo_pending',
+}
 
 export async function PATCH(request: NextRequest) {
   const auth = await requireApiUser()
@@ -37,6 +46,16 @@ export async function PATCH(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+
+    const action  = STATUS_ACTION[status] ?? `photo_${status}`
+    const service = createServiceClient()
+    await writeAudit(service, {
+      userId:     auth.user.id,
+      action,
+      entityType: 'photo',
+      entityId:   ids[0],
+      metadata:   { ids, count: ids.length, status },
+    })
 
     return NextResponse.json({ updated: ids.length })
   } catch (err) {

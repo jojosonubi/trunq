@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { requireApiUser, requireAdminUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { writeAudit } from '@/lib/audit'
 
 function getServiceClient() {
   return createClient(
@@ -10,7 +12,7 @@ function getServiceClient() {
   )
 }
 
-// POST /api/trash — soft-delete an event or media file (any authenticated user)
+// POST /api/trash — soft-delete an event or media file
 export async function POST(req: NextRequest) {
   const auth = await requireApiUser()
   if (auth.response) return auth.response
@@ -23,21 +25,19 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getServiceClient()
-  const now = new Date().toISOString()
+  const now      = new Date().toISOString()
+  const table    = type === 'event' ? 'events' : 'media_files'
 
-  if (type === 'event') {
-    const { error } = await supabase
-      .from('events')
-      .update({ deleted_at: now })
-      .eq('id', id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  } else {
-    const { error } = await supabase
-      .from('media_files')
-      .update({ deleted_at: now })
-      .eq('id', id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  const { error } = await supabase.from(table).update({ deleted_at: now }).eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const service = createServiceClient()
+  await writeAudit(service, {
+    userId:     auth.user.id,
+    action:     type === 'event' ? 'event_deleted' : 'photo_deleted',
+    entityType: type,
+    entityId:   id,
+  })
 
   return NextResponse.json({ ok: true })
 }
@@ -55,14 +55,19 @@ export async function PATCH(req: NextRequest) {
   }
 
   const supabase = getServiceClient()
-  const table = type === 'event' ? 'events' : 'media_files'
+  const table    = type === 'event' ? 'events' : 'media_files'
 
-  const { error } = await supabase
-    .from(table)
-    .update({ deleted_at: null })
-    .eq('id', id)
-
+  const { error } = await supabase.from(table).update({ deleted_at: null }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const service = createServiceClient()
+  await writeAudit(service, {
+    userId:     auth.user.id,
+    action:     type === 'event' ? 'event_restored' : 'photo_restored',
+    entityType: type,
+    entityId:   id,
+  })
+
   return NextResponse.json({ ok: true })
 }
 
@@ -82,7 +87,6 @@ export async function DELETE(req: NextRequest) {
   const supabase = getServiceClient()
 
   if (type === 'event') {
-    // Collect all media storage paths for this event, then delete them
     const { data: mediaFiles } = await supabase
       .from('media_files')
       .select('storage_path')
@@ -99,7 +103,6 @@ export async function DELETE(req: NextRequest) {
     const { error } = await supabase.from('events').delete().eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   } else {
-    // Get storage path first, then delete from DB, then remove from storage
     const { data: file } = await supabase
       .from('media_files')
       .select('storage_path')
@@ -113,6 +116,14 @@ export async function DELETE(req: NextRequest) {
       await supabase.storage.from('media').remove([file.storage_path])
     }
   }
+
+  const service = createServiceClient()
+  await writeAudit(service, {
+    userId:     auth.user.id,
+    action:     type === 'event' ? 'event_permanently_deleted' : 'photo_permanently_deleted',
+    entityType: type,
+    entityId:   id,
+  })
 
   return NextResponse.json({ ok: true })
 }

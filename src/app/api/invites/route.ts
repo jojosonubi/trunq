@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { writeAudit } from '@/lib/audit'
 
 // POST /api/invites — create a new invite (admin only)
 export async function POST(req: NextRequest) {
-  // Verify the caller is an admin
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
@@ -33,6 +33,15 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await writeAudit(service, {
+    userId:     user.id,
+    action:     'team_member_invited',
+    entityType: 'invite',
+    entityId:   data.id,
+    metadata:   { role, code: data.code },
+  })
+
   return NextResponse.json({ invite: data })
 }
 

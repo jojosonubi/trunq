@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
+import { writeAudit } from '@/lib/audit'
 
 export async function DELETE(
   _req: NextRequest,
@@ -12,6 +14,15 @@ export async function DELETE(
   const supabase = createClient()
   const { error } = await supabase.from('events').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const service = createServiceClient()
+  await writeAudit(service, {
+    userId:     auth.user.id,
+    action:     'event_deleted',
+    entityType: 'event',
+    entityId:   params.id,
+  })
+
   return NextResponse.json({ ok: true })
 }
 
@@ -53,5 +64,15 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const service = createServiceClient()
+  await writeAudit(service, {
+    userId:     auth.user.id,
+    action:     'event_edited',
+    entityType: 'event',
+    entityId:   params.id,
+    metadata:   { fields: Object.keys(patch) },
+  })
+
   return NextResponse.json({ event: data })
 }

@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import SettingsClient from './SettingsClient'
-import type { Event, MediaFile } from '@/types'
+import type { AuditLog, Event, MediaFile } from '@/types'
 import type { BackupStats } from '@/app/api/backup/route'
 
 export const revalidate = 0
@@ -26,6 +26,7 @@ export default async function SettingsPage() {
     filesRes,
     trashedEventsRes,
     trashedPhotosRes,
+    auditLogsRes,
   ] = await Promise.all([
     service.from('profiles').select('*').order('created_at', { ascending: true }),
     service.from('invites').select('*').order('created_at', { ascending: false }).limit(50),
@@ -36,6 +37,11 @@ export default async function SettingsPage() {
     service.from('media_files').select('photographer, event_id').not('photographer', 'is', null).is('deleted_at', null),
     service.from('events').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
     service.from('media_files').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+    service
+      .from('audit_log')
+      .select('id, user_id, action, entity_type, entity_id, metadata, created_at, profiles(full_name, email)')
+      .order('created_at', { ascending: false })
+      .limit(500),
   ])
 
   // Build per-photographer stats
@@ -69,6 +75,7 @@ export default async function SettingsPage() {
       photographers={photographers}
       trashedEvents={(trashedEventsRes.data ?? []) as Event[]}
       trashedPhotos={(trashedPhotosRes.data ?? []) as MediaFile[]}
+      auditLogs={(auditLogsRes.data ?? []) as unknown as AuditLog[]}
     />
   )
 }

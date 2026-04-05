@@ -7,13 +7,14 @@ import {
   ArrowLeft, User, Users, HardDrive, Trash2, AlertTriangle,
   Plus, Copy, Check, Clock, Mail, RefreshCw,
   RotateCcw, Calendar, ImageIcon, CheckCircle2, AlertCircle,
-  Pencil, Loader2, Eye, EyeOff, Camera,
+  Pencil, Loader2, Eye, EyeOff, Camera, ShieldCheck, History,
+  XCircle, Filter,
 } from 'lucide-react'
 import UserMenu from '@/components/UserMenu'
 import { createClient } from '@/lib/supabase/client'
 import type { UserProfile } from '@/lib/auth'
 import type { BackupStats } from '@/app/api/backup/route'
-import type { Event, MediaFile } from '@/types'
+import type { AuditLog, Event, MediaFile } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,13 @@ interface Photographer {
   photoCount: number; eventCount: number
 }
 
+interface VerifyResult {
+  checked:    number
+  valid:      number
+  invalid:    number
+  mismatches: { id: string; filename: string; valid: boolean; expected?: string; actual?: string; error?: string }[]
+}
+
 interface Props {
   currentProfile: UserProfile
   users?:         UserProfile[]
@@ -36,9 +44,31 @@ interface Props {
   photographers?: Photographer[]
   trashedEvents?: Event[]
   trashedPhotos?: MediaFile[]
+  auditLogs?:     AuditLog[]
 }
 
-type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'danger'
+type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'audit' | 'danger'
+
+const ACTION_LABELS: Record<string, string> = {
+  photo_uploaded:              'Photo uploaded',
+  photo_viewed:                'Photo viewed',
+  photo_downloaded:            'Photo downloaded',
+  photo_approved:              'Photo approved',
+  photo_rejected:              'Photo rejected',
+  photo_held:                  'Photo held',
+  photo_pending:               'Photo set to pending',
+  photo_restored:              'Photo restored',
+  photo_deleted:               'Photo trashed',
+  photo_permanently_deleted:   'Photo permanently deleted',
+  delivery_portal_created:     'Delivery portal created',
+  event_created:               'Event created',
+  event_edited:                'Event edited',
+  event_deleted:               'Event trashed',
+  event_restored:              'Event restored',
+  event_permanently_deleted:   'Event permanently deleted',
+  team_member_invited:         'Member invited',
+  team_member_removed:         'Member removed',
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -99,6 +129,7 @@ export default function SettingsClient({
   photographers = [],
   trashedEvents = [],
   trashedPhotos = [],
+  auditLogs = [],
 }: Props) {
   const router       = useRouter()
   const isAdmin      = currentProfile.role === 'admin'
@@ -117,6 +148,7 @@ export default function SettingsClient({
       { id: 'team'    as SectionId, label: 'Team',           icon: Users        },
       { id: 'storage' as SectionId, label: 'Storage & Data', icon: HardDrive    },
       { id: 'trash'   as SectionId, label: 'Trash',          icon: Trash2       },
+      { id: 'audit'   as SectionId, label: 'Audit log',      icon: History      },
       { id: 'danger'  as SectionId, label: 'Danger zone',    icon: AlertTriangle},
     ] : []),
   ]
@@ -289,6 +321,38 @@ export default function SettingsClient({
       setTrashBusy(null)
     }
   }
+
+  // ── Integrity verification ────────────────────────────────────────────────
+  const [verifying,    setVerifying]    = useState(false)
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null)
+
+  async function runVerify() {
+    setVerifying(true)
+    setVerifyResult(null)
+    try {
+      const res  = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: 50 }) })
+      const json = await res.json() as VerifyResult
+      setVerifyResult(json)
+    } catch {
+      setVerifyResult({ checked: 0, valid: 0, invalid: 0, mismatches: [] })
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  // ── Audit log filters ─────────────────────────────────────────────────────
+  const [auditActionFilter, setAuditActionFilter] = useState('')
+  const [auditDateFrom,     setAuditDateFrom]     = useState('')
+  const [auditDateTo,       setAuditDateTo]       = useState('')
+
+  const uniqueActions = Array.from(new Set(auditLogs.map((l) => l.action))).sort()
+
+  const filteredLogs = auditLogs.filter((log) => {
+    if (auditActionFilter && log.action !== auditActionFilter) return false
+    if (auditDateFrom && log.created_at < auditDateFrom) return false
+    if (auditDateTo   && log.created_at > auditDateTo + 'T23:59:59') return false
+    return true
+  })
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -669,6 +733,59 @@ export default function SettingsClient({
                   )
                 })()}
 
+                {/* Integrity verification */}
+                <div className="mb-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[#444] text-xs uppercase tracking-wider">File integrity</p>
+                    <button
+                      onClick={runVerify}
+                      disabled={verifying}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                    >
+                      {verifying
+                        ? <><Loader2 size={11} className="animate-spin" /> Verifying…</>
+                        : <><ShieldCheck size={11} /> Verify integrity</>
+                      }
+                    </button>
+                  </div>
+                  {verifyResult && (
+                    <Card className="px-4 py-3.5">
+                      <div className="flex items-center gap-3 mb-3">
+                        {verifyResult.invalid === 0
+                          ? <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
+                          : <XCircle      size={14} className="text-red-400 shrink-0" />
+                        }
+                        <span className="text-white text-sm font-medium">
+                          {verifyResult.invalid === 0
+                            ? `All ${verifyResult.checked} files verified — checksums match`
+                            : `${verifyResult.invalid} mismatch${verifyResult.invalid !== 1 ? 'es' : ''} found across ${verifyResult.checked} files checked`
+                          }
+                        </span>
+                        <span className="text-[#444] text-xs ml-auto tabular-nums">
+                          {verifyResult.valid} / {verifyResult.checked} OK
+                        </span>
+                      </div>
+                      {verifyResult.mismatches.length > 0 && (
+                        <div className="space-y-1.5 mt-3 border-t border-[#1a1a1a] pt-3">
+                          {verifyResult.mismatches.map((m) => (
+                            <div key={m.id} className="flex items-start gap-2">
+                              <AlertCircle size={12} className="text-red-400 shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <p className="text-[#888] text-xs truncate">{m.filename}</p>
+                                {m.error
+                                  ? <p className="text-red-400/70 text-[11px]">{m.error}</p>
+                                  : <p className="text-[#444] text-[11px] font-mono truncate">expected {m.expected?.slice(0, 16)}… got {m.actual?.slice(0, 16)}…</p>
+                                }
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[#2a2a2a] text-[11px] mt-3">Checked the {verifyResult.checked} oldest files with stored hashes</p>
+                    </Card>
+                  )}
+                </div>
+
                 {/* Photographers directory */}
                 <div>
                   <p className="text-[#444] text-xs uppercase tracking-wider mb-3">Photographers</p>
@@ -808,6 +925,120 @@ export default function SettingsClient({
                       </div>
                     )}
                   </div>
+                )}
+              </section>
+
+              {/* ╔══════════════════════════════════════════════════╗ */}
+              {/* ║  AUDIT LOG                                       ║ */}
+              {/* ╚══════════════════════════════════════════════════╝ */}
+              <section>
+                <SectionHead id="audit" icon={History} title="Audit log" subtitle={`${auditLogs.length} recent actions`} />
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="relative">
+                    <Filter size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
+                    <select
+                      value={auditActionFilter}
+                      onChange={(e) => setAuditActionFilter(e.target.value)}
+                      className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:border-[#333] appearance-none cursor-pointer"
+                    >
+                      <option value="">All actions</option>
+                      {uniqueActions.map((a) => (
+                        <option key={a} value={a}>{ACTION_LABELS[a] ?? a}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    type="date"
+                    value={auditDateFrom}
+                    onChange={(e) => setAuditDateFrom(e.target.value)}
+                    placeholder="From"
+                    className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                  />
+                  <input
+                    type="date"
+                    value={auditDateTo}
+                    onChange={(e) => setAuditDateTo(e.target.value)}
+                    placeholder="To"
+                    className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                  />
+                  {(auditActionFilter || auditDateFrom || auditDateTo) && (
+                    <button
+                      onClick={() => { setAuditActionFilter(''); setAuditDateFrom(''); setAuditDateTo('') }}
+                      className="text-xs text-[#555] hover:text-white px-2 py-1 border border-[#1f1f1f] hover:border-[#333] rounded-lg transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <span className="text-[#333] text-xs self-center ml-auto tabular-nums">
+                    {filteredLogs.length} entr{filteredLogs.length !== 1 ? 'ies' : 'y'}
+                  </span>
+                </div>
+
+                {filteredLogs.length === 0 ? (
+                  <Card className="flex flex-col items-center justify-center py-12 text-center">
+                    <History size={20} className="text-[#333] mb-2" />
+                    <p className="text-[#555] text-sm">No audit entries{auditActionFilter || auditDateFrom || auditDateTo ? ' match your filters' : ' yet'}</p>
+                  </Card>
+                ) : (
+                  <Card className="overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-[#1a1a1a]">
+                            <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">Time</th>
+                            <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">User</th>
+                            <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">Action</th>
+                            <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">Entity</th>
+                            <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">Details</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredLogs.map((log, i) => {
+                            const metaEntries = Object.entries(log.metadata ?? {}).filter(([k]) =>
+                              !['ids', 'count', 'fields', 'token', 'code'].includes(k)
+                            )
+                            const detailStr = metaEntries
+                              .slice(0, 2)
+                              .map(([k, v]) => `${k}: ${String(v)}`)
+                              .join(' · ')
+
+                            return (
+                              <tr key={log.id} className={`${i > 0 ? 'border-t border-[#111]' : ''} hover:bg-white/2 transition-colors`}>
+                                <td className="px-4 py-2.5 text-[#444] whitespace-nowrap tabular-nums">
+                                  {new Date(log.created_at).toLocaleString('en-GB', {
+                                    day: '2-digit', month: 'short',
+                                    hour: '2-digit', minute: '2-digit',
+                                  })}
+                                </td>
+                                <td className="px-4 py-2.5 text-[#666] max-w-[120px] truncate">
+                                  {log.profiles?.full_name ?? log.profiles?.email?.split('@')[0] ?? <span className="text-[#333] italic">system</span>}
+                                </td>
+                                <td className="px-4 py-2.5 text-white whitespace-nowrap">
+                                  {ACTION_LABELS[log.action] ?? log.action}
+                                </td>
+                                <td className="px-4 py-2.5 text-[#444] whitespace-nowrap font-mono">
+                                  {log.entity_type
+                                    ? `${log.entity_type}:${log.entity_id?.slice(0, 8) ?? '?'}`
+                                    : '—'
+                                  }
+                                </td>
+                                <td className="px-4 py-2.5 text-[#444] max-w-[200px] truncate">
+                                  {detailStr || '—'}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {auditLogs.length === 500 && (
+                      <div className="px-4 py-2.5 border-t border-[#111] text-[#2a2a2a] text-[11px]">
+                        Showing the most recent 500 entries
+                      </div>
+                    )}
+                  </Card>
                 )}
               </section>
 

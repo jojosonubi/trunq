@@ -70,10 +70,23 @@ export interface Folder {
   created_at: string
 }
 
+export interface AuditLog {
+  id:          string
+  user_id:     string | null
+  action:      string
+  entity_type: string | null
+  entity_id:   string | null
+  metadata:    Record<string, unknown>
+  created_at:  string
+  profiles:    { full_name: string | null; email: string } | null
+}
+
 export interface MediaFile {
   id: string
   event_id: string
   filename: string
+  original_filename: string | null
+  file_hash: string | null
   storage_path: string
   public_url: string
   file_type: 'image' | 'video' | 'graphic'

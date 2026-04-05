@@ -62,6 +62,18 @@ export default function NewEventPage() {
 
     const eventId = data.id
 
+    // Audit log (fire-and-forget)
+    fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'event_created',
+        entityType: 'event',
+        entityId: eventId,
+        metadata: { name: form.name.trim(), date: form.date },
+      }),
+    }).catch(() => {})
+
     // Upsert each photographer record in DB
     if (photographers.length > 0) {
       await Promise.all(
