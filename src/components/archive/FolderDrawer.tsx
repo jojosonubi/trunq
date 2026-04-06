@@ -72,7 +72,7 @@ function segBtn(active: boolean, position: 'first' | 'mid' | 'last'): CSSPropert
     fontWeight:    active ? 600 : 400,
     padding:       '3px 9px',
     background:    active ? 'var(--accent-bg)' : 'transparent',
-    color:         active ? 'var(--accent-mid)' : 'var(--text-muted)',
+    color:         active ? 'var(--accent-dark)' : 'var(--text-muted)',
     border:        active ? '0.5px solid var(--accent-border)' : 'var(--border-subtle)',
     borderRadius:  radius,
     cursor:        'pointer',
@@ -152,7 +152,7 @@ function bodyStyle(active: boolean): CSSProperties {
 function bodyName(active: boolean): CSSProperties {
   return {
     fontSize:   11,
-    color:      active ? 'var(--accent-mid)' : 'var(--text-muted)',
+    color:      active ? 'var(--accent-dark)' : 'var(--text-muted)',
     fontWeight: active ? 500 : 400,
     overflow:   'hidden',
     whiteSpace: 'nowrap' as const,
@@ -174,7 +174,7 @@ function countStyle(active: boolean): CSSProperties {
   return {
     fontSize:      9,
     letterSpacing: '0.04em',
-    color:         active ? 'var(--accent-mid)' : 'var(--text-dim)',
+    color:         active ? 'var(--accent-dark)' : 'var(--text-dim)',
     fontVariantNumeric: 'tabular-nums' as const,
   }
 }

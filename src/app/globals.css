@@ -4,10 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Base ───────────────────────────────────────────────────────────────────  */
+html {
+  background:  var(--surface-0);
+  color:       var(--text-primary);
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-size:   14px;
+  line-height: 1.6;
+}
+
 * {
   box-sizing: border-box;
   box-shadow: none;
 }
+
+/* ─── Selection ──────────────────────────────────────────────────────────────  */
+::selection {
+  background: var(--accent);
+  color:      #ffffff;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────────  */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-1); }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
 
 /* ─── Cap border-radius at 4px (rounded-full / 50% avatars are exempt) ──── */
 .rounded-md  { border-radius: 4px; }

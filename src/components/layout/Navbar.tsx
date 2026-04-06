@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
 import type { UserProfile } from '@/lib/auth'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ function navLinkStyle(active: boolean): CSSProperties {
     alignItems:     'center',
     fontSize:       11,
     letterSpacing:  '0.04em',
-    color:          active ? 'var(--accent-mid)' : 'var(--text-muted)',
+    color:          active ? 'var(--accent-dark)' : 'var(--text-muted)',
     padding:        '0 12px',
     textDecoration: 'none',
     borderBottom:   active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
@@ -85,7 +86,7 @@ const eventBadge: CSSProperties = {
   borderRadius: 2,
   padding:      '2px 7px',
   fontSize:     9,
-  color:        'var(--accent-mid)',
+  color:        'var(--accent-dark)',
   letterSpacing:'0.06em',
   textDecoration:'none',
   whiteSpace:   'nowrap' as const,
@@ -142,7 +143,7 @@ function statValue(first: boolean): CSSProperties {
     fontSize:   22,
     fontWeight: 500,
     lineHeight: 1,
-    color:      first ? 'var(--accent-mid)' : 'var(--text-primary)',
+    color:      first ? 'var(--accent-dark)' : 'var(--text-primary)',
     marginBottom: 1,
   }
 }
@@ -194,6 +195,7 @@ export default function Navbar({ profile, eventModeHref, stats }: Props) {
 
         {/* Right side */}
         <div style={rightArea}>
+          <ThemeToggle />
           {eventModeHref && (
             <Link href={eventModeHref} style={eventBadge}>
               ● EVENT MODE

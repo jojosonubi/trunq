@@ -81,7 +81,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
       {/* ── Main link ─────────────────────────────────────────────────────── */}
       <Link href={`/projects/${event.id}`} className="block rounded overflow-hidden">
         {/* Cover image */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: 'var(--surface-base)' }}>
+        <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: 'var(--surface-0)' }}>
           {event.cover_image_url ? (
             <Image
               src={transformUrl(event.cover_image_url, 400)}

@@ -73,7 +73,7 @@ export default function DeliveryPortal({ event, files }: Props) {
   }, [lightboxIndex, files.length])
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--surface-base)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--surface-0)' }}>
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header style={{ borderBottom: 'var(--border-rule)' }}>
         <div className="max-w-6xl mx-auto page-px py-4 flex items-start justify-between gap-4">

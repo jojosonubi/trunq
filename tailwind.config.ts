@@ -12,7 +12,7 @@ const config: Config = {
         'surface-2':   'var(--surface-2)',
         'surface-3':   'var(--surface-3)',
         'accent':      'var(--accent)',
-        'accent-mid':  'var(--accent-mid)',
+        'accent-dark': 'var(--accent-dark)',
         'accent-bg':   'var(--accent-bg)',
         'label-bg':    'var(--label-bg)',
         'label-text':  'var(--label-text)',

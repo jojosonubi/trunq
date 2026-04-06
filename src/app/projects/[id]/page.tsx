@@ -73,7 +73,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
     : 'gallery'
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--surface-base)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--surface-0)' }}>
       <ViewTracker eventId={event.id} />
       <Navbar
         profile={profile}
