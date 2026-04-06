@@ -373,21 +373,35 @@ export default function SettingsClient({
 
         {/* ── Sidebar ───────────────────────────────────────────────────── */}
         <aside className="w-40 shrink-0">
-          <div className="sticky top-24 space-y-0.5">
-            {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => scrollTo(s.id)}
-                className={`flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
-                  activeSection === s.id
-                    ? 'bg-white/8 text-white'
-                    : 'text-[#555] hover:text-[#888] hover:bg-white/4'
-                }`}
-              >
-                <s.icon size={13} className="shrink-0" />
-                {s.label}
-              </button>
-            ))}
+          <div className="sticky top-24 flex flex-col">
+            {SECTIONS.map((s) => {
+              const active = activeSection === s.id
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => scrollTo(s.id)}
+                  style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    gap:            8,
+                    fontSize:       11,
+                    color:          active ? 'var(--accent-dark)' : 'var(--text-secondary)',
+                    padding:        '7px 12px',
+                    border:         'none',
+                    borderLeft:     active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                    background:     active ? 'var(--accent-bg)' : 'transparent',
+                    textAlign:      'left' as const,
+                    whiteSpace:     'nowrap' as const,
+                    cursor:         'pointer',
+                    transition:     'color 0.15s, background 0.15s',
+                    fontFamily:     'inherit',
+                  }}
+                >
+                  <s.icon size={13} style={{ flexShrink: 0 }} />
+                  {s.label}
+                </button>
+              )
+            })}
           </div>
         </aside>
 
@@ -521,23 +535,33 @@ export default function SettingsClient({
                 <SectionHead id="team" icon={Users} title="Team" subtitle={`${users.length} member${users.length !== 1 ? 's' : ''}`} />
 
                 {/* Members list */}
-                <Card className="mb-6">
+                <div className="mb-6">
                   {users.map((u, i) => (
                     <div
                       key={u.id}
-                      className={`flex items-center gap-3 px-4 py-3.5 ${i > 0 ? 'border-t border-[#161616]' : ''}`}
+                      style={{
+                        display:     'flex',
+                        alignItems:  'center',
+                        gap:         12,
+                        padding:     '10px 16px',
+                        background:  'var(--surface-1)',
+                        border:      'var(--border-rule)',
+                        borderRadius: 2,
+                        marginBottom: i < users.length - 1 ? 4 : 0,
+                      }}
                     >
-                      <div className="w-8 h-8 rounded-full bg-white/8 border border-white/10 flex items-center justify-center text-white text-xs font-semibold shrink-0 select-none">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 select-none"
+                        style={{ background: 'var(--surface-3)', color: 'var(--text-primary)' }}>
                         {initials(u)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm truncate">
-                          {u.full_name ?? <span className="text-[#555] italic">No name</span>}
+                        <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                          {u.full_name ?? <span style={{ color: 'var(--text-secondary)' }}>No name</span>}
                           {u.id === currentProfile.id && (
-                            <span className="text-[#333] text-xs ml-2">(you)</span>
+                            <span className="text-xs ml-2" style={{ color: 'var(--text-dim)' }}>(you)</span>
                           )}
                         </p>
-                        <p className="text-[#555] text-xs truncate">{u.email}</p>
+                        <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{u.email}</p>
                       </div>
                       <Pill variant="ghost">{u.role}</Pill>
                       <p className="text-[#333] text-xs shrink-0 hidden sm:block tabular-nums">{formatDate(u.created_at)}</p>
@@ -556,14 +580,11 @@ export default function SettingsClient({
                       )}
                     </div>
                   ))}
-                </Card>
+                </div>
 
                 {/* Invite section */}
                 <div>
-                  <p className="text-[#444] text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Mail size={11} />
-                    Invite new member
-                  </p>
+                  <p style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 8, marginBottom: 12 }}>Invite new member</p>
                   <div className="flex gap-2 mb-5">
                     <select
                       value={newRole}
@@ -577,7 +598,8 @@ export default function SettingsClient({
                     <button
                       onClick={generateInvite}
                       disabled={generating}
-                      className="inline-flex items-center gap-1.5 bg-white text-black text-sm font-semibold px-4 py-2 rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                      style={{ border: 'var(--border-rule)', background: 'transparent', color: 'var(--text-secondary)', borderRadius: 2, fontSize: 11, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
                     >
                       {generating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
                       {generating ? 'Generating…' : 'Generate invite'}
@@ -637,7 +659,7 @@ export default function SettingsClient({
                   const allGood  = localStats.missing === 0
                   return (
                     <div className="mb-10">
-                      <p className="text-[#444] text-xs uppercase tracking-wider mb-3">Backup</p>
+                      <p style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 8, marginBottom: 12 }}>Backup</p>
 
                       {/* Stat cards */}
                       <div className="grid grid-cols-3 gap-3 mb-4">
@@ -646,11 +668,11 @@ export default function SettingsClient({
                           { label: 'Backed up',    value: localStats.backed_up, sub: 'in media-backup' },
                           { label: 'Missing',      value: localStats.missing,   sub: 'not yet copied'  },
                         ].map(({ label, value, sub }) => (
-                          <Card key={label} className="px-4 py-3.5">
-                            <p className="text-white text-xl font-semibold tabular-nums">{value.toLocaleString()}</p>
-                            <p className="text-white text-xs font-medium mt-0.5">{label}</p>
-                            <p className="text-[#444] text-[11px] mt-0.5">{sub}</p>
-                          </Card>
+                          <div key={label} style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', borderRadius: 4, padding: '12px 16px' }}>
+                            <p style={{ fontSize: 24, fontWeight: 500, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 4 }}>{value.toLocaleString()}</p>
+                            <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{label}</p>
+                            <p style={{ fontSize: 10, color: 'var(--text-muted)' }}>{sub}</p>
+                          </div>
                         ))}
                       </div>
 
@@ -660,17 +682,17 @@ export default function SettingsClient({
                           <div className="flex items-center gap-2">
                             {allGood
                               ? <CheckCircle2 size={13} className="text-emerald-400" />
-                              : <AlertCircle  size={13} className="text-amber-400"   />}
-                            <span className="text-white text-sm font-medium">
+                              : <AlertCircle  size={13} style={{ color: 'var(--accent)' }} />}
+                            <span style={{ fontSize: 13, fontWeight: 500, color: allGood ? undefined : 'var(--accent)' }} className={allGood ? 'text-sm font-medium' : ''}>
                               {allGood ? 'All files backed up' : `${coverage}% coverage`}
                             </span>
                           </div>
-                          <span className="text-[#555] text-xs tabular-nums">{localStats.backed_up} / {localStats.total}</span>
+                          <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>{localStats.backed_up} / {localStats.total}</span>
                         </div>
-                        <div className="h-1.5 bg-surface-0 rounded-full overflow-hidden">
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${allGood ? 'bg-emerald-500' : coverage >= 80 ? 'bg-blue-500' : 'bg-amber-400'}`}
-                            style={{ width: `${coverage}%` }}
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${coverage}%`, background: allGood ? '#1D9E75' : 'var(--accent)' }}
                           />
                         </div>
                       </Card>
@@ -686,7 +708,8 @@ export default function SettingsClient({
                             <button
                               onClick={retryAll}
                               disabled={retryingAll}
-                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                              className="inline-flex items-center gap-1.5 disabled:opacity-40 transition-colors"
+                              style={{ border: 'var(--border-rule)', background: 'transparent', color: 'var(--text-secondary)', borderRadius: 2, fontSize: 11, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
                             >
                               <RefreshCw size={11} className={retryingAll ? 'animate-spin' : ''} />
                               {retryingAll ? 'Retrying…' : 'Retry all'}
@@ -702,7 +725,8 @@ export default function SettingsClient({
                                 <button
                                   onClick={() => retryOne(file.id)}
                                   disabled={retrying.has(file.id) || retryingAll}
-                                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40 shrink-0"
+                                  className="inline-flex items-center gap-1.5 disabled:opacity-40 shrink-0 transition-colors"
+                                  style={{ border: 'var(--border-rule)', background: 'transparent', color: 'var(--text-secondary)', borderRadius: 2, fontSize: 11, padding: '6px 12px', cursor: 'pointer', fontFamily: 'inherit' }}
                                 >
                                   <RefreshCw size={11} className={retrying.has(file.id) ? 'animate-spin' : ''} />
                                   {retrying.has(file.id) ? 'Copying…' : 'Retry'}
@@ -719,7 +743,7 @@ export default function SettingsClient({
                 {/* Integrity verification */}
                 <div className="mb-10">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-[#444] text-xs uppercase tracking-wider">File integrity</p>
+                    <p style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>File integrity</p>
                     <button
                       onClick={runVerify}
                       disabled={verifying}

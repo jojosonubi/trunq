@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import EventCard from '@/components/EventCard'
 import Sidebar from '@/components/layout/Sidebar'
 import FolderDrawer, { type FolderItem, type SortBy } from '@/components/archive/FolderDrawer'
+import NewProjectModal from '@/components/archive/NewProjectModal'
 import type { Event } from '@/types'
 
 interface Props {
@@ -41,8 +41,9 @@ export default function ProjectsPageClient({
   folderCountMap,
   role,
 }: Props) {
-  const [activeId, setActiveId] = useState<string>(events[0]?.id ?? '')
-  const [sortBy, setSortBy]     = useState<SortBy>('year')
+  const [activeId, setActiveId]     = useState<string>(events[0]?.id ?? '')
+  const [sortBy, setSortBy]         = useState<SortBy>('year')
+  const [modalOpen, setModalOpen]   = useState(false)
 
   const sorted = sortedEvents(events, sortBy)
 
@@ -83,10 +84,10 @@ export default function ProjectsPageClient({
             Archive
           </p>
           {role !== 'photographer' && (
-            <Link href="/projects/new" className="btn-new-project">
+            <button onClick={() => setModalOpen(true)} className="btn-new-project">
               <Plus size={10} />
               New project
-            </Link>
+            </button>
           )}
         </div>
 
@@ -99,6 +100,9 @@ export default function ProjectsPageClient({
             onSortChange={setSortBy}
           />
         </div>
+
+        {/* New project modal */}
+        <NewProjectModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
         {/* Active project card */}
         {activeEvent && (

@@ -36,6 +36,27 @@ html {
 .rounded-2xl { border-radius: 4px; }
 .rounded-3xl { border-radius: 4px; }
 
+/* ─── Form inputs ────────────────────────────────────────────────────────────  */
+.form-input {
+  width:        100%;
+  background:   var(--surface-1);
+  border:       var(--border-rule);
+  border-radius: 2px;
+  padding:      8px 10px;
+  font-size:    12px;
+  color:        var(--text-primary);
+  font-family:  inherit;
+  outline:      none;
+  transition:   border-color 0.15s;
+  color-scheme: light dark;
+}
+.form-input:focus {
+  border-color: var(--accent);
+}
+.form-input::placeholder {
+  color: var(--text-dim);
+}
+
 /* ─── Theme-aware button variants ───────────────────────────────────────────  */
 .btn-new-project {
   display:         inline-flex;
@@ -51,6 +72,7 @@ html {
   border-radius:   2px;
   text-decoration: none;
   font-family:     inherit;
+  cursor:          pointer;
 }
 [data-theme="dark"] .btn-new-project {
   background:   transparent;

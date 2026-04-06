@@ -22,6 +22,8 @@
   --text-muted: #999999;
   --text-dim: #bbbbbb;
 
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+
   --approved-bg: #e6f7f0;
   --approved-fg: #1D9E75;
   --approved-border: #b8e8d4;
@@ -53,6 +55,8 @@
   --text-secondary: #888888;
   --text-muted: #555555;
   --text-dim: #3a3a3a;
+
+  --overlay-bg: rgba(0, 0, 0, 0.7);
 
   --approved-bg: #001508;
   --approved-fg: #1D9E75;
