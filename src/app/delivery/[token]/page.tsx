@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { signMediaFiles } from '@/lib/supabase/storage'
+import { writeAudit } from '@/lib/audit'
 import DeliveryPortal from '@/components/DeliveryPortal'
 import type { Event, MediaFile } from '@/types'
 
@@ -40,6 +42,16 @@ export default async function DeliveryPage({ params }: Props) {
     (filesResult.data ?? []) as MediaFile[],
     24 * 60 * 60, // 24-hour expiry for delivery links
   )
+
+  // Audit: log portal access (no user_id — public access via token)
+  const service = createServiceClient()
+  writeAudit(service, {
+    userId:     null,
+    action:     'delivery_portal_accessed',
+    entityType: 'event',
+    entityId:   link.event_id,
+    metadata:   { token: params.token, file_count: files.length },
+  }).catch(() => {})
 
   return (
     <DeliveryPortal

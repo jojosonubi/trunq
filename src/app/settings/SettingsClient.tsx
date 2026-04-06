@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -61,6 +61,8 @@ const ACTION_LABELS: Record<string, string> = {
   photo_deleted:               'Photo trashed',
   photo_permanently_deleted:   'Photo permanently deleted',
   delivery_portal_created:     'Delivery portal created',
+  delivery_portal_accessed:    'Delivery portal accessed',
+  user_login:                  'User login',
   event_created:               'Event created',
   event_edited:                'Event edited',
   event_deleted:               'Event trashed',

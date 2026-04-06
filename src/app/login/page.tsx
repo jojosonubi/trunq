@@ -40,13 +40,25 @@ export default function LoginPage() {
     setLoading(true)
 
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (authError) {
       setError('Invalid email or password.')
       setLoading(false)
       return
     }
+
+    // Audit log — fire-and-forget; session cookie is set so the API can auth the request
+    fetch('/api/audit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:     'user_login',
+        entityType: 'user',
+        entityId:   authData.user?.id ?? null,
+        metadata:   { email },
+      }),
+    }).catch(() => {})
 
     router.push('/events')
     router.refresh()

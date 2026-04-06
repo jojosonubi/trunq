@@ -88,11 +88,12 @@ export async function POST(request: NextRequest) {
     // ── Fetch event metadata + current file count in parallel ─────────────────
     const [eventRes, countRes] = await Promise.all([
       supabase.from('events').select('date, name').eq('id', eventId).single(),
+      // Count ALL files ever uploaded to this event (including soft-deleted) so
+      // the sequence number never collides with a storage path already in use.
       supabase
         .from('media_files')
         .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId)
-        .is('deleted_at', null),
+        .eq('event_id', eventId),
     ])
 
     const eventDate = eventRes.data?.date ?? new Date().toISOString().slice(0, 10)
