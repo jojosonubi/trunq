@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2 } from 'lucide-react'
+import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2, Shield } from 'lucide-react'
+import Pill from '@/components/ui/Pill'
 import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import clsx from 'clsx'
@@ -66,21 +67,6 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function scoreStyle(score: number): string {
-  if (score >= 90) return 'bg-emerald-500 text-white'
-  if (score >= 75) return 'bg-blue-500 text-white'
-  if (score >= 50) return 'bg-amber-400 text-black'
-  return 'bg-red-500 text-white'
-}
-
-function tagTypeStyle(type: Tag['tag_type']): string {
-  switch (type) {
-    case 'scene':   return 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-    case 'mood':    return 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-    case 'subject': return 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-    default:        return 'bg-white/10 text-white/60 border-white/10'
-  }
-}
 
 // ─── MetaRow ─────────────────────────────────────────────────────────────────
 
@@ -129,13 +115,51 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
   const [retagging, setRetagging] = useState(false)
   const [retagError, setRetagError] = useState<string | null>(null)
 
+  type UsageType = 'all_rights' | 'editorial_only' | 'client_use' | 'restricted' | null
+  const [localUsageType, setLocalUsageType]       = useState<UsageType | undefined>(undefined)
+  const [localUsageExpires, setLocalUsageExpires] = useState<string | undefined>(undefined)
+  const [localUsageNotes, setLocalUsageNotes]     = useState<string | undefined>(undefined)
+  const [usageSaving, setUsageSaving]             = useState(false)
+
   useEffect(() => {
     setLocalTags(null)
     setLocalScore(undefined)
     setLocalDescription(undefined)
     setRetagError(null)
     setRotation(0)
+    setLocalUsageType(undefined)
+    setLocalUsageExpires(undefined)
+    setLocalUsageNotes(undefined)
   }, [file.id])
+
+  const displayUsageType    = localUsageType    !== undefined ? localUsageType    : file.usage_type
+  const displayUsageExpires = localUsageExpires !== undefined ? localUsageExpires : (file.usage_expires_at ?? '')
+  const displayUsageNotes   = localUsageNotes   !== undefined ? localUsageNotes   : (file.usage_notes ?? '')
+
+  const USAGE_LABELS: Record<NonNullable<UsageType>, string> = {
+    all_rights:     'All rights',
+    editorial_only: 'Editorial only',
+    client_use:     'Client use',
+    restricted:     'Restricted',
+  }
+async function saveUsage() {
+    setUsageSaving(true)
+    try {
+      const res = await fetch('/api/usage', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:               file.id,
+          usage_type:       localUsageType !== undefined ? localUsageType : file.usage_type,
+          usage_expires_at: localUsageExpires !== undefined ? (localUsageExpires || null) : file.usage_expires_at,
+          usage_notes:      localUsageNotes !== undefined ? (localUsageNotes || null) : file.usage_notes,
+        }),
+      })
+      if (res.ok) router.refresh()
+    } finally {
+      setUsageSaving(false)
+    }
+  }
 
   const displayTags        = localTags        ?? file.tags        ?? []
   const displayScore       = localScore       !== undefined ? localScore       : file.quality_score
@@ -254,7 +278,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
       </div>
 
       <div
-        className="w-72 shrink-0 bg-[#0e0e0e] border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
+        className="w-72 shrink-0 bg-surface-0 border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-5 border-b border-[#1a1a1a]">
@@ -278,9 +302,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
                 </button>
               )}
               {displayScore != null && (
-                <span className={clsx('text-xs font-bold px-2 py-0.5 rounded shrink-0', scoreStyle(displayScore))}>
-                  {displayScore}
-                </span>
+                <Pill variant="score">{displayScore}</Pill>
               )}
             </div>
           </div>
@@ -296,13 +318,10 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
           {(file.performer_tags ?? []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {file.performer_tags.map((pt) => (
-                <span
-                  key={pt.id}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/25"
-                >
-                  <Users size={9} />
+                <Pill key={pt.id} variant="ghost">
+                  <Users size={9} style={{ marginRight: 3 }} />
                   {pt.performers.name}
-                </span>
+                </Pill>
               ))}
             </div>
           )}
@@ -311,13 +330,10 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
           {(file.brand_tags ?? []).length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {file.brand_tags.map((bt) => (
-                <span
-                  key={bt.id}
-                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/25"
-                >
-                  <TagIcon size={9} />
+                <Pill key={bt.id} variant="ghost">
+                  <TagIcon size={9} style={{ marginRight: 3 }} />
                   {bt.brands.name}
-                </span>
+                </Pill>
               ))}
             </div>
           )}
@@ -327,7 +343,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
               <select
                 value={folderProps.currentFolderId ?? ''}
                 onChange={(e) => folderProps.onAssign(e.target.value || null)}
-                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] text-xs rounded px-2 py-1 focus:outline-none focus:border-[#444] transition-colors appearance-none cursor-pointer"
+                className="w-full bg-surface-0 border border-[#2a2a2a] text-[#888] text-xs rounded px-2 py-1 focus:outline-none focus:border-[#444] transition-colors appearance-none cursor-pointer"
               >
                 <option value="">Unfiled</option>
                 {folderProps.folders.map((folder) => (
@@ -376,9 +392,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
                       <p className="text-[#444] text-xs mb-1.5">Scene</p>
                       <div className="flex flex-wrap gap-1.5">
                         {sceneTags.map((t) => (
-                          <span key={t.id} className={clsx('text-xs px-2 py-0.5 rounded-full border', tagTypeStyle('scene'))}>
-                            {t.value}
-                          </span>
+                          <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
                       </div>
                     </div>
@@ -388,9 +402,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
                       <p className="text-[#444] text-xs mb-1.5">Mood</p>
                       <div className="flex flex-wrap gap-1.5">
                         {moodTags.map((t) => (
-                          <span key={t.id} className={clsx('text-xs px-2 py-0.5 rounded-full border', tagTypeStyle('mood'))}>
-                            {t.value}
-                          </span>
+                          <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
                       </div>
                     </div>
@@ -400,9 +412,7 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
                       <p className="text-[#444] text-xs mb-1.5">Subject</p>
                       <div className="flex flex-wrap gap-1.5">
                         {subjectTags.map((t) => (
-                          <span key={t.id} className={clsx('text-xs px-2 py-0.5 rounded-full border', tagTypeStyle('subject'))}>
-                            {t.value}
-                          </span>
+                          <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
                       </div>
                     </div>
@@ -466,6 +476,65 @@ function Lightbox({ files, index, onClose, onNavigate, stars, folderProps, event
               />
             </div>
           )}
+
+          {/* ── Usage rights ──────────────────────────────────────────────── */}
+          <div className="space-y-3">
+            <p className="text-[#444] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5">
+              <Shield size={11} />
+              Usage rights
+            </p>
+
+            {/* Read-only badge when no admin editing */}
+            {!onTrash && displayUsageType && (
+              <Pill variant={displayUsageType === 'restricted' ? 'flagged' : displayUsageType === 'all_rights' ? 'approved' : 'ghost'}>
+                {USAGE_LABELS[displayUsageType]}
+              </Pill>
+            )}
+            {!onTrash && !displayUsageType && (
+              <p className="text-[#444] text-xs">Unlicensed</p>
+            )}
+
+            {/* Admin edit panel */}
+            {onTrash && (
+              <div className="space-y-2">
+                <select
+                  value={displayUsageType ?? ''}
+                  onChange={(e) => setLocalUsageType((e.target.value || null) as UsageType)}
+                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors"
+                >
+                  <option value="">Unlicensed</option>
+                  <option value="all_rights">All rights</option>
+                  <option value="editorial_only">Editorial only</option>
+                  <option value="client_use">Client use</option>
+                  <option value="restricted">Restricted</option>
+                </select>
+
+                <input
+                  type="date"
+                  value={displayUsageExpires}
+                  onChange={(e) => setLocalUsageExpires(e.target.value)}
+                  placeholder="Expires"
+                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+                />
+
+                <textarea
+                  value={displayUsageNotes}
+                  onChange={(e) => setLocalUsageNotes(e.target.value)}
+                  placeholder="Notes (e.g. attribution, restrictions)…"
+                  rows={2}
+                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors resize-none placeholder:text-[#333]"
+                />
+
+                <button
+                  onClick={saveUsage}
+                  disabled={usageSaving}
+                  className="w-full text-xs bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white rounded py-1.5 transition-colors disabled:opacity-40"
+                >
+                  {usageSaving ? 'Saving…' : 'Save rights'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {onTrash && (
@@ -523,7 +592,7 @@ function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () 
     <div
       ref={menuRef}
       style={style}
-      className="min-w-[160px] bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-2xl py-1 overflow-hidden"
+      className="min-w-[160px] bg-surface-0 border border-[#2a2a2a] rounded-lg shadow-2xl py-1 overflow-hidden"
     >
       <p className="px-3 py-1.5 text-[10px] text-[#444] uppercase tracking-wider font-medium">
         Move to folder
@@ -603,7 +672,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       role="button"
       tabIndex={0}
       className={clsx(
-        'group relative aspect-square bg-[#111111] rounded-lg overflow-hidden transition-all duration-150 focus:outline-none cursor-pointer',
+        'group relative aspect-square bg-surface-0 rounded-lg overflow-hidden transition-all duration-150 focus:outline-none cursor-pointer',
         inSelectionMode
           ? [
               isSelected && isRecommended  && 'ring-2 ring-inset ring-amber-400 border border-amber-400/40',
@@ -619,15 +688,12 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       onTouchMove={cancelLongPress}
       aria-label={`${inSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'} ${file.filename}`}
     >
-      {!loaded && <div className="absolute inset-0 bg-[#1a1a1a] animate-pulse" />}
+      {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
 
       {/* Quality score badge — top-right */}
       {file.quality_score != null && (
-        <div className={clsx(
-          'absolute top-2 right-2 z-10 text-[10px] font-bold px-1.5 py-0.5 rounded leading-none',
-          scoreStyle(file.quality_score)
-        )}>
-          {file.quality_score}
+        <div className="absolute top-2 right-2 z-10">
+          <Pill variant="score">{file.quality_score}</Pill>
         </div>
       )}
 
@@ -662,9 +728,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       {/* "AI Pick" label */}
       {inSelectionMode && isSelected && isRecommended && (
         <div className="absolute bottom-2 left-2 z-10">
-          <span className="text-[9px] bg-amber-400 text-black px-1.5 py-0.5 rounded font-bold leading-none tracking-wide">
-            AI PICK
-          </span>
+          <Pill variant="label">AI PICK</Pill>
         </div>
       )}
 
@@ -686,7 +750,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       )}
 
       {file.file_type === 'video' ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#1a1a1a]">
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
           <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <polygon points="5,3 19,12 5,21" />
@@ -731,19 +795,13 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
             {(previewTags.length > 0 || previewPerformers.length > 0 || previewBrands.length > 0) ? (
               <div className="flex flex-wrap gap-1">
                 {previewPerformers.map((pt) => (
-                  <span key={pt.id} className="text-[10px] px-1.5 py-px rounded-full bg-teal-500/25 text-teal-300 leading-tight">
-                    {pt.performers.name}
-                  </span>
+                  <Pill key={pt.id} variant="ghost">{pt.performers.name}</Pill>
                 ))}
                 {previewBrands.map((bt) => (
-                  <span key={bt.id} className="text-[10px] px-1.5 py-px rounded-full bg-orange-500/25 text-orange-300 leading-tight">
-                    {bt.brands.name}
-                  </span>
+                  <Pill key={bt.id} variant="ghost">{bt.brands.name}</Pill>
                 ))}
                 {previewTags.map((t) => (
-                  <span key={t.id} className="text-[10px] px-1.5 py-px rounded-full bg-white/15 text-white/80 leading-tight">
-                    {t.value}
-                  </span>
+                  <Pill key={t.id} variant="ghost">{t.value}</Pill>
                 ))}
               </div>
             ) : file.exif_date_taken ? (

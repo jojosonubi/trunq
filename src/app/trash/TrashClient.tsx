@@ -59,7 +59,7 @@ export default function TrashClient({
   if (isEmpty) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#111] border border-[#1f1f1f] flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-surface-0 border border-[#1f1f1f] flex items-center justify-center mb-4">
           <Trash2 size={22} className="text-[#333]" />
         </div>
         <p className="text-[#555] text-sm">Trash is empty</p>
@@ -80,7 +80,7 @@ export default function TrashClient({
             {trashedEvents.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center gap-4 bg-[#111111] border border-[#1f1f1f] rounded-xl px-4 py-3"
+                className="flex items-center gap-4 bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">{event.name}</p>
@@ -124,9 +124,9 @@ export default function TrashClient({
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {trashedPhotos.map((photo) => (
-              <div key={photo.id} className="group relative bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-hidden">
+              <div key={photo.id} className="group relative bg-surface-0 border border-[#1f1f1f] rounded-xl overflow-hidden">
                 {/* Thumbnail */}
-                <div className="relative aspect-square bg-[#0d0d0d]">
+                <div className="relative aspect-square bg-surface-0">
                   {photo.public_url ? (
                     <Image
                       src={photo.public_url}

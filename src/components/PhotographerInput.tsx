@@ -103,7 +103,7 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
           {photographers.map((name) => (
             <span
               key={name}
-              className="inline-flex items-center gap-1.5 bg-[#1a1a1a] border border-[#2a2a2a] text-white text-xs px-2.5 py-1 rounded-full"
+              className="inline-flex items-center gap-1.5 bg-surface-0 border border-[#2a2a2a] text-white text-xs px-2.5 py-1 rounded-full"
             >
               <User size={10} className="text-[#555]" />
               {name}
@@ -132,14 +132,14 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
             onFocus={() => { if (suggestions.length > 0) setOpen(true) }}
             placeholder="Add photographer name…"
             autoComplete="off"
-            className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
           />
 
           {/* Autocomplete dropdown */}
           {open && suggestions.length > 0 && (
             <div
               ref={panelRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-[#111111] border border-[#2a2a2a] rounded-lg overflow-hidden z-20 shadow-2xl"
+              className="absolute top-full left-0 right-0 mt-1 bg-surface-0 border border-[#2a2a2a] rounded-lg overflow-hidden z-20 shadow-2xl"
             >
               {suggestions.map((p, i) => (
                 <button
@@ -165,7 +165,7 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
           type="button"
           onClick={() => commit(input)}
           disabled={!input.trim()}
-          className="px-3 py-2.5 bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] rounded text-sm transition-colors disabled:opacity-30"
+          className="px-3 py-2.5 bg-surface-0 border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] rounded text-sm transition-colors disabled:opacity-30"
           aria-label="Add photographer"
         >
           <Plus size={15} />

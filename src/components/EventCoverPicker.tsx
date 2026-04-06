@@ -30,7 +30,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetch(`/api/events/${eventId}/covers`)
+    fetch(`/api/projects/${eventId}/covers`)
       .then((r) => r.json())
       .then((d) => { setPhotos(d.photos ?? []); setLoading(false) })
       .catch(() => setLoading(false))
@@ -47,7 +47,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
     setSaving(true)
     try {
       if (tab === 'gallery' && selected) {
-        await fetch(`/api/events/${eventId}/cover`, {
+        await fetch(`/api/projects/${eventId}/cover`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ storage_path: selected }),
@@ -55,7 +55,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
       } else if (tab === 'upload' && uploadFile) {
         const fd = new FormData()
         fd.append('file', uploadFile)
-        await fetch(`/api/events/${eventId}/cover`, { method: 'POST', body: fd })
+        await fetch(`/api/projects/${eventId}/cover`, { method: 'POST', body: fd })
       }
       router.refresh()
       onClose()
@@ -72,7 +72,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
       onClick={() => !saving && onClose()}
     >
       <div
-        className="bg-[#141414] border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[85vh]"
+        className="bg-surface-0 border border-[#2a2a2a] rounded-xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -164,7 +164,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
                 onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
               />
               {previewUrl ? (
-                <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-[#0d0d0d]">
+                <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden bg-surface-0">
                   <Image src={previewUrl} alt="" fill className="object-cover" unoptimized sizes="600px" />
                   <button
                     onClick={() => { setUploadFile(null); fileInputRef.current && (fileInputRef.current.value = '') }}

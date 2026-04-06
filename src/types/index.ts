@@ -13,6 +13,9 @@ export interface Event {
   deleted_at: string | null
 }
 
+/** Alias — the DB table stays "events", but the UI calls them Projects. */
+export type Project = Event
+
 export interface Photographer {
   id: string
   name: string
@@ -105,6 +108,9 @@ export interface MediaFile {
   quality_score: number | null
   description: string | null
   photographer: string | null
+  usage_type: 'all_rights' | 'editorial_only' | 'client_use' | 'restricted' | null
+  usage_expires_at: string | null
+  usage_notes: string | null
   review_status: 'pending' | 'approved' | 'rejected' | 'held'
   starred: boolean
   folder_id: string | null

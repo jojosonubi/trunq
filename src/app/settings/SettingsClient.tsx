@@ -11,6 +11,7 @@ import {
   XCircle, Filter,
 } from 'lucide-react'
 import UserMenu from '@/components/UserMenu'
+import Pill from '@/components/ui/Pill'
 import { createClient } from '@/lib/supabase/client'
 import type { UserProfile } from '@/lib/auth'
 import type { BackupStats } from '@/app/api/backup/route'
@@ -37,17 +38,19 @@ interface VerifyResult {
 }
 
 interface Props {
-  currentProfile: UserProfile
-  users?:         UserProfile[]
-  invites?:       Invite[]
-  backupStats?:   BackupStats | null
-  photographers?: Photographer[]
-  trashedEvents?: Event[]
-  trashedPhotos?: MediaFile[]
-  auditLogs?:     AuditLog[]
+  currentProfile:   UserProfile
+  users?:           UserProfile[]
+  invites?:         Invite[]
+  backupStats?:     BackupStats | null
+  photographers?:   Photographer[]
+  trashedEvents?:   Event[]
+  trashedPhotos?:   MediaFile[]
+  auditLogs?:       AuditLog[]
+  expiringRights?:  MediaFile[]
+  unlicensedPhotos?: MediaFile[]
 }
 
-type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'audit' | 'danger'
+type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'rights' | 'audit' | 'danger'
 
 const ACTION_LABELS: Record<string, string> = {
   photo_uploaded:              'Photo uploaded',
@@ -63,11 +66,17 @@ const ACTION_LABELS: Record<string, string> = {
   delivery_portal_created:     'Delivery portal created',
   delivery_portal_accessed:    'Delivery portal accessed',
   user_login:                  'User login',
-  event_created:               'Event created',
-  event_edited:                'Event edited',
-  event_deleted:               'Event trashed',
-  event_restored:              'Event restored',
-  event_permanently_deleted:   'Event permanently deleted',
+  event_created:               'Project created',
+  event_edited:                'Project edited',
+  event_deleted:               'Project trashed',
+  event_restored:              'Project restored',
+  event_permanently_deleted:   'Project permanently deleted',
+  project_created:             'Project created',
+  project_edited:              'Project edited',
+  project_deleted:             'Project trashed',
+  project_restored:            'Project restored',
+  project_permanently_deleted: 'Project permanently deleted',
+  usage_rights_updated:        'Usage rights updated',
   team_member_invited:         'Member invited',
   team_member_removed:         'Member removed',
 }
@@ -89,23 +98,17 @@ function initials(p: UserProfile) {
   return p.email[0].toUpperCase()
 }
 
-const ROLE_PILL: Record<string, string> = {
-  admin:        'text-amber-400 bg-amber-400/8 border-amber-400/20',
-  producer:     'text-blue-400 bg-blue-400/8 border-blue-400/20',
-  photographer: 'text-[#666] bg-white/4 border-white/10',
-}
-
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHead({ id, icon: Icon, title, subtitle }: { id: string; icon: React.ElementType; title: string; subtitle?: string }) {
   return (
     <div id={id} className="flex items-center gap-3 mb-6 scroll-mt-24">
-      <div className="w-8 h-8 rounded-lg bg-[#141414] border border-[#222] flex items-center justify-center shrink-0">
-        <Icon size={14} className="text-[#555]" />
+      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'var(--surface-0)', border: 'var(--border-subtle)' }}>
+        <Icon size={14} style={{ color: 'var(--text-muted)' }} />
       </div>
       <div>
-        <h2 className="text-white text-sm font-semibold">{title}</h2>
-        {subtitle && <p className="text-[#555] text-xs mt-0.5">{subtitle}</p>}
+        <h2 className="text-sm font-semibold track-heading" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        {subtitle && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
     </div>
   )
@@ -115,7 +118,7 @@ function SectionHead({ id, icon: Icon, title, subtitle }: { id: string; icon: Re
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[#0f0f0f] border border-[#1a1a1a] rounded-xl ${className}`}>
+    <div className={`rounded ${className}`} style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}>
       {children}
     </div>
   )
@@ -132,6 +135,8 @@ export default function SettingsClient({
   trashedEvents = [],
   trashedPhotos = [],
   auditLogs = [],
+  expiringRights = [],
+  unlicensedPhotos = [],
 }: Props) {
   const router       = useRouter()
   const isAdmin      = currentProfile.role === 'admin'
@@ -150,6 +155,7 @@ export default function SettingsClient({
       { id: 'team'    as SectionId, label: 'Team',           icon: Users        },
       { id: 'storage' as SectionId, label: 'Storage & Data', icon: HardDrive    },
       { id: 'trash'   as SectionId, label: 'Trash',          icon: Trash2       },
+      { id: 'rights'  as SectionId, label: 'Rights',         icon: ShieldCheck  },
       { id: 'audit'   as SectionId, label: 'Audit log',      icon: History      },
       { id: 'danger'  as SectionId, label: 'Danger zone',    icon: AlertTriangle},
     ] : []),
@@ -359,13 +365,13 @@ export default function SettingsClient({
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] sticky top-0 z-20">
+      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/events" className="text-[#555] hover:text-white transition-colors">
+            <Link href="/projects" className="text-[#555] hover:text-white transition-colors">
               <ArrowLeft size={15} />
             </Link>
             <div className="flex items-center gap-2">
@@ -424,8 +430,8 @@ export default function SettingsClient({
                 <div>
                   <p className="text-white text-sm font-medium">{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
                   <p className="text-[#555] text-xs mt-0.5">{currentProfile.email}</p>
-                  <span className={`inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize ${ROLE_PILL[currentProfile.role] ?? ROLE_PILL.photographer}`}>
-                    {currentProfile.role}
+                  <span className="inline-block mt-1.5">
+                    <Pill variant="ghost">{currentProfile.role}</Pill>
                   </span>
                 </div>
               </div>
@@ -440,7 +446,7 @@ export default function SettingsClient({
                     onChange={(e) => setNameValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && saveName()}
                     placeholder="Your name"
-                    className="flex-1 bg-[#111] border border-[#222] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                    className="flex-1 bg-surface-0 border border-[#222] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                   />
                   <button
                     onClick={saveName}
@@ -485,7 +491,7 @@ export default function SettingsClient({
                         value={newPass}
                         onChange={(e) => setNewPass(e.target.value)}
                         placeholder="New password"
-                        className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                       />
                       <button onClick={() => setShowNew((v) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888]">
                         {showNew ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -498,7 +504,7 @@ export default function SettingsClient({
                         onChange={(e) => setConfirmPass(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && changePassword()}
                         placeholder="Confirm new password"
-                        className="w-full bg-[#111] border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                       />
                       <button onClick={() => setShowConfirm((v) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888]">
                         {showConfirm ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -554,9 +560,7 @@ export default function SettingsClient({
                         </p>
                         <p className="text-[#555] text-xs truncate">{u.email}</p>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize shrink-0 ${ROLE_PILL[u.role] ?? ROLE_PILL.photographer}`}>
-                        {u.role}
-                      </span>
+                      <Pill variant="ghost">{u.role}</Pill>
                       <p className="text-[#333] text-xs shrink-0 hidden sm:block tabular-nums">{formatDate(u.created_at)}</p>
                       {u.id !== currentProfile.id && (
                         <button
@@ -585,7 +589,7 @@ export default function SettingsClient({
                     <select
                       value={newRole}
                       onChange={(e) => setNewRole(e.target.value as typeof newRole)}
-                      className="bg-[#111] border border-[#1f1f1f] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] transition-colors appearance-none cursor-pointer"
+                      className="bg-surface-0 border border-[#1f1f1f] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] transition-colors appearance-none cursor-pointer"
                     >
                       <option value="photographer">Photographer</option>
                       <option value="producer">Producer</option>
@@ -606,9 +610,7 @@ export default function SettingsClient({
                       {activeInvites.map((inv, i) => (
                         <div key={inv.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-[#161616]' : ''}`}>
                           <code className="text-[#888] text-xs font-mono flex-1 truncate">{inv.code}</code>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize shrink-0 ${ROLE_PILL[inv.role] ?? ROLE_PILL.photographer}`}>
-                            {inv.role}
-                          </span>
+                          <Pill variant="ghost">{inv.role}</Pill>
                           <span className="text-[#333] text-xs shrink-0 hidden sm:flex items-center gap-1">
                             <Clock size={10} />
                             {formatDate(inv.expires_at)}
@@ -686,7 +688,7 @@ export default function SettingsClient({
                           </div>
                           <span className="text-[#555] text-xs tabular-nums">{localStats.backed_up} / {localStats.total}</span>
                         </div>
-                        <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-surface-0 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${allGood ? 'bg-emerald-500' : coverage >= 80 ? 'bg-blue-500' : 'bg-amber-400'}`}
                             style={{ width: `${coverage}%` }}
@@ -805,12 +807,12 @@ export default function SettingsClient({
                           href={`/photographers/${p.id}`}
                           className={`flex items-center gap-3 px-4 py-3.5 hover:bg-white/3 transition-colors group ${i > 0 ? 'border-t border-[#161616]' : ''}`}
                         >
-                          <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-surface-0 border border-[#2a2a2a] flex items-center justify-center shrink-0">
                             <Camera size={12} className="text-[#555]" />
                           </div>
                           <span className="text-white text-sm flex-1 group-hover:underline underline-offset-2">{p.name}</span>
                           <span className="text-[#444] text-xs tabular-nums">{p.photoCount} photo{p.photoCount !== 1 ? 's' : ''}</span>
-                          <span className="text-[#333] text-xs tabular-nums">{p.eventCount} event{p.eventCount !== 1 ? 's' : ''}</span>
+                          <span className="text-[#333] text-xs tabular-nums">{p.eventCount} project{p.eventCount !== 1 ? 's' : ''}</span>
                         </Link>
                       ))}
                     </Card>
@@ -835,7 +837,7 @@ export default function SettingsClient({
                       <div>
                         <p className="text-[#444] text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
                           <Calendar size={11} />
-                          Events ({tEvents.length})
+                          Projects ({tEvents.length})
                         </p>
                         <div className="space-y-2">
                           {tEvents.map((event) => (
@@ -882,7 +884,7 @@ export default function SettingsClient({
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                           {tPhotos.map((photo) => (
                             <Card key={photo.id} className="overflow-hidden">
-                              <div className="relative aspect-square bg-[#0d0d0d]">
+                              <div className="relative aspect-square bg-surface-0">
                                 {photo.public_url ? (
                                   <img
                                     src={photo.public_url}
@@ -931,6 +933,75 @@ export default function SettingsClient({
               </section>
 
               {/* ╔══════════════════════════════════════════════════╗ */}
+              {/* ║  RIGHTS & LICENSING                              ║ */}
+              {/* ╚══════════════════════════════════════════════════╝ */}
+              <section>
+                <SectionHead id="rights" icon={ShieldCheck} title="Rights & Licensing" subtitle="Usage rights status across all media" />
+
+                <div className="space-y-4">
+                  {/* Summary pills */}
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-0 border border-[#1f1f1f] rounded-lg">
+                      <span className="text-[#555] text-xs">Unlicensed</span>
+                      <span className="text-white text-sm font-semibold tabular-nums">{unlicensedPhotos.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-0 border border-[#1f1f1f] rounded-lg">
+                      <span className="text-amber-400 text-xs">Expiring soon</span>
+                      <span className="text-white text-sm font-semibold tabular-nums">{expiringRights.length}</span>
+                    </div>
+                  </div>
+
+                  {/* Expiring rights */}
+                  {expiringRights.length > 0 && (
+                    <Card>
+                      <div className="px-5 py-3 border-b border-[#1a1a1a]">
+                        <p className="text-[#888] text-xs font-medium uppercase tracking-wider">Expiring within 30 days</p>
+                      </div>
+                      <div className="divide-y divide-[#111]">
+                        {expiringRights.map((f) => (
+                          <div key={f.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="text-white text-xs truncate font-mono">{f.filename}</p>
+                              <p className="text-[#555] text-[11px] mt-0.5">
+                                Expires {f.usage_expires_at ? new Date(f.usage_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                              </p>
+                            </div>
+                            <Pill variant={f.usage_type === 'restricted' ? 'flagged' : 'ghost'}>
+                              {f.usage_type?.replace(/_/g, ' ') ?? '—'}
+                            </Pill>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Unlicensed notice */}
+                  {unlicensedPhotos.length > 0 && (
+                    <Card>
+                      <div className="px-5 py-3 border-b border-[#1a1a1a]">
+                        <p className="text-[#888] text-xs font-medium uppercase tracking-wider">Photos without usage rights set</p>
+                      </div>
+                      <div className="px-5 py-4">
+                        <p className="text-[#555] text-xs leading-relaxed">
+                          {unlicensedPhotos.length} photo{unlicensedPhotos.length !== 1 ? 's' : ''} have no usage rights assigned. Open each photo in its project to set rights.
+                        </p>
+                      </div>
+                    </Card>
+                  )}
+
+                  {expiringRights.length === 0 && unlicensedPhotos.length === 0 && (
+                    <Card>
+                      <div className="px-5 py-8 flex flex-col items-center text-center">
+                        <ShieldCheck size={20} className="text-emerald-400 mb-2" />
+                        <p className="text-white text-sm font-medium">All rights accounted for</p>
+                        <p className="text-[#555] text-xs mt-1">No expiring or unlicensed media found.</p>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              </section>
+
+              {/* ╔══════════════════════════════════════════════════╗ */}
               {/* ║  AUDIT LOG                                       ║ */}
               {/* ╚══════════════════════════════════════════════════╝ */}
               <section>
@@ -943,7 +1014,7 @@ export default function SettingsClient({
                     <select
                       value={auditActionFilter}
                       onChange={(e) => setAuditActionFilter(e.target.value)}
-                      className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:border-[#333] appearance-none cursor-pointer"
+                      className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:border-[#333] appearance-none cursor-pointer"
                     >
                       <option value="">All actions</option>
                       {uniqueActions.map((a) => (
@@ -956,14 +1027,14 @@ export default function SettingsClient({
                     value={auditDateFrom}
                     onChange={(e) => setAuditDateFrom(e.target.value)}
                     placeholder="From"
-                    className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
                   />
                   <input
                     type="date"
                     value={auditDateTo}
                     onChange={(e) => setAuditDateTo(e.target.value)}
                     placeholder="To"
-                    className="bg-[#111] border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
                   />
                   {(auditActionFilter || auditDateFrom || auditDateTo) && (
                     <button

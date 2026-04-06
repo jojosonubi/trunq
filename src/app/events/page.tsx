@@ -105,10 +105,10 @@ export default async function EventsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
 
       {/* ── Top nav ─────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] sticky top-0 z-20">
+      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
           {/* Wordmark */}
           <div className="flex items-center gap-2.5">
@@ -154,7 +154,7 @@ export default async function EventsPage() {
           <div className="max-w-7xl mx-auto px-6 py-0 flex divide-x divide-[#1a1a1a]">
             {stats.map(({ label, value, icon: Icon }) => (
               <div key={label} className="flex items-center gap-3 px-8 py-4 first:pl-0 last:pr-0">
-                <div className="w-7 h-7 rounded-lg bg-[#141414] border border-[#1f1f1f] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-surface-0 border border-[#1f1f1f] flex items-center justify-center shrink-0">
                   <Icon size={13} className="text-[#555]" />
                 </div>
                 <div>
@@ -175,7 +175,7 @@ export default async function EventsPage() {
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="relative mb-8">
                 <div className="w-24 h-24 rounded-full bg-white/3 border border-[#1f1f1f] flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-[#111] border border-[#2a2a2a] flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-surface-0 border border-[#2a2a2a] flex items-center justify-center">
                     <ImageIcon size={24} className="text-[#555]" />
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export default async function EventsPage() {
                   { title: 'AI tagging', body: 'Auto-tag scene, mood, and subjects. Search by keyword.' },
                 ].map((f) => (
                   <div key={f.title} className="space-y-1.5">
-                    <div className="w-5 h-px bg-[#2a2a2a]" />
+                    <div className="w-5 h-px bg-surface-2" />
                     <p className="text-white text-xs font-medium">{f.title}</p>
                     <p className="text-[#444] text-[11px] leading-relaxed">{f.body}</p>
                   </div>

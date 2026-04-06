@@ -105,7 +105,7 @@ export default function FolderSidebar({
                     if (e.key === 'Enter')  submitRename(folder.id)
                     if (e.key === 'Escape') setRenamingId(null)
                   }}
-                  className="flex-1 min-w-0 bg-[#1a1a1a] border border-[#333] text-white text-xs px-2 py-1 rounded focus:outline-none"
+                  className="flex-1 min-w-0 bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded focus:outline-none"
                 />
                 <button
                   onClick={() => submitRename(folder.id)}
@@ -143,7 +143,7 @@ export default function FolderSidebar({
 
             {/* Hover actions (only visible when not renaming) */}
             {!isRenaming && (
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0a0a0a] rounded px-0.5">
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-0 rounded px-0.5">
                 <button
                   onClick={(e) => { e.stopPropagation(); startRename(folder) }}
                   className="p-1 text-[#444] hover:text-white transition-colors"
@@ -197,7 +197,7 @@ export default function FolderSidebar({
               if (e.key === 'Enter')  submitCreate()
               if (e.key === 'Escape') { setCreating(false); setCreateValue('') }
             }}
-            className="flex-1 min-w-0 bg-[#1a1a1a] border border-[#333] text-white text-xs px-2 py-1 rounded placeholder:text-[#444] focus:outline-none"
+            className="flex-1 min-w-0 bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded placeholder:text-[#444] focus:outline-none"
           />
           <button
             onClick={submitCreate}

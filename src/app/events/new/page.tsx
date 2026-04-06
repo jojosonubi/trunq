@@ -123,7 +123,7 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
       <header className="border-b border-[#1f1f1f] px-6 py-4">
         <div className="max-w-7xl mx-auto">
           <span className="font-mono tracking-widest text-sm text-white uppercase">Archive</span>
@@ -151,7 +151,7 @@ export default function NewEventPage() {
               id="name" name="name" type="text"
               value={form.name} onChange={handleChange}
               placeholder="e.g. Summer Festival 2024"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
               required
             />
           </div>
@@ -164,7 +164,7 @@ export default function NewEventPage() {
             <input
               id="date" name="date" type="date"
               value={form.date} onChange={handleChange}
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
               required
             />
           </div>
@@ -178,7 +178,7 @@ export default function NewEventPage() {
               id="location" name="location" type="text"
               value={form.location} onChange={handleChange}
               placeholder="e.g. Hackney, London"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
@@ -191,7 +191,7 @@ export default function NewEventPage() {
               id="venue" name="venue" type="text"
               value={form.venue} onChange={handleChange}
               placeholder="e.g. Fabric, Egg London, Fold"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
@@ -205,7 +205,7 @@ export default function NewEventPage() {
               value={form.description} onChange={handleChange}
               placeholder="Brief description of the event…"
               rows={3}
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
             />
           </div>
 
@@ -230,7 +230,7 @@ export default function NewEventPage() {
                   onChange={(e) => setMultiDay(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full peer-checked:bg-white transition-colors" />
+                <div className="w-9 h-5 bg-surface-0 border border-[#2a2a2a] rounded-full peer-checked:bg-white transition-colors" />
                 <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#555] rounded-full transition-all peer-checked:translate-x-4 peer-checked:bg-black" />
               </div>
               <span className="text-sm text-[#888888] group-hover:text-white transition-colors select-none flex items-center gap-1.5">
@@ -250,7 +250,7 @@ export default function NewEventPage() {
                   max={14}
                   value={dayCount}
                   onChange={(e) => setDayCount(Math.max(2, Math.min(14, parseInt(e.target.value) || 2)))}
-                  className="w-20 bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-[#444] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-20 bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-[#444] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 {photographers.length > 0 && (
                   <p className="text-[#444] text-xs">

@@ -33,7 +33,7 @@ function EventRow({ event, onClick }: { event: EventResult; onClick: () => void 
       onClick={onClick}
       className="flex items-center gap-3 w-full text-left px-4 py-2.5 hover:bg-white/4 transition-colors group/row"
     >
-      <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#222] flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-surface-0 border border-[#222] flex items-center justify-center shrink-0">
         <Calendar size={13} className="text-[#555]" />
       </div>
       <div className="flex-1 min-w-0">
@@ -55,7 +55,7 @@ function PhotoRow({ photo, onClick }: { photo: PhotoResult; onClick: () => void 
       onClick={onClick}
       className="flex items-center gap-3 w-full text-left px-4 py-2 hover:bg-white/4 transition-colors group/row"
     >
-      <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#1a1a1a] shrink-0 relative">
+      <div className="w-12 h-12 rounded-lg overflow-hidden bg-surface-0 shrink-0 relative">
         {imgSrc ? (
           <Image src={imgSrc} alt="" fill className="object-cover" unoptimized sizes="48px" />
         ) : (
@@ -80,7 +80,7 @@ function PerformerRow({ performer, onClick }: { performer: PerformerResult; onCl
       onClick={onClick}
       className="flex items-center gap-3 w-full text-left px-4 py-2.5 hover:bg-white/4 transition-colors group/row"
     >
-      <div className="w-8 h-8 rounded-full overflow-hidden bg-[#1a1a1a] border border-[#222] flex items-center justify-center shrink-0 relative">
+      <div className="w-8 h-8 rounded-full overflow-hidden bg-surface-0 border border-[#222] flex items-center justify-center shrink-0 relative">
         {performer.reference_url ? (
           <Image
             src={performer.reference_url}
@@ -204,8 +204,8 @@ export default function GlobalSearch() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => { if (e.key === 'Enter') goToFullResults() }}
-          placeholder="Search across all events, photos, tags…"
-          className="w-full bg-[#0d0d0d] border border-[#1a1a1a] focus:border-[#2a2a2a] rounded-xl pl-11 pr-10 py-3 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none transition-colors"
+          placeholder="Search across all projects, photos, tags…"
+          className="w-full bg-surface-0 border border-[#1a1a1a] focus:border-[#2a2a2a] rounded-xl pl-11 pr-10 py-3 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none transition-colors"
           autoComplete="off"
         />
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -221,7 +221,7 @@ export default function GlobalSearch() {
 
       {/* ── Results panel ─────────────────────────────────────────────────── */}
       {showPanel && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0f0f0f] border border-[#1f1f1f] rounded-xl shadow-2xl z-50 overflow-hidden max-h-[540px] overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-surface-0 border border-[#1f1f1f] rounded-xl shadow-2xl z-50 overflow-hidden max-h-[540px] overflow-y-auto">
 
           {/* Loading skeleton */}
           {loading && !results && (
@@ -249,12 +249,12 @@ export default function GlobalSearch() {
               {/* Events */}
               {results.events.length > 0 && (
                 <>
-                  <SectionHeader label="Events" hasBorder={false} />
+                  <SectionHeader label="Projects" hasBorder={false} />
                   {results.events.map((ev) => (
                     <EventRow
                       key={ev.id}
                       event={ev}
-                      onClick={() => navigate(`/events/${ev.id}`)}
+                      onClick={() => navigate(`/projects/${ev.id}`)}
                     />
                   ))}
                 </>
@@ -268,7 +268,7 @@ export default function GlobalSearch() {
                     <PhotoRow
                       key={ph.id}
                       photo={ph}
-                      onClick={() => navigate(`/events/${ph.event_id}?photo=${ph.id}`)}
+                      onClick={() => navigate(`/projects/${ph.event_id}?photo=${ph.id}`)}
                     />
                   ))}
                 </>
@@ -285,7 +285,7 @@ export default function GlobalSearch() {
                     <PerformerRow
                       key={p.id}
                       performer={p}
-                      onClick={() => navigate(`/events/${p.event_id}?tab=performers`)}
+                      onClick={() => navigate(`/projects/${p.event_id}?tab=performers`)}
                     />
                   ))}
                 </>

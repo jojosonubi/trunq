@@ -162,7 +162,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
   const isEmpty = selectedFiles.length === 0
 
   return (
-    <div className="w-[300px] shrink-0 sticky top-6 self-start bg-[#0e0e0e] border border-[#1a1a1a] rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-6rem)]">
+    <div className="w-[300px] shrink-0 sticky top-6 self-start bg-surface-0 border border-[#1a1a1a] rounded-xl overflow-hidden flex flex-col max-h-[calc(100vh-6rem)]">
 
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="px-4 py-3.5 border-b border-[#1a1a1a] flex items-center justify-between gap-2">
@@ -210,7 +210,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
       <div className="flex-1 overflow-y-auto">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center py-14 px-4 text-center">
-            <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center mb-3">
+            <div className="w-10 h-10 rounded-full bg-surface-0 flex items-center justify-center mb-3">
               <Download size={18} className="text-[#444]" />
             </div>
             <p className="text-[#555] text-sm">No images selected</p>

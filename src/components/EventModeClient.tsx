@@ -167,10 +167,10 @@ export default function EventModeClient({ event, profile }: Props) {
   const sessionDone   = uploads.filter((u) => u.status === 'done').length
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      <header className="px-4 h-14 flex items-center justify-between border-b border-[#1a1a1a] sticky top-0 z-20 bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0 flex flex-col">
+      <header className="px-4 h-14 flex items-center justify-between border-b border-[#1a1a1a] sticky top-0 z-20 bg-surface-0">
         <Link
-          href={`/events/${event.id}`}
+          href={`/projects/${event.id}`}
           className="flex items-center gap-1 text-[#888] hover:text-white transition-colors"
         >
           <ChevronLeft size={18} />
@@ -186,7 +186,7 @@ export default function EventModeClient({ event, profile }: Props) {
           {isConnected
             ? <Wifi size={15} className="text-green-500" />
             : <WifiOff size={15} className="text-[#555]" />}
-          <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-[#333]'}`} />
+          <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-surface-3'}`} />
         </div>
       </header>
 
@@ -213,7 +213,7 @@ export default function EventModeClient({ event, profile }: Props) {
                 onChange={(e) => setSendToFeed(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-9 h-5 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full peer-checked:bg-red-500/80 transition-colors" />
+              <div className="w-9 h-5 bg-surface-0 border border-[#2a2a2a] rounded-full peer-checked:bg-red-500/80 transition-colors" />
               <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#555] rounded-full transition-all peer-checked:translate-x-4 peer-checked:bg-white" />
             </div>
             <span className={clsx(
@@ -241,12 +241,12 @@ export default function EventModeClient({ event, profile }: Props) {
             {activeUploads.map((upload) => (
               <div
                 key={upload.id}
-                className="bg-[#141414] border border-[#1f1f1f] rounded-xl p-3 flex items-center gap-3"
+                className="bg-surface-0 border border-[#1f1f1f] rounded-xl p-3 flex items-center gap-3"
               >
                 <img src={upload.previewUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-xs truncate mb-1.5">{upload.file.name}</p>
-                  <div className="h-1 bg-[#2a2a2a] rounded-full overflow-hidden">
+                  <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-white rounded-full transition-all duration-200"
                       style={{ width: `${upload.progress}%` }}
@@ -268,7 +268,7 @@ export default function EventModeClient({ event, profile }: Props) {
             </div>
             <div className="grid grid-cols-3 gap-0.5">
               {recentPhotos.map((photo) => (
-                <div key={photo.id} className="aspect-square relative overflow-hidden bg-[#141414]">
+                <div key={photo.id} className="aspect-square relative overflow-hidden bg-surface-0">
                   <img
                     src={transformUrl(photo.signed_url ?? photo.public_url, 400)}
                     alt=""

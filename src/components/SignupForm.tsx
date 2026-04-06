@@ -96,7 +96,7 @@ export default function SignupForm({ initialCode }: Props) {
       return
     }
 
-    router.push('/events')
+    router.push('/projects')
     router.refresh()
   }
 
@@ -105,7 +105,7 @@ export default function SignupForm({ initialCode }: Props) {
     : null
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-0 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[360px]">
 
         <div className="mb-10">
@@ -121,7 +121,7 @@ export default function SignupForm({ initialCode }: Props) {
               onChange={(e) => handleCodeChange(e.target.value)}
               placeholder="Invite code"
               required
-              className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors pr-28"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors pr-28"
             />
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {validating && (
@@ -146,7 +146,7 @@ export default function SignupForm({ initialCode }: Props) {
             placeholder="Full name"
             required
             autoComplete="name"
-            className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
           <input
             type="email"
@@ -155,7 +155,7 @@ export default function SignupForm({ initialCode }: Props) {
             placeholder="Email address"
             required
             autoComplete="email"
-            className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
           <input
             type="password"
@@ -165,7 +165,7 @@ export default function SignupForm({ initialCode }: Props) {
             required
             minLength={8}
             autoComplete="new-password"
-            className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
 
           {error && (

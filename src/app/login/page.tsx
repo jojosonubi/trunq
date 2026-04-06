@@ -60,12 +60,12 @@ export default function LoginPage() {
       }),
     }).catch(() => {})
 
-    router.push('/events')
+    router.push('/projects')
     router.refresh()
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-0 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[360px]">
 
         <div className="mb-10">
@@ -80,7 +80,7 @@ export default function LoginPage() {
             placeholder="Email address"
             required
             autoComplete="email"
-            className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
           <input
             type="password"
@@ -89,7 +89,7 @@ export default function LoginPage() {
             placeholder="Password"
             required
             autoComplete="current-password"
-            className="w-full bg-[#111] border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
 
           {error && (

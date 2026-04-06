@@ -4,17 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Radio } from 'lucide-react'
 import Link from 'next/link'
-import clsx from 'clsx'
 import type { Event, MediaFile } from '@/types'
 import { liveFeedChannel } from '@/components/EventModeClient'
 import { transformUrl } from '@/lib/supabase/storage'
-
-function scoreStyle(score: number): string {
-  if (score >= 90) return 'bg-emerald-500 text-white'
-  if (score >= 75) return 'bg-blue-500 text-white'
-  if (score >= 50) return 'bg-amber-400 text-black'
-  return 'bg-red-500 text-white'
-}
+import Pill from '@/components/ui/Pill'
 
 interface Props { event: Event; initialPhotos: MediaFile[] }
 
@@ -56,16 +49,16 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
   }, [event.id])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <header className="sticky top-0 z-20 bg-[#0a0a0a]/95 backdrop-blur border-b border-[#1a1a1a]">
+    <div className="min-h-screen bg-surface-0">
+      <header className="sticky top-0 z-20 bg-surface-0/95 backdrop-blur border-b border-[#1a1a1a]">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href={`/events/${event.id}`} className="text-[#888] text-sm hover:text-white transition-colors">
+          <Link href={`/projects/${event.id}`} className="text-[#888] text-sm hover:text-white transition-colors">
             ← {event.name}
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-[#555] text-xs tabular-nums">{photos.length} photos</span>
             <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full transition-colors ${isConnected ? 'bg-red-500 animate-pulse' : 'bg-[#333]'}`} />
+              <div className={`w-2 h-2 rounded-full transition-colors ${isConnected ? 'bg-red-500 animate-pulse' : 'bg-surface-3'}`} />
               <span className="text-xs text-[#555]">{isConnected ? 'Live' : 'Connecting...'}</span>
             </div>
           </div>
@@ -86,15 +79,13 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-1.5 space-y-1.5">
             {photos.map((photo) => (
-              <div key={photo.id} className="break-inside-avoid overflow-hidden rounded-sm bg-[#141414] relative group">
+              <div key={photo.id} className="break-inside-avoid overflow-hidden rounded-sm bg-surface-0 relative group">
                 <img src={transformUrl(photo.signed_url ?? photo.public_url, 400)} alt="" className="w-full h-auto block" loading="lazy" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2">
                   <div>
                     {photo.photographer && <p className="text-white text-xs font-medium">{photo.photographer}</p>}
                     {photo.quality_score != null && (
-                      <span className={clsx('text-[10px] font-bold px-1.5 py-0.5 rounded leading-none', scoreStyle(photo.quality_score))}>
-                        {photo.quality_score}
-                      </span>
+                      <Pill variant="score">{photo.quality_score}</Pill>
                     )}
                   </div>
                 </div>

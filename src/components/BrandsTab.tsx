@@ -151,7 +151,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
 
       {/* Add form */}
       {adding && (
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-lg p-4 space-y-3">
+        <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 space-y-3">
           <p className="text-white text-sm font-medium">New brand</p>
           <input
             autoFocus
@@ -162,7 +162,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
               if (e.key === 'Escape') { setAdding(false); setDraftName('') }
             }}
             placeholder="Brand name (e.g. Red Bull, Nike)"
-            className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
+            className="w-full bg-surface-0 border border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
           />
           <div className="flex items-center gap-2">
             <button
@@ -191,8 +191,8 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
             const isUploading = uploadingRef === brand.id
 
             return (
-              <div key={brand.id} className="bg-[#111111] border border-[#1f1f1f] rounded-lg p-4 flex items-start gap-3">
-                <div className="w-12 h-12 rounded-lg shrink-0 bg-[#1a1a1a] border border-[#222] overflow-hidden flex items-center justify-center relative">
+              <div key={brand.id} className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 flex items-start gap-3">
+                <div className="w-12 h-12 rounded-lg shrink-0 bg-surface-0 border border-[#222] overflow-hidden flex items-center justify-center relative">
                   {isUploading ? (
                     <Loader2 size={16} className="text-[#555] animate-spin" />
                   ) : brand.reference_url ? (
@@ -248,7 +248,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
 
       {/* Scan controls */}
       {brandsWithRef.length > 0 && (
-        <div className="bg-[#111111] border border-[#1f1f1f] rounded-lg p-4">
+        <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-white text-sm font-medium">Scan for brands</p>
@@ -277,7 +277,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
           {scanState.phase === 'scanning' && (
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2.5">
-                <div className="flex-1 h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-surface-0 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-orange-500 rounded-full transition-all duration-300"
                     style={{ width: `${Math.round((scanState.done / scanState.total) * 100)}%` }}

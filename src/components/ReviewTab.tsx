@@ -7,6 +7,7 @@ import { Check, Pause, X, Zap, CheckCircle2 } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
+import Pill from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,13 +27,6 @@ function cardBorderClass(status: ReviewStatus): string {
     case 'held':     return 'border-amber-500/40 ring-1 ring-inset ring-amber-500/20'
     default:         return 'border-[#1f1f1f]'
   }
-}
-
-function scoreStyle(score: number): string {
-  if (score >= 90) return 'bg-emerald-500 text-white'
-  if (score >= 75) return 'bg-blue-500 text-white'
-  if (score >= 50) return 'bg-amber-400 text-black'
-  return 'bg-red-500 text-white'
 }
 
 // ─── ReviewTab ────────────────────────────────────────────────────────────────
@@ -302,12 +296,12 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                   <div
                     key={file.id}
                     className={clsx(
-                      'rounded-lg overflow-hidden border bg-[#111111] flex flex-col transition-all duration-150',
+                      'rounded-lg overflow-hidden border bg-surface-0 flex flex-col transition-all duration-150',
                       cardBorderClass(status),
                       isLoading && 'opacity-60 pointer-events-none'
                     )}
                   >
-                    <div className="relative aspect-square bg-[#1a1a1a]">
+                    <div className="relative aspect-square bg-surface-0">
                       <Image
                         src={transformUrl(file.signed_url ?? file.public_url, 400)}
                         alt={file.filename}
@@ -318,11 +312,8 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                       />
 
                       {file.quality_score != null && (
-                        <div className={clsx(
-                          'absolute top-1.5 right-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded leading-none',
-                          scoreStyle(file.quality_score)
-                        )}>
-                          {file.quality_score}
+                        <div className="absolute top-1.5 right-1.5">
+                          <Pill variant="score">{file.quality_score}</Pill>
                         </div>
                       )}
 
@@ -346,9 +337,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                       {previewTags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {previewTags.map((t) => (
-                            <span key={t.id} className="text-[9px] px-1.5 py-px bg-white/5 text-[#555] rounded-full leading-tight">
-                              {t.value}
-                            </span>
+                            <Pill key={t.id} variant="ghost">{t.value}</Pill>
                           ))}
                         </div>
                       )}
@@ -362,7 +351,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                             'flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all',
                             status === 'approved'
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-[#1a1a1a] text-[#555] hover:bg-emerald-500/10 hover:text-emerald-400 border border-[#222] hover:border-emerald-500/20'
+                              : 'bg-surface-0 text-[#555] hover:bg-emerald-500/10 hover:text-emerald-400 border border-[#222] hover:border-emerald-500/20'
                           )}
                         >
                           <Check size={9} strokeWidth={3} />
@@ -376,7 +365,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                             'flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all',
                             status === 'held'
                               ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                              : 'bg-[#1a1a1a] text-[#555] hover:bg-amber-500/10 hover:text-amber-400 border border-[#222] hover:border-amber-500/20'
+                              : 'bg-surface-0 text-[#555] hover:bg-amber-500/10 hover:text-amber-400 border border-[#222] hover:border-amber-500/20'
                           )}
                         >
                           <Pause size={9} />
@@ -390,7 +379,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                             'flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all',
                             status === 'rejected'
                               ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                              : 'bg-[#1a1a1a] text-[#555] hover:bg-red-500/10 hover:text-red-400 border border-[#222] hover:border-red-500/20'
+                              : 'bg-surface-0 text-[#555] hover:bg-red-500/10 hover:text-red-400 border border-[#222] hover:border-red-500/20'
                           )}
                         >
                           <X size={9} strokeWidth={3} />

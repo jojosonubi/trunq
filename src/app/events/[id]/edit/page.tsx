@@ -90,14 +90,14 @@ export default function EditEventPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-surface-0 flex items-center justify-center">
         <Loader2 size={18} className="text-[#444] animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
       <header className="border-b border-[#1f1f1f] px-6 py-4">
         <div className="max-w-7xl mx-auto">
           <span className="font-mono tracking-widest text-sm text-white uppercase">Archive</span>
@@ -123,7 +123,7 @@ export default function EditEventPage() {
             <input
               id="name" name="name" type="text"
               value={form.name} onChange={handleChange}
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
               required
             />
           </div>
@@ -135,7 +135,7 @@ export default function EditEventPage() {
             <input
               id="date" name="date" type="date"
               value={form.date} onChange={handleChange}
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
               required
             />
           </div>
@@ -148,7 +148,7 @@ export default function EditEventPage() {
               id="location" name="location" type="text"
               value={form.location} onChange={handleChange}
               placeholder="e.g. Hackney, London"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
@@ -160,7 +160,7 @@ export default function EditEventPage() {
               id="venue" name="venue" type="text"
               value={form.venue} onChange={handleChange}
               placeholder="e.g. Fabric, Egg London, Fold"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
@@ -172,7 +172,7 @@ export default function EditEventPage() {
               id="description" name="description"
               value={form.description} onChange={handleChange}
               rows={3}
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
             />
           </div>
 

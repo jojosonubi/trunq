@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { LogOut, Settings, ChevronDown } from 'lucide-react'
 import type { UserProfile } from '@/lib/auth'
+import Pill from '@/components/ui/Pill'
 
 interface Props {
   profile: UserProfile
@@ -17,12 +18,6 @@ function initials(profile: UserProfile): string {
     return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
   }
   return profile.email[0].toUpperCase()
-}
-
-const ROLE_COLOURS: Record<string, string> = {
-  admin:        'text-amber-400/80 bg-amber-400/8 border-amber-400/20',
-  producer:     'text-blue-400/80 bg-blue-400/8 border-blue-400/20',
-  photographer: 'text-[#666] bg-white/4 border-white/8',
 }
 
 export default function UserMenu({ profile }: Props) {
@@ -71,13 +66,13 @@ export default function UserMenu({ profile }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-[#141414] border border-[#222] rounded-xl shadow-2xl py-1 z-50">
+        <div className="absolute top-full right-0 mt-2 w-56 bg-surface-0 border border-[#222] rounded-xl shadow-2xl py-1 z-50">
           {/* Profile info */}
           <div className="px-3.5 py-3 border-b border-[#1a1a1a]">
             <p className="text-white text-xs font-medium truncate">{profile.full_name ?? displayName}</p>
             <p className="text-[#555] text-[11px] mt-0.5 truncate">{profile.email}</p>
-            <span className={`inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full border font-medium capitalize ${ROLE_COLOURS[profile.role] ?? ROLE_COLOURS.photographer}`}>
-              {profile.role}
+            <span className="inline-block mt-2">
+              <Pill variant="ghost">{profile.role}</Pill>
             </span>
           </div>
 

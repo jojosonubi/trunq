@@ -1,0 +1,72 @@
+/* ─── Design tokens ───────────────────────────────────────────────────────── */
+
+:root {
+  /* Surfaces */
+  --surface-base:   #0a0a0a;
+  --surface-0:      #1a1a1a;
+  --surface-1:      #222222;
+  --surface-2:      #2a2a2a;
+  --surface-3:      #333333;
+
+  /* Borders */
+  --border-rule:         1px solid #2a2a2a;
+  --border-subtle:       0.5px solid #2e2e2e;
+  /* Border colors (standalone, for borderColor / borderRightColor etc.) */
+  --border-color-rule:   #2a2a2a;
+  --border-color-subtle: #2e2e2e;
+
+  /* Accent */
+  --accent:         #C84B22;
+  --accent-mid:     #e06040;
+  --accent-bg:      #1e0c06;
+  --accent-border:  #3a1a0a;
+
+  /* Label */
+  --label-bg:       #e8e4dc;
+  --label-border:   #ccc8c0;
+  --label-text:     #1a1a1a;
+
+  /* Text */
+  --text-primary:   #f0f0f0;
+  --text-secondary: #888888;
+  --text-muted:     #555555;
+  --text-dim:       #3a3a3a;
+
+  /* Status: approved */
+  --approved-bg:     #001508;
+  --approved-fg:     #1D9E75;
+  --approved-border: #0a2a16;
+
+  /* Status: flagged */
+  --flagged-bg:      #200808;
+  --flagged-fg:      #993535;
+  --flagged-border:  #2e1010;
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+
+html {
+  background:  var(--surface-base);
+  color:       var(--text-primary);
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-size:   14px;
+  line-height: 1.6;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2e2e2e #1a1a1a;
+}
+
+*::-webkit-scrollbar       { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: #1a1a1a; }
+*::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 3px; }
+
+/* ─── Text selection ─────────────────────────────────────────────────────── */
+
+::selection {
+  background: #C84B22;
+  color:      #f8f0ec;
+}

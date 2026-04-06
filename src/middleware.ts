@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect already-logged-in users away from auth pages
   if (user && (pathname === '/login' || pathname === '/signup')) {
-    const next = request.nextUrl.searchParams.get('next') ?? '/events'
+    const next = request.nextUrl.searchParams.get('next') ?? '/projects'
     const url  = request.nextUrl.clone()
     url.pathname = next
     url.search   = ''

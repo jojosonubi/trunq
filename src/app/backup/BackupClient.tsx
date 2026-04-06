@@ -63,7 +63,7 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
           { label: 'Backed up',    value: stats.backed_up, sub: 'in media-backup'  },
           { label: 'Missing',      value: stats.missing,   sub: 'not yet copied'   },
         ].map(({ label, value, sub }) => (
-          <div key={label} className="bg-[#111111] border border-[#1f1f1f] rounded-xl px-5 py-4">
+          <div key={label} className="bg-surface-0 border border-[#1f1f1f] rounded-xl px-5 py-4">
             <p className="text-white text-2xl font-semibold tabular-nums">{value.toLocaleString()}</p>
             <p className="text-white text-xs font-medium mt-1">{label}</p>
             <p className="text-[#444] text-[11px] mt-0.5">{sub}</p>
@@ -72,7 +72,7 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
       </div>
 
       {/* ── Coverage bar ────────────────────────────────────────────────────── */}
-      <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl px-5 py-4">
+      <div className="bg-surface-0 border border-[#1f1f1f] rounded-xl px-5 py-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {allGood
@@ -84,7 +84,7 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
           </div>
           <span className="text-[#555] text-xs tabular-nums">{stats.backed_up} / {stats.total}</span>
         </div>
-        <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+        <div className="h-1.5 bg-surface-0 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               allGood ? 'bg-emerald-500' : coverage >= 80 ? 'bg-blue-500' : 'bg-amber-400'
@@ -121,7 +121,7 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
             {stats.missing_files.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center gap-4 bg-[#111111] border border-[#1f1f1f] rounded-xl px-4 py-3"
+                className="flex items-center gap-4 bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-[#888] text-sm truncate">{file.filename}</p>

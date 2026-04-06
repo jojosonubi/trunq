@@ -492,7 +492,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tags and descriptions…"
-            className="w-full bg-[#111111] border border-[#1f1f1f] rounded-lg pl-9 pr-9 py-2 text-white text-sm placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-9 py-2 text-white text-sm placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors"
           />
           {query && (
             <button
@@ -524,7 +524,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           </button>
 
           {filterOpen && (
-            <div className="absolute top-full left-0 mt-1.5 w-56 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl shadow-2xl p-3 z-30 space-y-3">
+            <div className="absolute top-full left-0 mt-1.5 w-56 bg-surface-0 border border-[#2a2a2a] rounded-xl shadow-2xl p-3 z-30 space-y-3">
               {/* Review status */}
               <div>
                 <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Review status</p>
@@ -620,8 +620,8 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
 
       {/* ── Download progress bar ─────────────────────────────────────────── */}
       {downloadState && (
-        <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-[#111111] border border-[#1f1f1f] rounded-lg">
-          <div className="flex-1 h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
+        <div className="flex items-center gap-3 mb-3 px-3 py-2 bg-surface-0 border border-[#1f1f1f] rounded-lg">
+          <div className="flex-1 h-1 bg-surface-0 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${Math.round((downloadState.done / downloadState.total) * 100)}%` }}

@@ -192,7 +192,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
                 if (e.key === 'Escape') { setCreating(false); setDraftName('') }
               }}
               placeholder="Folder name…"
-              className="bg-[#1a1a1a] border border-[#333] text-white text-xs px-2 py-1 rounded-full w-32 placeholder:text-[#444] focus:outline-none focus:border-[#555]"
+              className="bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded-full w-32 placeholder:text-[#444] focus:outline-none focus:border-[#555]"
             />
             <button
               onClick={submit}
@@ -488,7 +488,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   // ── Render ────────────────────────────────────────────────────────────────
 
   const footerWidget = queue.length > 0 && typeof window !== 'undefined' && createPortal(
-    <div className="fixed bottom-6 right-6 z-50 w-80 shadow-2xl rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#111111]">
+    <div className="fixed bottom-6 right-6 z-50 w-80 shadow-2xl rounded-xl overflow-hidden border border-[#2a2a2a] bg-surface-0">
 
       {/* ── Header / collapsed bar ─────────────────────────────────── */}
       <button
@@ -592,7 +592,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                     {rightText}
                   </span>
                 </div>
-                <div className="h-px bg-[#1a1a1a] rounded-full overflow-hidden ml-[21px]">
+                <div className="h-px bg-surface-0 rounded-full overflow-hidden ml-[21px]">
                   <div
                     className={clsx(
                       'h-full rounded-full transition-all duration-300',
@@ -629,7 +629,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
         {/* ── Photographer picker ───────────────────────────────────── */}
         {pendingFiles && (
-          <div className="bg-[#111111] border border-[#1f1f1f] rounded-lg p-4 space-y-4">
+          <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 space-y-4">
             <div>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2">
@@ -649,7 +649,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                   <button
                     key={name}
                     onClick={() => confirmPhotographer(name)}
-                    className="px-3 py-1.5 bg-[#1a1a1a] hover:bg-white hover:text-black border border-[#2a2a2a] hover:border-white text-white text-sm rounded-lg transition-all"
+                    className="px-3 py-1.5 bg-surface-0 hover:bg-white hover:text-black border border-[#2a2a2a] hover:border-white text-white text-sm rounded-lg transition-all"
                   >
                     {name}
                   </button>
@@ -681,7 +681,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
               'relative border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-all',
               isDragActive
                 ? 'border-white/40 bg-white/5'
-                : 'border-[#1f1f1f] hover:border-[#333] hover:bg-[#111111]',
+                : 'border-[#1f1f1f] hover:border-[#333] hover:bg-surface-0',
               isUploading && 'opacity-50 cursor-not-allowed pointer-events-none',
             )}
           >
@@ -689,7 +689,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
             <div className="flex flex-col items-center gap-3">
               <div className={clsx(
                 'w-12 h-12 rounded-full flex items-center justify-center transition-colors',
-                isDragActive ? 'bg-white/10' : 'bg-[#1a1a1a]',
+                isDragActive ? 'bg-white/10' : 'bg-surface-0',
               )}>
                 <UploadCloud size={22} className={isDragActive ? 'text-white' : 'text-[#888]'} />
               </div>

@@ -7,10 +7,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#0a0a0a',
-        surface: '#111111',
-        border: '#1f1f1f',
-        muted: '#888888',
+        'surface-0':   'var(--surface-0)',
+        'surface-1':   'var(--surface-1)',
+        'surface-2':   'var(--surface-2)',
+        'surface-3':   'var(--surface-3)',
+        'accent':      'var(--accent)',
+        'accent-mid':  'var(--accent-mid)',
+        'accent-bg':   'var(--accent-bg)',
+        'label-bg':    'var(--label-bg)',
+        'label-text':  'var(--label-text)',
+        't-primary':   'var(--text-primary)',
+        't-muted':     'var(--text-muted)',
+        't-dim':       'var(--text-dim)',
       },
     },
   },

@@ -198,7 +198,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onCancel}>
       <div
-        className="bg-[#0e0e0e] border border-[#1f1f1f] rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-surface-0 border border-[#1f1f1f] rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -220,7 +220,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
               onClick={() => setMode('archive-browse')}
               className="flex flex-col items-center gap-3 p-6 border border-[#1f1f1f] hover:border-[#333] rounded-xl transition-all group"
             >
-              <div className="w-12 h-12 rounded-full bg-[#1a1a1a] group-hover:bg-[#222] flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 rounded-full bg-surface-0 group-hover:bg-surface-1 flex items-center justify-center transition-colors">
                 <Images size={20} className="text-[#888]" />
               </div>
               <div className="text-center">
@@ -236,7 +236,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
               className="flex flex-col items-center gap-3 p-6 border border-[#1f1f1f] hover:border-[#333] rounded-xl transition-all group cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              <div className="w-12 h-12 rounded-full bg-[#1a1a1a] group-hover:bg-[#222] flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 rounded-full bg-surface-0 group-hover:bg-surface-1 flex items-center justify-center transition-colors">
                 <Upload size={20} className="text-[#888]" />
               </div>
               <div className="text-center">
@@ -257,7 +257,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                 <button
                   key={file.id}
                   onClick={() => pickFromArchive(file)}
-                  className="relative aspect-square bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#1f1f1f] hover:border-white/30 transition-all group"
+                  className="relative aspect-square bg-surface-0 rounded-lg overflow-hidden border border-[#1f1f1f] hover:border-white/30 transition-all group"
                 >
                   <Image
                     src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill

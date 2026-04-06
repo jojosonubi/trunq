@@ -1,7 +1,89 @@
+@import '../styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 * {
   box-sizing: border-box;
+  box-shadow: none;
 }
+
+/* ─── Cap border-radius at 4px (rounded-full / 50% avatars are exempt) ──── */
+.rounded-md  { border-radius: 4px; }
+.rounded-lg  { border-radius: 4px; }
+.rounded-xl  { border-radius: 4px; }
+.rounded-2xl { border-radius: 4px; }
+.rounded-3xl { border-radius: 4px; }
+
+/* ─── Section breaks ─────────────────────────────────────────────────────── */
+hr {
+  border:     none;
+  border-top: var(--border-rule);
+  margin:     24px 0;
+}
+
+/* ─── Responsive page padding ────────────────────────────────────────────── */
+.page-px {
+  padding-left:  24px;
+  padding-right: 24px;
+}
+@media (max-width: 767px) {
+  .page-px {
+    padding-left:  16px;
+    padding-right: 16px;
+  }
+}
+
+/* ─── Typography: tracking utilities ────────────────────────────────────── */
+.track-heading { letter-spacing: -0.03em; }
+.track-label   { letter-spacing: 0.12em;  }
+
+/* ─── Spacing normalization — enforce 4/8/12/14/16/24/32/48px grid ──────── */
+/* Half-steps → nearest allowed value */
+.gap-0\.5, .space-x-0\.5 > * + *, .space-y-0\.5 > * + * { gap: 4px; }
+.gap-1\.5, .space-x-1\.5 > * + *, .space-y-1\.5 > * + * { gap: 8px; }
+.gap-2\.5, .space-x-2\.5 > * + *, .space-y-2\.5 > * + * { gap: 8px; }
+.gap-3\.5 { gap: 14px; }
+
+.p-0\.5  { padding: 4px; }
+.px-0\.5 { padding-left: 4px; padding-right: 4px; }
+.py-0\.5 { padding-top: 4px;  padding-bottom: 4px; }
+.pt-0\.5 { padding-top: 4px;  }  .pb-0\.5 { padding-bottom: 4px; }
+.pl-0\.5 { padding-left: 4px; }  .pr-0\.5 { padding-right: 4px;  }
+
+.p-1\.5  { padding: 8px; }
+.px-1\.5 { padding-left: 8px; padding-right: 8px; }
+.py-1\.5 { padding-top: 8px;  padding-bottom: 8px; }
+.pt-1\.5 { padding-top: 8px;  }  .pb-1\.5 { padding-bottom: 8px; }
+.pl-1\.5 { padding-left: 8px; }  .pr-1\.5 { padding-right: 8px;  }
+
+.p-2\.5  { padding: 8px; }
+.px-2\.5 { padding-left: 8px; padding-right: 8px; }
+.py-2\.5 { padding-top: 8px;  padding-bottom: 8px; }
+.pt-2\.5 { padding-top: 8px;  }  .pb-2\.5 { padding-bottom: 8px; }
+.pl-2\.5 { padding-left: 8px; }  .pr-2\.5 { padding-right: 8px;  }
+
+/* Off-grid multiples → nearest allowed */
+.m-5,  .mx-5,  .my-5  { margin:  24px; }
+.mt-5  { margin-top:    24px; }  .mb-5  { margin-bottom: 24px; }
+.ml-5  { margin-left:   24px; }  .mr-5  { margin-right:  24px; }
+.p-5,  .px-5,  .py-5  { padding: 24px; }
+.pt-5  { padding-top:   24px; }  .pb-5  { padding-bottom: 24px; }
+.pl-5  { padding-left:  24px; }  .pr-5  { padding-right:  24px; }
+
+.m-7,  .mt-7, .mb-7   { margin:  32px; }
+.mt-7  { margin-top:    32px; }  .mb-7  { margin-bottom: 32px; }
+.p-7,  .py-7, .px-7   { padding: 32px; }
+
+.m-9,  .mt-9, .mb-9   { margin:  32px; }
+.mt-9  { margin-top:    32px; }  .mb-9  { margin-bottom: 32px; }
+.p-9,  .py-9, .px-9   { padding: 32px; }
+
+.m-10, .mt-10, .mb-10 { margin:  32px; }
+.mt-10 { margin-top:   32px; }  .mb-10 { margin-bottom: 32px; }
+.p-10, .py-10, .px-10 { padding: 32px; }
+
+.m-11, .mt-11, .mb-11 { margin:  48px; }
+.mt-11 { margin-top:   48px; }  .mb-11 { margin-bottom: 48px; }
+.p-11, .py-11, .px-11 { padding: 48px; }

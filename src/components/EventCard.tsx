@@ -9,25 +9,13 @@ import type { Event } from '@/types'
 import { Calendar, MapPin, Building2, ImageIcon, Clock, MoreHorizontal, Pencil, Trash2, ImagePlus } from 'lucide-react'
 import EventCoverPicker from '@/components/EventCoverPicker'
 import { transformUrl } from '@/lib/supabase/storage'
+import Pill from '@/components/ui/Pill'
 
 interface Props {
   event: Event
   photoCount?: number
   folderCount?: number
   role?: string
-}
-
-const PLACEHOLDER_GRADIENTS = [
-  'from-violet-900/50 to-indigo-900/50',
-  'from-rose-900/50 to-orange-900/50',
-  'from-cyan-900/50 to-teal-900/50',
-  'from-amber-900/50 to-yellow-900/50',
-  'from-fuchsia-900/50 to-pink-900/50',
-  'from-emerald-900/50 to-green-900/50',
-]
-
-function getGradient(id: string): string {
-  return PLACEHOLDER_GRADIENTS[id.charCodeAt(0) % PLACEHOLDER_GRADIENTS.length]
 }
 
 function formatDate(dateStr: string): string {
@@ -49,7 +37,6 @@ function formatRelative(dateStr: string): string {
 
 export default function EventCard({ event, photoCount = 0, folderCount = 0, role }: Props) {
   const router             = useRouter()
-  const gradient           = getGradient(event.id)
   const photographerCount  = event.photographers?.length ?? 0
 
   const [menuOpen, setMenuOpen]           = useState(false)
@@ -89,12 +76,12 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
   }
 
   return (
-    <div className="group relative bg-[#111111] border border-[#1f1f1f] rounded-xl overflow-visible hover:border-[#2a2a2a] hover:bg-[#141414] transition-all duration-200">
+    <div className="group relative rounded overflow-visible transition-all duration-200" style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}>
 
       {/* ── Main link ─────────────────────────────────────────────────────── */}
-      <Link href={`/events/${event.id}`} className="block rounded-xl overflow-hidden">
+      <Link href={`/projects/${event.id}`} className="block rounded overflow-hidden">
         {/* Cover image */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#0d0d0d]">
+        <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: 'var(--surface-base)' }}>
           {event.cover_image_url ? (
             <Image
               src={transformUrl(event.cover_image_url, 400)}
@@ -104,7 +91,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
               className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+            <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--surface-2)' }}>
               <ImageIcon size={28} className="text-white/15" />
             </div>
           )}
@@ -135,21 +122,21 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
             {event.name}
           </h3>
 
-          <div className="space-y-1.5 text-[#666] text-xs">
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="flex items-center gap-2">
               <Calendar size={11} className="shrink-0" />
-              <span className="text-[#888]">{formatDate(event.date)}</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{formatDate(event.date)}</span>
             </div>
 
             {event.venue && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <Building2 size={11} className="shrink-0" />
                 <span className="truncate">{event.venue}</span>
               </div>
             )}
 
             {event.location && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <MapPin size={11} className="shrink-0" />
                 <span className="truncate">{event.location}</span>
               </div>
@@ -159,26 +146,20 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
           {/* Stats pills */}
           <div className="flex flex-wrap gap-1.5 mt-2.5">
             {photoCount > 0 && (
-              <span className="text-[10px] text-[#555] bg-[#161616] border border-[#1e1e1e] px-2 py-0.5 rounded-full tabular-nums">
-                {photoCount.toLocaleString()} photo{photoCount !== 1 ? 's' : ''}
-              </span>
+              <Pill variant="ghost">{photoCount.toLocaleString()} photo{photoCount !== 1 ? 's' : ''}</Pill>
             )}
             {photographerCount > 0 && (
-              <span className="text-[10px] text-[#555] bg-[#161616] border border-[#1e1e1e] px-2 py-0.5 rounded-full tabular-nums">
-                {photographerCount === 1
-                  ? event.photographers[0]
-                  : `${photographerCount} photographers`}
-              </span>
+              <Pill variant="ghost">
+                {photographerCount === 1 ? event.photographers[0] : `${photographerCount} photographers`}
+              </Pill>
             )}
             {folderCount > 0 && (
-              <span className="text-[10px] text-[#555] bg-[#161616] border border-[#1e1e1e] px-2 py-0.5 rounded-full tabular-nums">
-                {folderCount} folder{folderCount !== 1 ? 's' : ''}
-              </span>
+              <Pill variant="ghost">{folderCount} folder{folderCount !== 1 ? 's' : ''}</Pill>
             )}
           </div>
 
           {/* Footer: relative timestamp */}
-          <div className="mt-3 pt-3 border-t border-[#1a1a1a] flex items-center gap-1 text-[#3a3a3a] text-[10px]">
+          <div className="mt-3 pt-3 flex items-center gap-1 text-[10px]" style={{ borderTop: 'var(--border-rule)', color: 'var(--text-dim)' }}>
             <Clock size={9} className="shrink-0" />
             <span>{formatRelative(event.created_at)}</span>
           </div>
@@ -196,21 +177,21 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
         </button>
 
         {menuOpen && (
-          <div className="absolute top-9 right-0 w-44 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-2xl py-1 z-30">
+          <div className="absolute top-9 right-0 w-44 rounded py-1 z-30" style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}>
             <Link
-              href={`/events/${event.id}/edit`}
+              href={`/projects/${event.id}/edit`}
               onClick={() => setMenuOpen(false)}
               className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#888] hover:text-white hover:bg-white/4 transition-colors"
             >
               <Pencil size={13} className="shrink-0" />
-              Edit event
+              Edit project
             </Link>
             <button
               onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
               className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/4 transition-colors"
             >
               <Trash2 size={13} className="shrink-0" />
-              Delete event
+              Delete project
             </button>
           </div>
         )}
@@ -228,12 +209,13 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
           onClick={() => !deleting && setConfirmDelete(false)}
         >
           <div
-            className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl"
+            className="rounded p-6 max-w-sm w-full mx-4"
+            style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-white text-base font-semibold mb-2">Move to trash?</h2>
             <p className="text-[#888] text-sm leading-relaxed mb-5">
-              <span className="text-white font-medium">{event.name}</span> will be moved to trash. You can restore it from the trash page within 30 days.
+              <span className="text-white font-medium">{event.name}</span> will be moved to trash. You can restore it from Settings within 30 days.
             </p>
             <div className="flex gap-3 justify-end">
               <button

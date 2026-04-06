@@ -16,6 +16,11 @@ export default async function SettingsPage() {
   }
 
   // Admin: fetch everything in parallel
+  // Expiry threshold: 30 days from today
+  const thirtyDaysFromNow = new Date()
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+  const expiryThreshold = thirtyDaysFromNow.toISOString().slice(0, 10)
+
   const [
     usersRes,
     invitesRes,
@@ -27,6 +32,8 @@ export default async function SettingsPage() {
     trashedEventsRes,
     trashedPhotosRes,
     auditLogsRes,
+    expiringRightsRes,
+    unlicensedRes,
   ] = await Promise.all([
     service.from('profiles').select('*').order('created_at', { ascending: true }),
     service.from('invites').select('*').order('created_at', { ascending: false }).limit(50),
@@ -42,6 +49,25 @@ export default async function SettingsPage() {
       .select('id, user_id, action, entity_type, entity_id, metadata, created_at, profiles(full_name, email)')
       .order('created_at', { ascending: false })
       .limit(500),
+    // Expiring usage rights: expires within 30 days
+    service
+      .from('media_files')
+      .select('id, filename, event_id, usage_type, usage_expires_at, usage_notes')
+      .is('deleted_at', null)
+      .not('usage_expires_at', 'is', null)
+      .lte('usage_expires_at', expiryThreshold)
+      .gte('usage_expires_at', new Date().toISOString().slice(0, 10))
+      .order('usage_expires_at', { ascending: true })
+      .limit(100),
+    // Unlicensed photos (approved photos with no usage_type set)
+    service
+      .from('media_files')
+      .select('id, filename, event_id, created_at')
+      .is('deleted_at', null)
+      .is('usage_type', null)
+      .eq('review_status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(200),
   ])
 
   // Build per-photographer stats
@@ -76,6 +102,8 @@ export default async function SettingsPage() {
       trashedEvents={(trashedEventsRes.data ?? []) as Event[]}
       trashedPhotos={(trashedPhotosRes.data ?? []) as MediaFile[]}
       auditLogs={(auditLogsRes.data ?? []) as unknown as AuditLog[]}
+      expiringRights={(expiringRightsRes.data ?? []) as MediaFile[]}
+      unlicensedPhotos={(unlicensedRes.data ?? []) as MediaFile[]}
     />
   )
 }

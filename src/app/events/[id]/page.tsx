@@ -74,10 +74,10 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
     : 'gallery'
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
       <ViewTracker eventId={event.id} />
       {/* ── Sticky header ─────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] sticky top-0 z-20">
+      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2.5 shrink-0">

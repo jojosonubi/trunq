@@ -94,7 +94,7 @@ function InlineField({
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKey}
         placeholder={placeholder}
-        className="bg-[#1a1a1a] border border-[#333] rounded px-2 py-0.5 text-white text-sm focus:outline-none focus:border-[#555] w-44"
+        className="bg-surface-0 border border-[#333] rounded px-2 py-0.5 text-white text-sm focus:outline-none focus:border-[#555] w-44"
       />
       {saving ? (
         <Loader2 size={13} className="animate-spin text-[#555]" />
@@ -114,7 +114,7 @@ export default function EventHeader({ event, photoCount, role }: Props) {
   const router = useRouter()
 
   async function patchField(field: string, value: string | null) {
-    await fetch(`/api/events/${event.id}`, {
+    await fetch(`/api/projects/${event.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: value }),

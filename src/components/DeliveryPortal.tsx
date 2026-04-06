@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Download, Archive, Calendar, MapPin } from 'lucide-react'
+import { Download, Archive, Calendar, MapPin, ShieldOff } from 'lucide-react'
 import type { MediaFile, Event } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
 
@@ -73,29 +73,29 @@ export default function DeliveryPortal({ event, files }: Props) {
   }, [lightboxIndex, files.length])
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen" style={{ background: 'var(--surface-base)' }}>
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1f1f1f]">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-start justify-between gap-4">
+      <header style={{ borderBottom: 'var(--border-rule)' }}>
+        <div className="max-w-6xl mx-auto page-px py-4 flex items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[10px] text-[#444] uppercase tracking-widest mb-2">
+            <p className="font-mono text-[10px] uppercase track-label mb-2" style={{ color: 'var(--text-dim)' }}>
               Archive · Photo Delivery
             </p>
-            <h1 className="text-white text-xl font-semibold mb-2">{event.name}</h1>
-            <div className="flex flex-wrap items-center gap-4 text-[#666] text-sm">
+            <h1 className="text-xl font-semibold track-heading mb-2" style={{ color: 'var(--text-primary)' }}>{event.name}</h1>
+            <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
               {event.date && (
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-2">
                   <Calendar size={12} />
                   {formatDate(event.date)}
                 </span>
               )}
               {event.location && (
-                <span className="inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-2">
                   <MapPin size={12} />
                   {event.location}
                 </span>
               )}
-              <span className="text-[#444]">
+              <span style={{ color: 'var(--text-dim)' }}>
                 {files.length} approved photo{files.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -105,7 +105,8 @@ export default function DeliveryPortal({ event, files }: Props) {
             <button
               onClick={downloadAll}
               disabled={downloading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-all disabled:opacity-60 shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded transition-opacity disabled:opacity-60 shrink-0"
+              style={{ background: 'var(--accent)', color: 'var(--text-primary)' }}
             >
               <Archive size={14} />
               {downloading
@@ -117,18 +118,18 @@ export default function DeliveryPortal({ event, files }: Props) {
       </header>
 
       {/* ── Gallery ──────────────────────────────────────────────────────── */}
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto page-px py-8">
         {files.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <p className="text-[#666] text-sm">No photos available yet.</p>
-            <p className="text-[#444] text-xs mt-1">Check back soon.</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No photos available yet.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Check back soon.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {files.map((file, i) => (
               <div
                 key={file.id}
-                className="group relative aspect-square bg-[#111111] rounded-lg overflow-hidden border border-[#1f1f1f] cursor-pointer"
+                className="group relative aspect-square bg-surface-0 rounded-lg overflow-hidden border border-[#1f1f1f] cursor-pointer"
                 onClick={() => setLightboxIndex(i)}
               >
                 <Image
@@ -142,15 +143,22 @@ export default function DeliveryPortal({ event, files }: Props) {
 
                 {/* Hover overlay with download button */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <a
-                    href={downloadUrl(file)}
-                    download={file.filename}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform"
-                    title="Download"
-                  >
-                    <Download size={16} className="text-black" />
-                  </a>
+                  {file.usage_type === 'restricted' ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <ShieldOff size={18} className="text-red-400" />
+                      <span className="text-red-400 text-[10px] font-medium">Restricted</span>
+                    </div>
+                  ) : (
+                    <a
+                      href={downloadUrl(file)}
+                      download={file.filename}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:scale-105 transition-transform"
+                      title="Download"
+                    >
+                      <Download size={16} className="text-black" />
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -210,15 +218,22 @@ export default function DeliveryPortal({ event, files }: Props) {
               <span className="text-white/30 text-xs tabular-nums">
                 {lightboxIndex + 1} / {files.length}
               </span>
-              <a
-                href={downloadUrl(lightboxFile)}
-                download={lightboxFile.filename}
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all"
-              >
-                <Download size={12} />
-                Download
-              </a>
+              {lightboxFile.usage_type === 'restricted' ? (
+                <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
+                  <ShieldOff size={12} />
+                  Restricted — download unavailable
+                </span>
+              ) : (
+                <a
+                  href={downloadUrl(lightboxFile)}
+                  download={lightboxFile.filename}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all"
+                >
+                  <Download size={12} />
+                  Download
+                </a>
+              )}
             </div>
           </div>
         </div>

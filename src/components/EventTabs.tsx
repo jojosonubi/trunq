@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Images, CheckSquare, Link2, Copy, Check, Users, Tag as TagIcon } from 'lucide-react'
+import Pill from '@/components/ui/Pill'
 import clsx from 'clsx'
 import GalleryWithSearch from '@/components/GalleryWithSearch'
 import ReviewTab from '@/components/ReviewTab'
@@ -225,19 +226,13 @@ export default function EventTabs({
                : t === 'performers' ? 'Performers'
                : 'Brands'}
               {t === 'review' && pendingCount > 0 && (
-                <span className="text-[10px] px-1.5 py-px rounded-full bg-white/8 text-[#666] leading-none tabular-nums border border-[#2a2a2a]">
-                  {pendingCount}
-                </span>
+                <Pill variant="ghost">{pendingCount}</Pill>
               )}
               {t === 'performers' && initialPerformers.length > 0 && (
-                <span className="text-[10px] px-1.5 py-px rounded-full bg-white/8 text-[#666] leading-none tabular-nums border border-[#2a2a2a]">
-                  {initialPerformers.length}
-                </span>
+                <Pill variant="ghost">{initialPerformers.length}</Pill>
               )}
               {t === 'brands' && initialBrands.length > 0 && (
-                <span className="text-[10px] px-1.5 py-px rounded-full bg-white/8 text-[#666] leading-none tabular-nums border border-[#2a2a2a]">
-                  {initialBrands.length}
-                </span>
+                <Pill variant="ghost">{initialBrands.length}</Pill>
               )}
             </button>
           ))}

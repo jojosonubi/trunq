@@ -70,7 +70,7 @@ function buildParams(q: string, f: Filters): URLSearchParams {
 // ─── Active filter pills ──────────────────────────────────────────────────────
 
 const FILTER_LABELS: Record<keyof Filters, string> = {
-  event_name:   'Event',
+  event_name:   'Project',
   venue:        'Venue',
   photographer: 'Photographer',
   location:     'Location',
@@ -187,7 +187,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
       onChange={(e) => setFilter(key, e.target.value)}
       placeholder={placeholder}
       className={clsx(
-        'w-full bg-[#111111] border border-[#1f1f1f] rounded-lg px-3 py-2 text-white text-xs placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors',
+        'w-full bg-surface-0 border border-[#1f1f1f] rounded-lg px-3 py-2 text-white text-xs placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors',
         type === 'date' && '[color-scheme:dark]'
       )}
     />
@@ -196,15 +196,15 @@ export default function SearchPageClient({ initialQuery }: Props) {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-surface-0">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-[#0a0a0a] sticky top-0 z-20">
+      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-4">
           <Link
-            href="/events"
+            href="/projects"
             className="shrink-0 text-[#555] hover:text-white transition-colors"
-            aria-label="Back to events"
+            aria-label="Back to projects"
           >
             <ArrowLeft size={16} />
           </Link>
@@ -218,9 +218,9 @@ export default function SearchPageClient({ initialQuery }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleSearchKey}
-              placeholder="Search photos, events, tags…"
+              placeholder="Search photos, projects, tags…"
               autoComplete="off"
-              className="w-full bg-[#111111] border border-[#1f1f1f] rounded-lg pl-9 pr-8 py-2.5 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none focus:border-[#333] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-8 py-2.5 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none focus:border-[#333] transition-colors"
             />
             {query && (
               <button
@@ -293,7 +293,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
             <aside className="w-56 shrink-0 space-y-5">
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Event name</p>
+                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Project name</p>
                 {inputField('event_name', 'e.g. Recessland')}
               </div>
 
@@ -450,7 +450,7 @@ function PhotoCard({ photo, onOpen }: { photo: FullPhotoResult; onOpen: () => vo
 
   return (
     <div
-      className="break-inside-avoid overflow-hidden rounded-lg bg-[#111111] border border-[#1a1a1a] cursor-pointer hover:border-[#333] transition-colors group"
+      className="break-inside-avoid overflow-hidden rounded-lg bg-surface-0 border border-[#1a1a1a] cursor-pointer hover:border-[#333] transition-colors group"
       onClick={onOpen}
     >
       {imgSrc ? (
@@ -559,7 +559,7 @@ function SearchLightbox({
 
       {/* ── Detail pane ─────────────────────────────────────────────────────── */}
       <div
-        className="w-72 shrink-0 bg-[#0e0e0e] border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
+        className="w-72 shrink-0 bg-surface-0 border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 py-5 space-y-5">
@@ -634,12 +634,12 @@ function SearchLightbox({
         {/* Footer — open in event */}
         <div className="mt-auto border-t border-[#1a1a1a] px-5 py-4">
           <Link
-            href={`/events/${photo.event_id}?photo=${photo.id}`}
+            href={`/projects/${photo.event_id}?photo=${photo.id}`}
             className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs text-[#888] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
             onClick={onClose}
           >
             <ExternalLink size={12} />
-            Open in event
+            Open in project
           </Link>
         </div>
       </div>
