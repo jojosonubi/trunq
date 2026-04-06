@@ -112,25 +112,29 @@ function avatarCircle(): CSSProperties {
 }
 
 const statBar: CSSProperties = {
-  display:      'flex',
-  background:   'var(--surface-1)',
+  display:    'flex',
+  flexWrap:   'nowrap' as const,
+  width:      '100%',
+  background: 'var(--surface-1)',
   borderBottom: 'var(--border-rule)',
 }
 
 function statCell(index: number, total: number): CSSProperties {
   return {
-    flex:          1,
-    padding:       '8px 16px',
-    borderRight:   index < total - 1 ? 'var(--border-rule)' : 'none',
+    flex:       '1 1 0',
+    minWidth:   0,
+    padding:    '8px 16px',
+    borderRight: index < total - 1 ? 'var(--border-rule)' : 'none',
   }
 }
 
 const statLabel: CSSProperties = {
   fontSize:      9,
   textTransform: 'uppercase' as const,
-  letterSpacing: '0.12em',
+  letterSpacing: '0.14em',
   color:         'var(--text-dim)',
   marginBottom:  2,
+  whiteSpace:    'nowrap' as const,
 }
 
 function statValue(first: boolean): CSSProperties {

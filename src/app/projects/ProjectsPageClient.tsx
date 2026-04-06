@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import EventCard from '@/components/EventCard'
 import GlobalSearch from '@/components/GlobalSearch'
 import type { Event } from '@/types'
-import { ChevronDown, ChevronRight, Clock } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
   events: (Event & { cover_image_url: string | null })[]
@@ -59,10 +59,18 @@ export default function ProjectsPageClient({
       {/* Recently viewed */}
       {recentEvents.length > 0 && (
         <section className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock size={13} style={{ color: 'var(--text-dim)' }} />
-            <h2 className="text-xs font-medium uppercase track-label" style={{ color: 'var(--text-secondary)' }}>Recently viewed</h2>
-          </div>
+          <h2
+            className="uppercase font-medium mb-4"
+            style={{
+              fontSize: 9,
+              letterSpacing: '0.14em',
+              color: 'var(--text-dim)',
+              paddingBottom: 8,
+              borderBottom: 'var(--border-rule)',
+            }}
+          >
+            Recently viewed
+          </h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {recentEvents.map((event) => (
               <div key={event.id} className="w-56 shrink-0">
@@ -75,7 +83,6 @@ export default function ProjectsPageClient({
               </div>
             ))}
           </div>
-          <hr />
         </section>
       )}
 
@@ -132,7 +139,7 @@ export default function ProjectsPageClient({
                 </button>
 
                 {!isCollapsed && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {eventsForYear.map((event) => (
                       <EventCard
                         key={event.id}
