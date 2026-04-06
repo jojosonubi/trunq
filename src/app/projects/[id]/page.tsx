@@ -6,10 +6,10 @@ import { signMediaFiles } from '@/lib/supabase/storage'
 import DropZone from '@/components/DropZone'
 import EventTabs from '@/components/EventTabs'
 import EventHeader from '@/components/EventHeader'
-import UserMenu from '@/components/UserMenu'
+import Navbar from '@/components/layout/Navbar'
 import ViewTracker from '@/components/ViewTracker'
 import type { Event, MediaFileWithTags, Folder, Performer, Brand } from '@/types'
-import { ArrowLeft, ImageIcon, Smartphone } from 'lucide-react'
+import { ArrowLeft, ImageIcon } from 'lucide-react'
 
 export const revalidate = 0
 
@@ -75,40 +75,10 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   return (
     <div className="min-h-screen" style={{ background: 'var(--surface-base)' }}>
       <ViewTracker eventId={event.id} />
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20" style={{ borderBottom: 'var(--border-rule)', background: 'var(--surface-base)' }}>
-        <div className="max-w-7xl mx-auto page-px h-12 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-6 h-6 rounded shrink-0 flex items-center justify-center" style={{ background: 'var(--accent)' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="1" y="1" width="5" height="5" rx="1" fill="white" />
-                <rect x="8" y="1" width="5" height="5" rx="1" fill="white" />
-                <rect x="1" y="8" width="5" height="5" rx="1" fill="white" />
-                <rect x="8" y="8" width="5" height="5" rx="1" fill="white" opacity="0.45" />
-              </svg>
-            </div>
-            <span className="font-semibold text-sm track-heading truncate max-w-[200px]" style={{ color: 'var(--text-primary)' }}>
-              {event.name}
-            </span>
-          </div>
-
-          {/* Right side actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            {profile.role === 'admin' && (
-              <Link
-                href={`/projects/${event.id}/live`}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded border text-xs transition-colors"
-                style={{ borderColor: 'var(--border-color-rule)', color: 'var(--text-secondary)' }}
-              >
-                <Smartphone size={12} />
-                Capture Mode
-              </Link>
-            )}
-            <UserMenu profile={profile} />
-          </div>
-        </div>
-      </header>
+      <Navbar
+        profile={profile}
+        eventModeHref={profile.role === 'admin' ? `/projects/${event.id}/live` : undefined}
+      />
 
       <main className="max-w-7xl mx-auto page-px py-8">
         {/* Back link */}

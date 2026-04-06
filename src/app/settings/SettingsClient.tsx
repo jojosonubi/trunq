@@ -10,7 +10,7 @@ import {
   Pencil, Loader2, Eye, EyeOff, Camera, ShieldCheck, History,
   XCircle, Filter,
 } from 'lucide-react'
-import UserMenu from '@/components/UserMenu'
+import Navbar from '@/components/layout/Navbar'
 import Pill from '@/components/ui/Pill'
 import { createClient } from '@/lib/supabase/client'
 import type { UserProfile } from '@/lib/auth'
@@ -367,28 +367,7 @@ export default function SettingsClient({
   return (
     <div className="min-h-screen bg-surface-0">
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/projects" className="text-[#555] hover:text-white transition-colors">
-              <ArrowLeft size={15} />
-            </Link>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-white flex items-center justify-center shrink-0">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                  <rect x="1" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-                  <rect x="8" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-                  <rect x="1" y="8" width="5" height="5" rx="1" fill="#0a0a0a" />
-                  <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
-                </svg>
-              </div>
-              <span className="text-white text-sm font-semibold tracking-tight">Settings</span>
-            </div>
-          </div>
-          <UserMenu profile={currentProfile} />
-        </div>
-      </header>
+      <Navbar profile={currentProfile} />
 
       <div className="max-w-5xl mx-auto px-6 py-10 flex gap-10">
 

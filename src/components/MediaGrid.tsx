@@ -739,14 +739,13 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
         </div>
       )}
 
-      {/* Review status dot — bottom-right (normal mode, non-pending only) */}
+      {/* Review status pill — bottom-right (normal mode, non-pending only) */}
       {!inSelectionMode && file.review_status && file.review_status !== 'pending' && (
-        <div className={clsx(
-          'absolute bottom-2 right-2 z-10 w-2.5 h-2.5 rounded-full ring-1 ring-black/30',
-          file.review_status === 'approved' && 'bg-emerald-500',
-          file.review_status === 'rejected' && 'bg-red-500',
-          file.review_status === 'held'     && 'bg-amber-500',
-        )} />
+        <div className="absolute bottom-2 right-2 z-10">
+          {file.review_status === 'approved' && <Pill variant="approved">approved</Pill>}
+          {file.review_status === 'rejected' && <Pill variant="flagged">flagged</Pill>}
+          {file.review_status === 'held'     && <Pill variant="ghost">held</Pill>}
+        </div>
       )}
 
       {file.file_type === 'video' ? (

@@ -2,10 +2,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
 import { signStoragePaths } from '@/lib/supabase/storage'
-import UserMenu from '@/components/UserMenu'
+import Navbar from '@/components/layout/Navbar'
 import ProjectsPageClient from './ProjectsPageClient'
 import type { Event } from '@/types'
-import { Plus, ImageIcon, Calendar, HardDrive, Smartphone } from 'lucide-react'
+import { Plus, ImageIcon } from 'lucide-react'
 
 export const revalidate = 0
 
@@ -92,78 +92,36 @@ export default async function ProjectsPage() {
     .map((id) => eventById.get(id))
     .filter((e): e is typeof eventList[number] => !!e)
 
-  const stats = [
-    { label: 'Projects', value: eventList.length.toLocaleString(),  icon: Calendar  },
-    { label: 'Photos',   value: totalPhotos.toLocaleString(),        icon: ImageIcon },
-    { label: 'Storage',  value: fmtStorage(totalStorageBytes),       icon: HardDrive },
-  ]
-
   return (
     <div className="min-h-screen bg-surface-0">
 
-      {/* ── Top nav ─────────────────────────────────────────────────────── */}
-      <header className="border-b border-[#1a1a1a] bg-surface-0 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Wordmark */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded bg-white flex items-center justify-center shrink-0">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="1" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-                <rect x="8" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-                <rect x="1" y="8" width="5" height="5" rx="1" fill="#0a0a0a" />
-                <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
-              </svg>
-            </div>
-            <span className="font-semibold text-white text-sm tracking-tight">Trunq</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {profile.role === 'admin' && latestEventId && (
-              <Link
-                href={`/projects/${latestEventId}/live`}
-                className="inline-flex items-center gap-1.5 text-[#555] hover:text-white text-xs px-2.5 py-2 rounded-lg border border-[#1f1f1f] hover:border-[#333] hover:bg-white/5 transition-colors"
-              >
-                <Smartphone size={13} />
-                Capture Mode
-              </Link>
-            )}
-            {profile.role !== 'photographer' && (
-              <Link
-                href="/projects/new"
-                className="inline-flex items-center gap-1.5 bg-white text-black text-xs font-semibold px-3.5 py-2 rounded-lg hover:bg-white/90 transition-colors"
-              >
-                <Plus size={13} />
-                New project
-              </Link>
-            )}
-            <UserMenu profile={profile} />
-          </div>
-        </div>
-      </header>
-
-      {/* ── Stats bar ───────────────────────────────────────────────────── */}
-      {eventList.length > 0 && (
-        <div className="border-b border-[#141414] bg-[#0c0c0c]">
-          <div className="max-w-7xl mx-auto px-6 py-0 flex divide-x divide-[#1a1a1a]">
-            {stats.map(({ label, value, icon: Icon }) => (
-              <div key={label} className="flex items-center gap-3 px-8 py-4 first:pl-0 last:pr-0">
-                <div className="w-7 h-7 rounded-lg bg-surface-0 border border-[#1f1f1f] flex items-center justify-center shrink-0">
-                  <Icon size={13} className="text-[#555]" />
-                </div>
-                <div>
-                  <p className="text-white text-base font-semibold tabular-nums leading-none">{value}</p>
-                  <p className="text-[#555] text-[10px] uppercase tracking-wider mt-1">{label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <Navbar
+        profile={profile}
+        stats={eventList.length > 0 ? [
+          { label: 'Projects', value: eventList.length },
+          { label: 'Photos',   value: totalPhotos.toLocaleString() },
+          { label: 'Storage',  value: fmtStorage(totalStorageBytes) },
+        ] : undefined}
+      />
 
       {/* ── Main content ─────────────────────────────────────────────────── */}
       <main>
+        {/* Action row — only when projects exist */}
+        {eventList.length > 0 && profile.role !== 'photographer' && (
+          <div className="max-w-7xl mx-auto page-px pt-8 flex justify-end">
+            <Link
+              href="/projects/new"
+              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded transition-colors"
+              style={{ background: 'var(--accent)', color: 'var(--text-primary)' }}
+            >
+              <Plus size={12} />
+              New project
+            </Link>
+          </div>
+        )}
+
         {eventList.length === 0 ? (
-          <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="max-w-7xl mx-auto page-px py-8">
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="relative mb-8">
                 <div className="w-24 h-24 rounded-full bg-white/3 border border-[#1f1f1f] flex items-center justify-center">

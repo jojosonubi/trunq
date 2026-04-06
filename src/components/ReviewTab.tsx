@@ -174,14 +174,10 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
           <CheckCircle2 size={28} className="text-emerald-400" />
         </div>
         <h2 className="text-white text-base font-semibold mb-2">Review complete</h2>
-        <div className="flex items-center gap-5 text-sm mt-1">
-          <span className="text-emerald-400 tabular-nums">{counts.approved} approved</span>
-          {counts.held > 0 && <span className="text-amber-400 tabular-nums">{counts.held} held</span>}
-          {counts.rejected > 0 && (
-            <span className="text-red-400 tabular-nums">
-              {counts.rejected} rejected &amp; moved to trash
-            </span>
-          )}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <Pill variant="approved">{counts.approved} approved</Pill>
+          {counts.held > 0     && <Pill variant="ghost">{counts.held} held</Pill>}
+          {counts.rejected > 0 && <Pill variant="flagged">{counts.rejected} rejected &amp; moved to trash</Pill>}
         </div>
         <button
           onClick={() => {
@@ -205,11 +201,11 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
           <p className="text-white text-sm font-medium">
             Reviewed {reviewedCount} of {imageFiles.length} photo{imageFiles.length !== 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-            <span className="text-emerald-400 text-xs tabular-nums">{counts.approved} approved</span>
-            <span className="text-amber-400 text-xs tabular-nums">{counts.held} held</span>
-            <span className="text-red-400 text-xs tabular-nums">{counts.rejected} rejected</span>
-            <span className="text-[#555] text-xs tabular-nums">{counts.pending} pending</span>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <Pill variant="approved">{counts.approved} approved</Pill>
+            {counts.held > 0     && <Pill variant="ghost">{counts.held} held</Pill>}
+            {counts.rejected > 0 && <Pill variant="flagged">{counts.rejected} rejected</Pill>}
+            {counts.pending > 0  && <Pill variant="ghost">{counts.pending} pending</Pill>}
           </div>
         </div>
 
