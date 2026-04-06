@@ -9,17 +9,17 @@ import FolderDrawer, { type FolderItem, type SortBy } from '@/components/archive
 import type { Event } from '@/types'
 
 interface Props {
-  events:        (Event & { cover_image_url: string | null })[]
-  photoCountMap: Record<string, number>
+  events:         (Event & { cover_image_url: string | null })[]
+  photoCountMap:  Record<string, number>
   folderCountMap: Record<string, number>
-  role:          string
+  role:           string
 }
 
 function getYear(dateStr: string): number {
   return new Date(dateStr).getFullYear()
 }
 
-function sortEvents(
+function sortedEvents(
   evts: (Event & { cover_image_url: string | null })[],
   sortBy: SortBy,
 ): (Event & { cover_image_url: string | null })[] {
@@ -30,7 +30,7 @@ function sortEvents(
       return (a.venue ?? '').localeCompare(b.venue ?? '')
     if (sortBy === 'photographer')
       return (a.photographers?.[0] ?? '').localeCompare(b.photographers?.[0] ?? '')
-    // 'year' → date descending
+    // 'year' → most recent first
     return new Date(b.date).getTime() - new Date(a.date).getTime()
   })
 }
@@ -41,34 +41,28 @@ export default function ProjectsPageClient({
   folderCountMap,
   role,
 }: Props) {
-  const years = [...new Set(events.map((e) => getYear(e.date)))].sort((a, b) => b - a)
+  const [activeId, setActiveId] = useState<string>(events[0]?.id ?? '')
+  const [sortBy, setSortBy]     = useState<SortBy>('year')
 
-  const byYear: Record<number, typeof events> = {}
-  for (const e of events) {
-    const y = getYear(e.date)
-    if (!byYear[y]) byYear[y] = []
-    byYear[y].push(e)
-  }
+  const sorted = sortedEvents(events, sortBy)
 
-  const [activeYear, setActiveYear] = useState<number>(years[0])
-  const [sortBy, setSortBy]         = useState<SortBy>('year')
-
-  const folders: FolderItem[] = years.map((year) => ({
-    id:     String(year),
-    label:  String(year),
-    name:   String(year),
-    count:  byYear[year].length,
-    active: year === activeYear,
+  // One row per project — tab label = year, body = project name
+  const folders: FolderItem[] = sorted.map((event) => ({
+    id:     event.id,
+    label:  String(getYear(event.date)),
+    name:   event.name,
+    count:  photoCountMap[event.id] ?? 0,
+    active: event.id === activeId,
   }))
 
-  const activeEvents = sortEvents(byYear[activeYear] ?? [], sortBy)
+  const activeEvent = events.find((e) => e.id === activeId)
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <Sidebar />
 
-      {/* ── Main content ──────────────────────────────────────────────────── */}
+      {/* ── Main content ────────────────────────────────────────────────────── */}
       <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
 
         {/* Section header */}
@@ -89,50 +83,34 @@ export default function ProjectsPageClient({
             Archive
           </p>
           {role !== 'photographer' && (
-            <Link
-              href="/projects/new"
-              style={{
-                display:        'inline-flex',
-                alignItems:     'center',
-                gap:            5,
-                fontSize:       10,
-                fontWeight:     600,
-                letterSpacing:  '0.04em',
-                padding:        '3px 9px',
-                background:     'var(--accent)',
-                color:          '#ffffff',
-                borderRadius:   2,
-                textDecoration: 'none',
-              }}
-            >
+            <Link href="/projects/new" className="btn-new-project">
               <Plus size={10} />
               New project
             </Link>
           )}
         </div>
 
-        {/* Folder drawer */}
+        {/* Folder drawer — one row per project */}
         <div style={{ marginBottom: 24 }}>
           <FolderDrawer
             folders={folders}
             sortBy={sortBy}
-            onSelect={(id) => setActiveYear(Number(id))}
+            onSelect={setActiveId}
             onSortChange={setSortBy}
           />
         </div>
 
-        {/* Event grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {activeEvents.map((event) => (
+        {/* Active project card */}
+        {activeEvent && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <EventCard
-              key={event.id}
-              event={event}
-              photoCount={photoCountMap[event.id] ?? 0}
-              folderCount={folderCountMap[event.id] ?? 0}
+              event={activeEvent}
+              photoCount={photoCountMap[activeEvent.id] ?? 0}
+              folderCount={folderCountMap[activeEvent.id] ?? 0}
               role={role}
             />
-          ))}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   )

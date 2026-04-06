@@ -36,6 +36,28 @@ html {
 .rounded-2xl { border-radius: 4px; }
 .rounded-3xl { border-radius: 4px; }
 
+/* ─── Theme-aware button variants ───────────────────────────────────────────  */
+.btn-new-project {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             5px;
+  font-size:       10px;
+  font-weight:     600;
+  letter-spacing:  0.04em;
+  padding:         3px 9px;
+  background:      var(--accent);
+  color:           #ffffff;
+  border:          0.5px solid transparent;
+  border-radius:   2px;
+  text-decoration: none;
+  font-family:     inherit;
+}
+[data-theme="dark"] .btn-new-project {
+  background:   transparent;
+  color:        var(--accent);
+  border-color: var(--accent);
+}
+
 /* ─── Section breaks ─────────────────────────────────────────────────────── */
 hr {
   border:     none;

@@ -152,7 +152,7 @@ function bodyStyle(active: boolean): CSSProperties {
 function bodyName(active: boolean): CSSProperties {
   return {
     fontSize:   11,
-    color:      active ? 'var(--accent-dark)' : 'var(--text-muted)',
+    color:      active ? 'var(--accent)' : 'var(--text-muted)',
     fontWeight: active ? 500 : 400,
     overflow:   'hidden',
     whiteSpace: 'nowrap' as const,
