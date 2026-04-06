@@ -1,97 +1,63 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
-import {
-  Archive, Calendar, Search,
-  Crop, Send, ScanFace,
-  Users, Settings,
-} from 'lucide-react'
 
-// ─── Nav data ─────────────────────────────────────────────────────────────────
+// ─── Nav structure ────────────────────────────────────────────────────────────
 
-type NavItem = {
-  label: string
-  href:  string
-  icon:  React.ElementType
-  matchPrefix?: string
+type NavLink = {
+  kind:        'link'
+  label:       string
+  href:        string
+  matchPrefix: string
+  badge?:      boolean  // show count badge if > 0
 }
+type NavDivider = { kind: 'divider' }
+type NavEntry   = NavLink | NavDivider
 
-type Section = {
-  title: string
-  items: NavItem[]
-}
-
-const SECTIONS: Section[] = [
-  {
-    title: 'Workspace',
-    items: [
-      { label: 'Archive',  href: '/projects', icon: Archive,  matchPrefix: '/projects' },
-      { label: 'Events',   href: '/events',   icon: Calendar, matchPrefix: '/events'   },
-      { label: 'Search',   href: '/search',   icon: Search,   matchPrefix: '/search'   },
-    ],
-  },
-  {
-    title: 'Tools',
-    items: [
-      { label: 'Crop',       href: '/crop',      icon: Crop     },
-      { label: 'Delivery',   href: '/delivery',  icon: Send     },
-      { label: 'Face match', href: '/face-scan', icon: ScanFace },
-    ],
-  },
-  {
-    title: 'Admin',
-    items: [
-      { label: 'Team',     href: '/settings#team', icon: Users    },
-      { label: 'Settings', href: '/settings',       icon: Settings },
-    ],
-  },
+const NAV: NavEntry[] = [
+  { kind: 'link',    label: 'Projects',  href: '/projects',       matchPrefix: '/projects'  },
+  { kind: 'divider' },
+  { kind: 'link',    label: 'Queue',     href: '/queue',          matchPrefix: '/queue', badge: true },
+  { kind: 'link',    label: 'Delivery',  href: '/delivery/manage', matchPrefix: '/delivery' },
+  { kind: 'divider' },
+  { kind: 'link',    label: 'Team',      href: '/settings#team',  matchPrefix: '__never__'  },
+  { kind: 'link',    label: 'Settings',  href: '/settings',       matchPrefix: '/settings'  },
 ]
+
+// Mobile tabs — links only, no dividers
+const MOBILE_TABS = NAV.filter((e): e is NavLink => e.kind === 'link' && e.label !== 'Team')
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const sidebar: CSSProperties = {
-  width:       140,
-  flexShrink:  0,
-  background:  'var(--surface-1)',
-  borderRight: 'var(--border-rule)',
-  height:      'calc(100vh - 44px)',
-  position:    'sticky',
-  top:         44,
-  overflowY:   'auto',
-  display:     'flex',
+  width:         140,
+  flexShrink:    0,
+  background:    'var(--surface-1)',
+  borderRight:   'var(--border-rule)',
+  height:        'calc(100vh - 44px)',
+  position:      'sticky',
+  top:           44,
+  overflowY:     'auto',
+  display:       'flex',
   flexDirection: 'column',
 }
 
-const sectionHeaderBase: CSSProperties = {
-  fontSize:      8,
-  letterSpacing: '0.14em',
-  color:         'var(--text-dim)',
-  padding:       '12px 12px 5px',
-  textTransform: 'uppercase',
-  borderTop:     'var(--border-rule)',
-}
-
-const sectionHeaderFirst: CSSProperties = {
-  ...sectionHeaderBase,
-  borderTop: 'none',
-}
-
-function navItemStyle(active: boolean): CSSProperties {
+function linkStyle(active: boolean): CSSProperties {
   return {
-    display:         'flex',
-    flexDirection:   'row',
-    alignItems:      'center',
-    gap:             8,
-    fontSize:        11,
-    color:           active ? 'var(--accent-dark)' : 'var(--text-muted)',
-    padding:         '7px 12px',
-    borderLeft:      active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-    background:      active ? 'var(--accent-bg)' : 'transparent',
-    textDecoration:  'none',
-    whiteSpace:      'nowrap' as const,
-    transition:      'color 0.15s, background 0.15s, border-color 0.15s',
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+    fontSize:       11,
+    color:          active ? 'var(--accent)' : 'var(--text-secondary)',
+    padding:        '8px 14px',
+    borderLeft:     active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+    background:     active ? 'var(--accent-bg)' : 'transparent',
+    textDecoration: 'none',
+    whiteSpace:     'nowrap' as const,
+    transition:     'color 0.15s, background 0.15s, border-color 0.15s',
   }
 }
 
@@ -100,54 +66,79 @@ const dot: CSSProperties = {
   height:       3,
   borderRadius: '50%',
   background:   'currentColor',
-  opacity:      0.5,
   flexShrink:   0,
+}
+
+const dividerStyle: CSSProperties = {
+  borderTop: 'var(--border-rule)',
+  margin:    '4px 0',
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function isActive(entry: NavLink, pathname: string): boolean {
+  if (entry.matchPrefix === '__never__') return false
+  return pathname === entry.matchPrefix
+    || pathname.startsWith(entry.matchPrefix + '/')
+    || (entry.matchPrefix !== '/projects' && pathname === entry.matchPrefix)
 }
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 
-function isActive(item: NavItem, pathname: string): boolean {
-  const prefix = item.matchPrefix ?? item.href
-  return pathname === item.href || pathname.startsWith(prefix + '/')
-}
-
 export default function Sidebar() {
   const pathname = usePathname()
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    fetch('/api/queue/count')
+      .then((r) => r.json())
+      .then((d) => setPendingCount(d.count ?? 0))
+      .catch(() => {})
+  }, [pathname])
 
   return (
     <>
-      {/* ── Desktop: sticky left sidebar ────────────────────────────────── */}
+      {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
       <nav style={sidebar} aria-label="Main navigation" className="sidebar-desktop">
-        {SECTIONS.map((section, si) => (
-          <div key={section.title}>
-            <p style={si === 0 ? sectionHeaderFirst : sectionHeaderBase}>
-              {section.title}
-            </p>
-            {section.items.map((item) => {
-              const active = isActive(item, pathname)
-              const Icon   = item.icon
-              return (
-                <Link key={item.href} href={item.href} style={navItemStyle(active)}>
-                  <Icon size={13} strokeWidth={1.6} style={{ flexShrink: 0 }} />
-                  {item.label}
-                  {active && <span style={dot} />}
-                </Link>
-              )
-            })}
-          </div>
-        ))}
+        {NAV.map((entry, i) => {
+          if (entry.kind === 'divider') {
+            return <div key={`div-${i}`} style={dividerStyle} />
+          }
+          const active = isActive(entry, pathname)
+          const count  = entry.badge ? pendingCount : 0
+          return (
+            <Link key={entry.href} href={entry.href} style={linkStyle(active)}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {entry.label}
+                {active && <span style={dot} />}
+              </span>
+              {count > 0 && (
+                <span style={{
+                  fontSize:     9,
+                  fontWeight:   600,
+                  color:        active ? 'var(--accent)' : 'var(--text-muted)',
+                  background:   active ? 'var(--accent-bg)' : 'var(--surface-3)',
+                  borderRadius: 8,
+                  padding:      '1px 5px',
+                  letterSpacing: '0.02em',
+                }}>
+                  {count}
+                </span>
+              )}
+            </Link>
+          )
+        })}
       </nav>
 
-      {/* ── Mobile: bottom tab bar (icons only) ─────────────────────────── */}
+      {/* ── Mobile bottom tab bar ────────────────────────────────────────── */}
       <nav aria-label="Main navigation" className="sidebar-mobile">
-        {SECTIONS.flatMap((s) => s.items).map((item) => {
-          const active = isActive(item, pathname)
-          const Icon   = item.icon
+        {MOBILE_TABS.map((entry) => {
+          const active = isActive(entry, pathname)
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              aria-label={item.label}
+              key={entry.href}
+              href={entry.href}
+              aria-label={entry.label}
               style={{
                 display:        'flex',
                 flexDirection:  'column',
@@ -155,14 +146,17 @@ export default function Sidebar() {
                 justifyContent: 'center',
                 flex:           1,
                 padding:        '8px 4px',
-                color:          active ? 'var(--accent-dark)' : 'var(--text-muted)',
+                fontSize:       9,
+                color:          active ? 'var(--accent)' : 'var(--text-muted)',
                 borderTop:      active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
                 background:     active ? 'var(--accent-bg)' : 'transparent',
                 textDecoration: 'none',
                 transition:     'color 0.15s, background 0.15s',
+                letterSpacing:  '0.04em',
+                textTransform:  'uppercase',
               }}
             >
-              <Icon size={18} strokeWidth={1.6} />
+              {entry.label}
             </Link>
           )
         })}
@@ -171,18 +165,13 @@ export default function Sidebar() {
       <style>{`
         .sidebar-desktop { display: flex; }
         .sidebar-mobile  { display: none; }
-
         @media (max-width: 767px) {
-          .sidebar-desktop {
-            display: none;
-          }
+          .sidebar-desktop { display: none; }
           .sidebar-mobile {
             display: flex;
             flex-direction: row;
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 56px;
             background: var(--surface-1);
             border-top: var(--border-rule);
