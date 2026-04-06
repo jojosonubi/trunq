@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
 import type { UserProfile } from '@/lib/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import GlobalSearch from '@/components/GlobalSearch'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,11 @@ export default function Navbar({ profile, eventModeHref, stats }: Props) {
             </Link>
           ))}
         </nav>
+
+        {/* Centred search */}
+        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
+          <GlobalSearch />
+        </div>
 
         {/* Right side */}
         <div style={rightArea}>

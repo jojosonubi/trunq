@@ -9,23 +9,13 @@ import { Plus, ImageIcon } from 'lucide-react'
 
 export const revalidate = 0
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmtStorage(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  if (bytes < 1_024)           return `${bytes} B`
-  if (bytes < 1_048_576)       return `${(bytes / 1_024).toFixed(0)} KB`
-  if (bytes < 1_073_741_824)   return `${(bytes / 1_048_576).toFixed(1)} MB`
-  return `${(bytes / 1_073_741_824).toFixed(2)} GB`
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProjectsPage() {
   const profile = await requireAuth()
   const supabase = createClient()
 
-  const [eventsResult, mediaResult, foldersResult, recentViewsResult] = await Promise.all([
+  const [eventsResult, mediaResult, foldersResult] = await Promise.all([
     supabase.from('events').select('*').is('deleted_at', null).order('date', { ascending: false }),
     supabase
       .from('media_files')
@@ -33,22 +23,12 @@ export default async function ProjectsPage() {
       .is('deleted_at', null)
       .order('created_at', { ascending: true }),
     supabase.from('folders').select('event_id'),
-    supabase
-      .from('event_views')
-      .select('event_id, viewed_at')
-      .eq('user_id', profile.id)
-      .order('viewed_at', { ascending: false })
-      .limit(6),
   ])
 
   if (eventsResult.error) console.error('Failed to fetch projects:', eventsResult.error)
 
-  const rawEvents: Event[]    = eventsResult.data ?? []
-  const latestEventId: string | null = rawEvents[0]?.id ?? null
-  const mediaRows            = mediaResult.data ?? []
-
-  const totalPhotos       = mediaRows.length
-  const totalStorageBytes = mediaRows.reduce((s, f) => s + (f.file_size ?? 0), 0)
+  const rawEvents: Event[] = eventsResult.data ?? []
+  const mediaRows          = mediaResult.data ?? []
 
   const fallbackCoverPathMap: Record<string, string> = {}
   const photoCountMap: Record<string, number> = {}
@@ -84,42 +64,13 @@ export default async function ProjectsPage() {
     cover_image_url: coverMap[e.id] ?? null,
   }))
 
-  const recentViewedIds: string[] = (recentViewsResult.data ?? []).map(
-    (r: { event_id: string }) => r.event_id
-  )
-  const eventById = new Map(eventList.map((e) => [e.id, e]))
-  const recentEvents = recentViewedIds
-    .map((id) => eventById.get(id))
-    .filter((e): e is typeof eventList[number] => !!e)
-
   return (
     <div className="min-h-screen bg-surface-0">
 
-      <Navbar
-        profile={profile}
-        stats={eventList.length > 0 ? [
-          { label: 'Projects', value: eventList.length },
-          { label: 'Photos',   value: totalPhotos.toLocaleString() },
-          { label: 'Storage',  value: fmtStorage(totalStorageBytes) },
-        ] : undefined}
-      />
+      <Navbar profile={profile} />
 
       {/* ── Main content ─────────────────────────────────────────────────── */}
       <main>
-        {/* Action row — only when projects exist */}
-        {eventList.length > 0 && profile.role !== 'photographer' && (
-          <div className="max-w-7xl mx-auto page-px pt-8 flex justify-end">
-            <Link
-              href="/projects/new"
-              className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded transition-colors"
-              style={{ background: 'var(--accent)', color: 'var(--text-primary)' }}
-            >
-              <Plus size={12} />
-              New project
-            </Link>
-          </div>
-        )}
-
         {eventList.length === 0 ? (
           <div className="max-w-7xl mx-auto page-px py-8">
             <div className="flex flex-col items-center justify-center py-32 text-center">
@@ -163,7 +114,6 @@ export default async function ProjectsPage() {
         ) : (
           <ProjectsPageClient
             events={eventList}
-            recentEvents={recentEvents}
             photoCountMap={photoCountMap}
             folderCountMap={folderCountMap}
             role={profile.role}

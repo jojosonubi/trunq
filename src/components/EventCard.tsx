@@ -118,7 +118,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
 
         {/* Card body */}
         <div className="p-4">
-          <h3 className="text-white text-sm font-semibold truncate mb-2.5 leading-snug">
+          <h3 className="text-sm font-semibold truncate mb-2.5 leading-snug" style={{ color: 'var(--text-primary)' }}>
             {event.name}
           </h3>
 

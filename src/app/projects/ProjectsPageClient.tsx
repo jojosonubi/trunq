@@ -1,31 +1,48 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import EventCard from '@/components/EventCard'
-import GlobalSearch from '@/components/GlobalSearch'
+import Sidebar from '@/components/layout/Sidebar'
+import FolderDrawer, { type FolderItem, type SortBy } from '@/components/archive/FolderDrawer'
 import type { Event } from '@/types'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Props {
-  events: (Event & { cover_image_url: string | null })[]
-  recentEvents: (Event & { cover_image_url: string | null })[]
+  events:        (Event & { cover_image_url: string | null })[]
   photoCountMap: Record<string, number>
   folderCountMap: Record<string, number>
-  role: string
+  role:          string
 }
 
 function getYear(dateStr: string): number {
   return new Date(dateStr).getFullYear()
 }
 
+function sortEvents(
+  evts: (Event & { cover_image_url: string | null })[],
+  sortBy: SortBy,
+): (Event & { cover_image_url: string | null })[] {
+  return [...evts].sort((a, b) => {
+    if (sortBy === 'project')
+      return a.name.localeCompare(b.name)
+    if (sortBy === 'client')
+      return (a.venue ?? '').localeCompare(b.venue ?? '')
+    if (sortBy === 'photographer')
+      return (a.photographers?.[0] ?? '').localeCompare(b.photographers?.[0] ?? '')
+    // 'year' → date descending
+    return new Date(b.date).getTime() - new Date(a.date).getTime()
+  })
+}
+
 export default function ProjectsPageClient({
   events,
-  recentEvents,
   photoCountMap,
   folderCountMap,
   role,
 }: Props) {
   const years = [...new Set(events.map((e) => getYear(e.date)))].sort((a, b) => b - a)
+
   const byYear: Record<number, typeof events> = {}
   for (const e of events) {
     const y = getYear(e.date)
@@ -33,129 +50,90 @@ export default function ProjectsPageClient({
     byYear[y].push(e)
   }
 
-  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
-  const sectionRefs = useRef<Record<number, HTMLElement | null>>({})
+  const [activeYear, setActiveYear] = useState<number>(years[0])
+  const [sortBy, setSortBy]         = useState<SortBy>('year')
 
-  function toggleYear(year: number) {
-    setCollapsed((prev) => ({ ...prev, [year]: !prev[year] }))
-  }
+  const folders: FolderItem[] = years.map((year) => ({
+    id:     String(year),
+    label:  String(year),
+    name:   String(year),
+    count:  byYear[year].length,
+    active: year === activeYear,
+  }))
 
-  function scrollToYear(year: number) {
-    const el = sectionRefs.current[year]
-    if (!el) return
-    setCollapsed((prev) => ({ ...prev, [year]: false }))
-    setTimeout(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-  }
+  const activeEvents = sortEvents(byYear[activeYear] ?? [], sortBy)
 
   return (
-    <div className="max-w-7xl mx-auto page-px py-8">
-      {/* Search */}
-      <div className="mb-8">
-        <GlobalSearch />
-      </div>
+    <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
+      <Sidebar />
 
-      {/* Recently viewed */}
-      {recentEvents.length > 0 && (
-        <section className="mb-8">
-          <h2
-            className="uppercase font-medium mb-4"
-            style={{
-              fontSize: 9,
-              letterSpacing: '0.14em',
-              color: 'var(--text-dim)',
-              paddingBottom: 8,
-              borderBottom: 'var(--border-rule)',
-            }}
-          >
-            Recently viewed
-          </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {recentEvents.map((event) => (
-              <div key={event.id} className="w-56 shrink-0">
-                <EventCard
-                  event={event}
-                  photoCount={photoCountMap[event.id] ?? 0}
-                  folderCount={folderCountMap[event.id] ?? 0}
-                  role={role}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ── Main content ──────────────────────────────────────────────────── */}
+      <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
 
-      {/* Year sidebar + grid */}
-      <div className="flex gap-8">
-        {/* Sidebar */}
-        {years.length > 1 && (
-          <aside className="w-24 shrink-0">
-            <div className="sticky top-20 flex flex-col gap-1">
-              <p className="text-[10px] uppercase track-label mb-2 font-medium" style={{ color: 'var(--text-dim)' }}>Years</p>
-              {years.map((year) => (
-                <button
-                  key={year}
-                  onClick={() => scrollToYear(year)}
-                  className="flex items-center justify-between w-full px-2 py-2 rounded text-xs transition-colors hover:text-white"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  <span className="font-medium">{year}</span>
-                  <span className="tabular-nums text-[10px]" style={{ color: 'var(--text-dim)' }}>{byYear[year].length}</span>
-                </button>
-              ))}
-            </div>
-          </aside>
-        )}
-
-        {/* Project sections */}
-        <div className="flex-1 min-w-0 space-y-12">
-          {years.map((year, yi) => {
-            const isCollapsed = !!collapsed[year]
-            const eventsForYear = byYear[year]
-            return (
-              <section
-                key={year}
-                ref={(el) => { sectionRefs.current[year] = el }}
-                className="scroll-mt-20"
-              >
-                {yi > 0 && <hr className="mb-8" />}
-
-                {/* Year header */}
-                <button
-                  onClick={() => toggleYear(year)}
-                  className="flex items-center gap-2 mb-4 group/year"
-                >
-                  <h2 className="text-lg font-semibold track-heading transition-colors group-hover/year:opacity-70" style={{ color: 'var(--text-primary)' }}>
-                    {year}
-                  </h2>
-                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-dim)' }}>
-                    {eventsForYear.length} project{eventsForYear.length !== 1 ? 's' : ''}
-                  </span>
-                  {isCollapsed
-                    ? <ChevronRight size={14} className="ml-auto" style={{ color: 'var(--text-dim)' }} />
-                    : <ChevronDown size={14} className="ml-auto" style={{ color: 'var(--text-dim)' }} />
-                  }
-                </button>
-
-                {!isCollapsed && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {eventsForYear.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        event={event}
-                        photoCount={photoCountMap[event.id] ?? 0}
-                        folderCount={folderCountMap[event.id] ?? 0}
-                        role={role}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            )
-          })}
+        {/* Section header */}
+        <div style={{
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'space-between',
+          marginBottom:   12,
+          paddingBottom:  8,
+          borderBottom:   'var(--border-rule)',
+        }}>
+          <p style={{
+            fontSize:      9,
+            textTransform: 'uppercase',
+            letterSpacing: '0.14em',
+            color:         'var(--text-muted)',
+          }}>
+            Archive
+          </p>
+          {role !== 'photographer' && (
+            <Link
+              href="/projects/new"
+              style={{
+                display:        'inline-flex',
+                alignItems:     'center',
+                gap:            5,
+                fontSize:       10,
+                fontWeight:     600,
+                letterSpacing:  '0.04em',
+                padding:        '3px 9px',
+                background:     'var(--accent)',
+                color:          '#ffffff',
+                borderRadius:   2,
+                textDecoration: 'none',
+              }}
+            >
+              <Plus size={10} />
+              New project
+            </Link>
+          )}
         </div>
-      </div>
+
+        {/* Folder drawer */}
+        <div style={{ marginBottom: 24 }}>
+          <FolderDrawer
+            folders={folders}
+            sortBy={sortBy}
+            onSelect={(id) => setActiveYear(Number(id))}
+            onSortChange={setSortBy}
+          />
+        </div>
+
+        {/* Event grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {activeEvents.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              photoCount={photoCountMap[event.id] ?? 0}
+              folderCount={folderCountMap[event.id] ?? 0}
+              role={role}
+            />
+          ))}
+        </div>
+      </main>
     </div>
   )
 }
