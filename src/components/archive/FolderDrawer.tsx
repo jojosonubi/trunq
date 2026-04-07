@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { MoreHorizontal, Pencil, ImagePlus, Trash2 } from 'lucide-react'
 import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
+import EventCoverPicker from '@/components/EventCoverPicker'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,18 +44,94 @@ function formatDate(dateStr: string): string {
   })
 }
 
+// ─── Menu item style ──────────────────────────────────────────────────────────
+
+const MENU_ITEM: React.CSSProperties = {
+  display:     'flex',
+  alignItems:  'center',
+  gap:         8,
+  width:       '100%',
+  textAlign:   'left',
+  fontSize:    11,
+  padding:     '8px 12px',
+  color:       'var(--text-secondary)',
+  background:  'transparent',
+  border:      'none',
+  cursor:      'pointer',
+  fontFamily:  'inherit',
+  whiteSpace:  'nowrap',
+}
+
 // ─── Project card ─────────────────────────────────────────────────────────────
 
 function ProjectCard({ project }: { project: Project }) {
-  const router  = useRouter()
-  const [hover, setHover] = useState(false)
+  const router   = useRouter()
+  const menuRef  = useRef<HTMLDivElement>(null)
+
+  const [hover,           setHover]           = useState(false)
+  const [menuOpen,        setMenuOpen]        = useState(false)
+  const [renaming,        setRenaming]        = useState(false)
+  const [renameDraft,     setRenameDraft]     = useState('')
+  const [saving,          setSaving]          = useState(false)
+  const [confirmDelete,   setConfirmDelete]   = useState(false)
+  const [deleting,        setDeleting]        = useState(false)
+  const [coverPickerOpen, setCoverPickerOpen] = useState(false)
+
+  // Close menu on click outside
+  useEffect(() => {
+    if (!menuOpen) return
+    function onDown(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [menuOpen])
+
+  function startRename() {
+    setMenuOpen(false)
+    setRenameDraft(project.name)
+    setRenaming(true)
+  }
+
+  async function commitRename() {
+    const name = renameDraft.trim()
+    if (!name || name === project.name) { setRenaming(false); return }
+    setSaving(true)
+    try {
+      await fetch(`/api/projects/${project.id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ name }),
+      })
+      router.refresh()
+    } finally {
+      setSaving(false)
+      setRenaming(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await fetch(`/api/projects/${project.id}`, { method: 'DELETE' })
+      router.refresh()
+      setConfirmDelete(false)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const blocked = menuOpen || renaming || confirmDelete || coverPickerOpen
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => router.push(`/projects/${project.id}`)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/projects/${project.id}`) } }}
+      onClick={() => { if (blocked) return; router.push(`/projects/${project.id}`) }}
+      onKeyDown={(e) => {
+        if (blocked) return
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/projects/${project.id}`) }
+      }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -78,22 +157,115 @@ function ProjectCard({ project }: { project: Project }) {
         ) : (
           <div style={{ width: '100%', height: '100%', background: 'var(--surface-2)' }} />
         )}
+
+        {/* Three-dot menu button */}
+        <div ref={menuRef} style={{ position: 'absolute', top: 6, right: 6, zIndex: 10 }}>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setMenuOpen((v) => !v) }}
+            style={{
+              background:   'rgba(0,0,0,0.5)',
+              color:        '#fff',
+              fontSize:     12,
+              padding:      '2px 6px',
+              borderRadius: 2,
+              border:       'none',
+              cursor:       'pointer',
+              opacity:      hover || menuOpen ? 1 : 0,
+              transition:   'opacity 0.15s',
+              fontFamily:   'inherit',
+              lineHeight:   1,
+              display:      'inline-flex',
+              alignItems:   'center',
+            }}
+            aria-label="Project options"
+          >
+            <MoreHorizontal size={13} />
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position:     'absolute',
+              top:          28,
+              right:        0,
+              background:   'var(--surface-0)',
+              border:       'var(--border-rule)',
+              borderRadius: 2,
+              minWidth:     160,
+              zIndex:       20,
+              overflow:     'hidden',
+            }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); startRename() }}
+                style={MENU_ITEM}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-1)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent';       e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                <Pencil size={11} /> Rename project
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setCoverPickerOpen(true) }}
+                style={MENU_ITEM}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-1)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent';       e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                <ImagePlus size={11} /> Change cover image
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setConfirmDelete(true) }}
+                style={MENU_ITEM}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-1)'; e.currentTarget.style.color = 'var(--flagged-fg)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent';       e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                <Trash2 size={11} /> Delete project
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Metadata */}
       <div style={{ padding: '8px 10px', borderTop: '0.5px solid var(--surface-3)' }}>
-        <p style={{
-          fontSize:      11,
-          fontWeight:    500,
-          color:         'var(--text-primary)',
-          letterSpacing: '-0.01em',
-          margin:        0,
-          overflow:      'hidden',
-          whiteSpace:    'nowrap',
-          textOverflow:  'ellipsis',
-        }}>
-          {project.name}
-        </p>
+        {renaming ? (
+          <input
+            autoFocus
+            value={renameDraft}
+            onChange={(e) => setRenameDraft(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation()
+              if (e.key === 'Enter')  { e.preventDefault(); commitRename() }
+              if (e.key === 'Escape') setRenaming(false)
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onBlur={commitRename}
+            disabled={saving}
+            style={{
+              width:        '100%',
+              background:   'var(--surface-0)',
+              border:       '0.5px solid var(--accent)',
+              borderRadius: 2,
+              padding:      '3px 6px',
+              fontSize:     11,
+              color:        'var(--text-primary)',
+              fontFamily:   'inherit',
+              outline:      'none',
+              boxSizing:    'border-box',
+              opacity:      saving ? 0.6 : 1,
+            }}
+          />
+        ) : (
+          <p style={{
+            fontSize:      11,
+            fontWeight:    500,
+            color:         'var(--text-primary)',
+            letterSpacing: '-0.01em',
+            margin:        0,
+            overflow:      'hidden',
+            whiteSpace:    'nowrap',
+            textOverflow:  'ellipsis',
+          }}>
+            {project.name}
+          </p>
+        )}
         <p style={{
           fontSize:     9,
           color:        'var(--text-muted)',
@@ -111,6 +283,85 @@ function ProjectCard({ project }: { project: Project }) {
           </div>
         )}
       </div>
+
+      {/* Cover image picker */}
+      {coverPickerOpen && (
+        <EventCoverPicker eventId={project.id} onClose={() => setCoverPickerOpen(false)} />
+      )}
+
+      {/* Delete confirm dialog */}
+      {confirmDelete && typeof window !== 'undefined' && createPortal(
+        <div
+          onClick={() => { if (!deleting) setConfirmDelete(false) }}
+          style={{
+            position:       'fixed',
+            inset:          0,
+            zIndex:         50,
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            background:     'rgba(0,0,0,0.7)',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background:   'var(--surface-0)',
+              border:       'var(--border-rule)',
+              borderRadius: 4,
+              padding:      24,
+              maxWidth:     360,
+              width:        '100%',
+              margin:       '0 16px',
+            }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+              Move to trash?
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 20px' }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{project.name}</strong> will be soft-deleted. You can restore it from Settings within 30 days.
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                style={{
+                  padding:      '6px 14px',
+                  fontSize:     12,
+                  background:   'transparent',
+                  border:       'var(--border-rule)',
+                  borderRadius: 3,
+                  color:        'var(--text-secondary)',
+                  cursor:       'pointer',
+                  fontFamily:   'inherit',
+                  opacity:      deleting ? 0.4 : 1,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{
+                  padding:      '6px 14px',
+                  fontSize:     12,
+                  fontWeight:   500,
+                  background:   'var(--flagged-bg)',
+                  border:       '0.5px solid var(--flagged-border)',
+                  borderRadius: 3,
+                  color:        'var(--flagged-fg)',
+                  cursor:       deleting ? 'not-allowed' : 'pointer',
+                  fontFamily:   'inherit',
+                  opacity:      deleting ? 0.6 : 1,
+                }}
+              >
+                {deleting ? 'Deleting…' : 'Move to trash'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }
