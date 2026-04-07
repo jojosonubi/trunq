@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
   if (auth.response) return auth.response
 
   try {
+    const contentLength = request.headers.get('content-length')
+    console.log(`[upload] incoming request — content-length: ${contentLength ?? 'unknown'}`)
+
     const formData = await request.formData()
 
     const file            = formData.get('file')         as File | null
@@ -66,6 +69,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    console.log(`[upload] file="${file.name}" size=${file.size} type=${file.type} event=${eventId}`)
 
     let exif: ExifData = {
       dateTaken: null, gpsLat: null, gpsLng: null,
@@ -114,12 +119,14 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      console.error('Storage upload error:', uploadError)
+      console.error('[upload] Storage upload error:', uploadError.message, { storagePath, fileSize: file.size })
       return NextResponse.json(
         { error: `Storage upload failed: ${uploadError.message}` },
         { status: 500 }
       )
     }
+
+    console.log(`[upload] storage ok — path=${storagePath}`)
 
     // ── Insert media_files record ─────────────────────────────────────────────
     const { data: mediaFile, error: dbError } = await supabase
@@ -152,7 +159,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError) {
-      console.error('DB insert error:', dbError)
+      console.error('[upload] DB insert error:', dbError.message, { storagePath })
       await supabase.storage.from('media').remove([storagePath])
       return NextResponse.json(
         { error: `Database insert failed: ${dbError.message}` },
@@ -209,7 +216,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ mediaFile }, { status: 201 })
   } catch (err) {
-    console.error('Unexpected upload error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[upload] Unexpected error:', message, err)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

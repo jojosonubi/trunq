@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 /* ─── Base ───────────────────────────────────────────────────────────────────  */
+img {
+  image-orientation: from-image;
+}
+
 html {
   background:  var(--surface-0);
   color:       var(--text-primary);

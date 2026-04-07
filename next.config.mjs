@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
   async redirects() {
     return [
       // Legacy /events URLs → /projects (permanent redirect, keeps SEO juice)
