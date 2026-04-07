@@ -430,14 +430,15 @@ function LeftPanel({
 // ─── Right panel (Photo grid) ─────────────────────────────────────────────────
 
 interface RightPanelProps {
-  photos:       ApprovedPhoto[]
-  selected:     Set<string>
-  onToggle:     (id: string) => void
-  onSelectAll:  () => void
-  onClearAll:   () => void
+  photos:          ApprovedPhoto[]
+  selected:        Set<string>
+  hasActiveFilter: boolean
+  onToggle:        (id: string) => void
+  onSelectAll:     () => void
+  onClearAll:      () => void
 }
 
-function RightPanel({ photos, selected, onToggle, onSelectAll, onClearAll }: RightPanelProps) {
+function RightPanel({ photos, selected, hasActiveFilter, onToggle, onSelectAll, onClearAll }: RightPanelProps) {
   return (
     <div style={{ flex: 1, minWidth: 0, padding: 16, background: 'var(--surface-0)', overflowY: 'auto' }}>
 
@@ -502,15 +503,25 @@ function RightPanel({ photos, selected, onToggle, onSelectAll, onClearAll }: Rig
       </div>
 
       {/* Grid */}
-      {photos.length === 0 ? (
+      {!hasActiveFilter ? (
+        <div style={{ paddingTop: 64, paddingBottom: 64, textAlign: 'center' }}>
+          <div style={{ borderTop: 'var(--border-rule)', width: 40, marginInline: 'auto', marginBottom: 20 }} />
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Select a project or filter to browse photos
+          </p>
+          <div style={{ borderBottom: 'var(--border-rule)', width: 40, marginInline: 'auto', marginTop: 20 }} />
+        </div>
+      ) : photos.length === 0 ? (
         <div style={{ paddingTop: 48, textAlign: 'center' }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No matching photos.</p>
+          <div style={{ borderTop: 'var(--border-rule)', width: 40, marginInline: 'auto', marginBottom: 20 }} />
+          <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>No photos match these filters.</p>
+          <div style={{ borderBottom: 'var(--border-rule)', width: 40, marginInline: 'auto', marginTop: 20 }} />
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
           {photos.map((photo) => {
             const sel = selected.has(photo.id)
-            const src = transformUrl(photo.signed_url ?? photo.public_url, 200)
+            const src = photo.signed_url ? transformUrl(photo.signed_url, 200) : null
             return (
               <div
                 key={photo.id}
@@ -653,7 +664,8 @@ function NewCollectionTab({
   }
 
   // ── Generate ───────────────────────────────────────────────────────────────
-  const canGenerate = !allProjects && selectedProjects.size > 0
+  const canGenerate      = !allProjects && selectedProjects.size > 0
+  const hasActiveFilter  = !allProjects || selectedTags.size > 0 || selectedColour !== null || minScore !== 0 || maxScore !== 100
 
   async function generate() {
     if (!canGenerate || generating) return
@@ -718,6 +730,7 @@ function NewCollectionTab({
       <RightPanel
         photos={filteredPhotos}
         selected={selectedPhotos}
+        hasActiveFilter={hasActiveFilter}
         onToggle={togglePhoto}
         onSelectAll={selectAll}
         onClearAll={clearAll}

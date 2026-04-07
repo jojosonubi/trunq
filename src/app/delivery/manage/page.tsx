@@ -37,7 +37,7 @@ export default async function DeliveryManagePage() {
 
   // Sign approved photo thumbnails
   const rawPhotos  = (photosResult.data ?? []) as RawPhoto[]
-  const paths      = rawPhotos.map((p) => p.storage_path)
+  const paths      = rawPhotos.map((p) => p.storage_path).filter(Boolean) as string[]
   const signedMap  = paths.length > 0 ? await signStoragePaths(paths) : new Map<string, string>()
   const photos     = rawPhotos.map((p) => ({
     ...p,
