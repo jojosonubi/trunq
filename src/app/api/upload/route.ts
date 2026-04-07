@@ -46,6 +46,37 @@ function buildArchiveFilename(
 }
 
 
+/**
+ * Resolves a unique archive filename for this event.
+ * If baseFilename already exists in media_files, appends _v2, _v3 … until unique.
+ * Returns { filename, isBase } — isBase is true when no suffix was needed.
+ */
+async function resolveUniqueFilename(
+  supabase: ReturnType<typeof getServiceClient>,
+  eventId: string,
+  baseFilename: string,
+): Promise<{ filename: string; isBase: boolean }> {
+  const ext  = baseFilename.includes('.') ? baseFilename.slice(baseFilename.lastIndexOf('.')) : ''
+  const stem = baseFilename.slice(0, baseFilename.length - ext.length)
+
+  const { data } = await supabase
+    .from('media_files')
+    .select('filename')
+    .eq('event_id', eventId)
+    .like('filename', `${stem}%`)
+
+  const existing = new Set((data ?? []).map((r: { filename: string }) => r.filename))
+
+  if (!existing.has(baseFilename)) return { filename: baseFilename, isBase: true }
+
+  for (let v = 2; v <= 999; v++) {
+    const candidate = `${stem}_v${v}${ext}`
+    if (!existing.has(candidate)) return { filename: candidate, isBase: false }
+  }
+
+  return { filename: `${stem}_${Date.now()}${ext}`, isBase: false }
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser()
   if (auth.response) return auth.response
@@ -107,21 +138,29 @@ export async function POST(request: NextRequest) {
     const seq       = (countRes.count ?? 0) + 1
 
     // ── Build archive-standard filename and storage path ──────────────────────
-    const originalFilename = file.name
-    const archiveFilename  = buildArchiveFilename(eventDate, eventName, photographer, seq, ext)
-    const storagePath      = `${eventId}/${archiveFilename}`
+    const originalFilename                   = file.name
+    const baseFilename                       = buildArchiveFilename(eventDate, eventName, photographer, seq, ext)
+    const { filename: archiveFilename, isBase } = await resolveUniqueFilename(supabase, eventId, baseFilename)
+    const storagePath                        = `${eventId}/${archiveFilename}`
+
+    if (!isBase) {
+      console.log(`[upload] filename collision resolved: ${baseFilename} → ${archiveFilename}`)
+    }
 
     // ── Upload to primary storage bucket ─────────────────────────────────────
+    // If no suffix was needed (isBase), upload strictly — a storage conflict means
+    // this is a true duplicate. If a suffix was added, upsert as a race-condition
+    // safety net (a concurrent upload may have claimed the same _vN slot).
     const { error: uploadError } = await supabase.storage
       .from('media')
       .upload(storagePath, fileBuffer, {
         contentType: file.type,
-        upsert: false,
+        upsert: !isBase,
       })
 
     if (uploadError) {
-      if (uploadError.message.toLowerCase().includes('already exists')) {
-        console.log(`[upload] duplicate — file already exists in storage: ${storagePath}`)
+      if (isBase && uploadError.message.toLowerCase().includes('already exists')) {
+        console.log(`[upload] duplicate — base path already exists in storage: ${storagePath}`)
         return NextResponse.json(
           { duplicate: true, reason: 'file already exists in storage' },
           { status: 409 },
