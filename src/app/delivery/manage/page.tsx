@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { signStoragePaths } from '@/lib/supabase/storage'
 import Navbar from '@/components/layout/Navbar'
 import DeliveryManageClient from '@/components/delivery/DeliveryManageClient'
-import type { MediaFile } from '@/types'
+import type { MediaFile, Tag } from '@/types'
 
 export const revalidate = 0
 
@@ -23,20 +23,25 @@ export default async function DeliveryManagePage() {
       .order('date', { ascending: false }),
     supabase
       .from('media_files')
-      .select('id, event_id, filename, storage_path, public_url, file_type')
+      .select('id, event_id, filename, storage_path, public_url, file_type, quality_score, dominant_colours, tags(value, tag_type)')
       .eq('review_status', 'approved')
       .eq('file_type', 'image')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      .limit(300),
+      .limit(400),
   ])
 
+  type RawPhoto = Pick<MediaFile, 'id' | 'event_id' | 'filename' | 'storage_path' | 'public_url' | 'file_type' | 'quality_score' | 'dominant_colours'> & {
+    tags?: Pick<Tag, 'value' | 'tag_type'>[]
+  }
+
   // Sign approved photo thumbnails
-  const rawPhotos  = (photosResult.data ?? []) as Pick<MediaFile, 'id' | 'event_id' | 'filename' | 'storage_path' | 'public_url' | 'file_type'>[]
+  const rawPhotos  = (photosResult.data ?? []) as RawPhoto[]
   const paths      = rawPhotos.map((p) => p.storage_path)
   const signedMap  = paths.length > 0 ? await signStoragePaths(paths) : new Map<string, string>()
   const photos     = rawPhotos.map((p) => ({
     ...p,
+    dominant_colours: p.dominant_colours ?? [],
     signed_url: signedMap.get(p.storage_path) ?? undefined,
   }))
 
