@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2, Shield } from 'lucide-react'
-import Pill from '@/components/ui/Pill'
+import Pill, { ScorePill } from '@/components/ui/Pill'
 import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import clsx from 'clsx'
@@ -74,17 +74,17 @@ function MetaRow({
   icon, label, value, href,
 }: { icon: React.ReactNode; label: string; value: string; href?: string }) {
   return (
-    <div className="flex gap-3">
-      <div className="text-[#555] mt-0.5 shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <p className="text-[#555] text-xs mb-0.5">{label}</p>
+    <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ color: 'var(--text-muted)', marginTop: 1, flexShrink: 0 }}>{icon}</div>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 2, marginTop: 0 }}>{label}</p>
         {href ? (
           <a href={href} target="_blank" rel="noopener noreferrer"
-            className="text-white text-sm hover:text-blue-400 transition-colors break-words">
+            style={{ color: 'var(--text-primary)', fontSize: 12, wordBreak: 'break-word', textDecoration: 'none' }}>
             {value}
           </a>
         ) : (
-          <p className="text-white text-sm break-words">{value}</p>
+          <p style={{ color: 'var(--text-primary)', fontSize: 12, wordBreak: 'break-word', margin: 0 }}>{value}</p>
         )}
       </div>
     </div>
@@ -278,45 +278,45 @@ async function saveUsage() {
       </div>
 
       <div
-        className="w-72 shrink-0 bg-surface-0 border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
+        style={{ width: 288, flexShrink: 0, background: 'var(--surface-0)', borderLeft: 'var(--border-rule)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 py-5 border-b border-[#1a1a1a]">
+        <div style={{ padding: '16px 20px', borderBottom: 'var(--border-rule)' }}>
           {/* Filename + star + quality score */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="text-white text-sm font-medium break-all leading-snug flex-1">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, wordBreak: 'break-all', lineHeight: 1.4, flex: 1, margin: 0 }}>
               {file.filename}
             </p>
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               {stars && (
                 <button
                   onClick={() => stars.onToggle(file.id)}
                   aria-label={isStarred ? 'Unstar' : 'Star'}
-                  className="transition-colors"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}
                 >
                   <Star
-                    size={15}
+                    size={14}
                     fill={isStarred ? 'currentColor' : 'none'}
-                    className={isStarred ? 'text-amber-400' : 'text-[#444] hover:text-[#888]'}
+                    style={{ color: isStarred ? '#f59e0b' : 'var(--text-dim)' }}
                   />
                 </button>
               )}
               {displayScore != null && (
-                <Pill variant="score">{displayScore}</Pill>
+                <ScorePill score={displayScore} />
               )}
             </div>
           </div>
-          <p className="text-[#555] text-xs">
+          <p style={{ color: 'var(--text-muted)', fontSize: 10, margin: 0 }}>
             {file.file_type.toUpperCase()} · {formatFileSize(file.file_size)}
           </p>
           {file.photographer && (
-            <p className="text-[#666] text-xs mt-1 flex items-center gap-1">
-              <span className="text-[#444]">By</span> {file.photographer}
+            <p style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 4, marginBottom: 0 }}>
+              <span style={{ color: 'var(--text-dim)' }}>By</span> {file.photographer}
             </p>
           )}
           {/* Performer tags */}
           {(file.performer_tags ?? []).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {file.performer_tags.map((pt) => (
                 <Pill key={pt.id} variant="ghost">
                   <Users size={9} style={{ marginRight: 3 }} />
@@ -328,7 +328,7 @@ async function saveUsage() {
 
           {/* Brand tags */}
           {(file.brand_tags ?? []).length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {file.brand_tags.map((bt) => (
                 <Pill key={bt.id} variant="ghost">
                   <TagIcon size={9} style={{ marginRight: 3 }} />
@@ -339,11 +339,22 @@ async function saveUsage() {
           )}
 
           {folderProps && folderProps.folders.length > 0 && (
-            <div className="mt-2">
+            <div style={{ marginTop: 8 }}>
               <select
                 value={folderProps.currentFolderId ?? ''}
                 onChange={(e) => folderProps.onAssign(e.target.value || null)}
-                className="w-full bg-surface-0 border border-[#2a2a2a] text-[#888] text-xs rounded px-2 py-1 focus:outline-none focus:border-[#444] transition-colors appearance-none cursor-pointer"
+                style={{
+                  width:        '100%',
+                  background:   'var(--surface-1)',
+                  border:       'var(--border-rule)',
+                  color:        'var(--text-secondary)',
+                  fontSize:     11,
+                  borderRadius: 2,
+                  padding:      '4px 8px',
+                  outline:      'none',
+                  cursor:       'pointer',
+                  fontFamily:   'inherit',
+                }}
               >
                 <option value="">Unfiled</option>
                 {folderProps.folders.map((folder) => (
@@ -353,44 +364,48 @@ async function saveUsage() {
             </div>
           )}
           {displayDescription && (
-            <p className="text-[#888] text-xs mt-2 leading-relaxed italic">{displayDescription}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 11, marginTop: 8, marginBottom: 0, lineHeight: 1.5 }}>
+              {displayDescription}
+            </p>
           )}
 
           {/* Event venue */}
           {event?.venue && (
-            <div className="mt-2 flex items-center gap-1.5 text-[#666] text-xs">
-              <Building2 size={11} className="shrink-0 text-[#444]" />
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--text-muted)', fontSize: 11 }}>
+              <Building2 size={11} style={{ flexShrink: 0, color: 'var(--text-dim)' }} />
               <span>{event.venue}</span>
             </div>
           )}
         </div>
 
-        <div className="px-5 py-5 space-y-6 flex-1">
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
+
+          {/* ── Section label helper style ─────────────────────────────── */}
           {file.file_type === 'image' && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[#444] text-xs uppercase tracking-wider font-medium">AI Tags</p>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10 }}>
+                <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', margin: 0 }}>AI Tags</p>
                 <button
                   onClick={handleRetag}
                   disabled={retagging}
-                  className="flex items-center gap-1 text-[10px] text-[#555] hover:text-white transition-colors disabled:opacity-40"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: retagging ? 'default' : 'pointer', opacity: retagging ? 0.5 : 1, fontFamily: 'inherit', padding: 0 }}
                   aria-label="Re-tag with AI"
                 >
                   {retagging
-                    ? <Sparkles size={11} className="animate-pulse text-purple-400" />
-                    : <RotateCcw size={11} />}
+                    ? <Sparkles size={10} style={{ color: '#a78bfa' }} />
+                    : <RotateCcw size={10} />}
                   {retagging ? 'Tagging…' : 'Re-tag'}
                 </button>
               </div>
 
-              {retagError && <p className="text-red-400 text-xs">{retagError}</p>}
+              {retagError && <p style={{ color: 'var(--flagged-fg)', fontSize: 10, marginBottom: 8 }}>{retagError}</p>}
 
               {hasTags ? (
-                <div className="space-y-3">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {sceneTags.length > 0 && (
                     <div>
-                      <p className="text-[#444] text-xs mb-1.5">Scene</p>
-                      <div className="flex flex-wrap gap-1.5">
+                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Scene</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {sceneTags.map((t) => (
                           <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
@@ -399,8 +414,8 @@ async function saveUsage() {
                   )}
                   {moodTags.length > 0 && (
                     <div>
-                      <p className="text-[#444] text-xs mb-1.5">Mood</p>
-                      <div className="flex flex-wrap gap-1.5">
+                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Mood</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {moodTags.map((t) => (
                           <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
@@ -409,8 +424,8 @@ async function saveUsage() {
                   )}
                   {subjectTags.length > 0 && (
                     <div>
-                      <p className="text-[#444] text-xs mb-1.5">Subject</p>
-                      <div className="flex flex-wrap gap-1.5">
+                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Subject</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {subjectTags.map((t) => (
                           <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
@@ -419,7 +434,7 @@ async function saveUsage() {
                   )}
                 </div>
               ) : (
-                <p className="text-[#444] text-xs">
+                <p style={{ color: 'var(--text-muted)', fontSize: 10, margin: 0 }}>
                   {retagging ? 'Analysing image…' : 'No tags yet — click Re-tag to generate.'}
                 </p>
               )}
@@ -427,50 +442,54 @@ async function saveUsage() {
           )}
 
           {(file.exif_date_taken || file.exif_camera_make || file.exif_camera_model) && (
-            <div className="space-y-4">
-              <p className="text-[#444] text-xs uppercase tracking-wider font-medium">Capture</p>
-              {file.exif_date_taken && (
-                <MetaRow icon={<Calendar size={13} />} label="Date taken" value={formatDate(file.exif_date_taken)} />
-              )}
-              {(file.exif_camera_make || file.exif_camera_model) && (
-                <MetaRow
-                  icon={<Camera size={13} />} label="Camera"
-                  value={[file.exif_camera_make, file.exif_camera_model].filter(Boolean).join(' ')}
-                />
-              )}
+            <div>
+              <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10, marginTop: 0 }}>Capture</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {file.exif_date_taken && (
+                  <MetaRow icon={<Calendar size={12} />} label="Date taken" value={formatDate(file.exif_date_taken)} />
+                )}
+                {(file.exif_camera_make || file.exif_camera_model) && (
+                  <MetaRow
+                    icon={<Camera size={12} />} label="Camera"
+                    value={[file.exif_camera_make, file.exif_camera_model].filter(Boolean).join(' ')}
+                  />
+                )}
+              </div>
             </div>
           )}
 
           {(file.exif_aperture || file.exif_shutter_speed || file.exif_iso || file.exif_focal_length) && (
-            <div className="space-y-4">
-              <p className="text-[#444] text-xs uppercase tracking-wider font-medium">Exposure</p>
-              {file.exif_aperture && (
-                <MetaRow icon={<Aperture size={13} />} label="Aperture" value={`f/${file.exif_aperture}`} />
-              )}
-              {file.exif_shutter_speed && (
-                <MetaRow icon={<span className="text-xs font-mono">S</span>} label="Shutter speed" value={`${file.exif_shutter_speed}s`} />
-              )}
-              {file.exif_iso && (
-                <MetaRow icon={<span className="text-xs font-mono">ISO</span>} label="ISO" value={String(file.exif_iso)} />
-              )}
-              {file.exif_focal_length && (
-                <MetaRow icon={<span className="text-xs font-mono">FL</span>} label="Focal length" value={`${file.exif_focal_length}mm`} />
-              )}
+            <div>
+              <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10, marginTop: 0 }}>Exposure</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {file.exif_aperture && (
+                  <MetaRow icon={<Aperture size={12} />} label="Aperture" value={`f/${file.exif_aperture}`} />
+                )}
+                {file.exif_shutter_speed && (
+                  <MetaRow icon={<span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-muted)' }}>S</span>} label="Shutter speed" value={`${file.exif_shutter_speed}s`} />
+                )}
+                {file.exif_iso && (
+                  <MetaRow icon={<span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-muted)' }}>ISO</span>} label="ISO" value={String(file.exif_iso)} />
+                )}
+                {file.exif_focal_length && (
+                  <MetaRow icon={<span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--text-muted)' }}>FL</span>} label="Focal length" value={`${file.exif_focal_length}mm`} />
+                )}
+              </div>
             </div>
           )}
 
           {file.width && file.height && (
-            <div className="space-y-4">
-              <p className="text-[#444] text-xs uppercase tracking-wider font-medium">Image</p>
-              <MetaRow icon={<Maximize2 size={13} />} label="Dimensions" value={`${file.width} × ${file.height}px`} />
+            <div>
+              <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10, marginTop: 0 }}>Image</p>
+              <MetaRow icon={<Maximize2 size={12} />} label="Dimensions" value={`${file.width} × ${file.height}px`} />
             </div>
           )}
 
           {file.exif_gps_lat != null && file.exif_gps_lng != null && (
-            <div className="space-y-4">
-              <p className="text-[#444] text-xs uppercase tracking-wider font-medium">Location</p>
+            <div>
+              <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10, marginTop: 0 }}>Location</p>
               <MetaRow
-                icon={<MapPin size={13} />} label="GPS"
+                icon={<MapPin size={12} />} label="GPS"
                 value={formatGps(file.exif_gps_lat, file.exif_gps_lng)}
                 href={mapsHref}
               />
@@ -478,29 +497,27 @@ async function saveUsage() {
           )}
 
           {/* ── Usage rights ──────────────────────────────────────────────── */}
-          <div className="space-y-3">
-            <p className="text-[#444] text-xs uppercase tracking-wider font-medium flex items-center gap-1.5">
-              <Shield size={11} />
+          <div>
+            <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)', borderBottom: 'var(--border-rule)', paddingBottom: 6, marginBottom: 10, marginTop: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Shield size={10} />
               Usage rights
             </p>
 
-            {/* Read-only badge when no admin editing */}
             {!onTrash && displayUsageType && (
               <Pill variant={displayUsageType === 'restricted' ? 'flagged' : displayUsageType === 'all_rights' ? 'approved' : 'ghost'}>
                 {USAGE_LABELS[displayUsageType]}
               </Pill>
             )}
             {!onTrash && !displayUsageType && (
-              <p className="text-[#444] text-xs">Unlicensed</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: 10, margin: 0 }}>Unlicensed</p>
             )}
 
-            {/* Admin edit panel */}
             {onTrash && (
-              <div className="space-y-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <select
                   value={displayUsageType ?? ''}
                   onChange={(e) => setLocalUsageType((e.target.value || null) as UsageType)}
-                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors"
+                  style={{ width: '100%', background: 'var(--surface-1)', border: 'var(--border-rule)', borderRadius: 2, padding: '5px 8px', color: 'var(--text-primary)', fontSize: 11, outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                 >
                   <option value="">Unlicensed</option>
                   <option value="all_rights">All rights</option>
@@ -514,21 +531,21 @@ async function saveUsage() {
                   value={displayUsageExpires}
                   onChange={(e) => setLocalUsageExpires(e.target.value)}
                   placeholder="Expires"
-                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+                  style={{ width: '100%', background: 'var(--surface-1)', border: 'var(--border-rule)', borderRadius: 2, padding: '5px 8px', color: 'var(--text-primary)', fontSize: 11, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
 
                 <textarea
                   value={displayUsageNotes}
                   onChange={(e) => setLocalUsageNotes(e.target.value)}
-                  placeholder="Notes (e.g. attribution, restrictions)…"
+                  placeholder="Notes…"
                   rows={2}
-                  className="w-full bg-surface-0 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#444] transition-colors resize-none placeholder:text-[#333]"
+                  style={{ width: '100%', background: 'var(--surface-1)', border: 'var(--border-rule)', borderRadius: 2, padding: '5px 8px', color: 'var(--text-primary)', fontSize: 11, outline: 'none', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }}
                 />
 
                 <button
                   onClick={saveUsage}
                   disabled={usageSaving}
-                  className="w-full text-xs bg-white/8 hover:bg-white/12 border border-white/10 text-white/70 hover:text-white rounded py-1.5 transition-colors disabled:opacity-40"
+                  style={{ width: '100%', fontSize: 11, background: 'var(--surface-2)', border: 'var(--border-rule)', borderRadius: 2, color: 'var(--text-secondary)', padding: '6px', cursor: usageSaving ? 'not-allowed' : 'pointer', opacity: usageSaving ? 0.5 : 1, fontFamily: 'inherit' }}
                 >
                   {usageSaving ? 'Saving…' : 'Save rights'}
                 </button>
@@ -538,12 +555,12 @@ async function saveUsage() {
         </div>
 
         {onTrash && (
-          <div className="px-5 py-4 border-t border-[#1a1a1a] shrink-0">
+          <div style={{ padding: '12px 20px', borderTop: 'var(--border-rule)', flexShrink: 0 }}>
             <button
               onClick={() => { onTrash(file.id); onClose() }}
-              className="flex items-center gap-2 w-full text-left text-xs text-red-400/60 hover:text-red-400 transition-colors"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--flagged-fg)', opacity: 0.6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
             >
-              <Trash2 size={12} className="shrink-0" />
+              <Trash2 size={11} style={{ flexShrink: 0 }} />
               Move to trash
             </button>
           </div>
@@ -667,12 +684,14 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
     }
   }
 
+  const hasMeta = previewTags.length > 0 || previewPerformers.length > 0 || previewBrands.length > 0
+
   return (
     <div
       role="button"
       tabIndex={0}
       className={clsx(
-        'group relative aspect-square bg-surface-0 rounded-lg overflow-hidden transition-all duration-150 focus:outline-none cursor-pointer',
+        'group relative flex flex-col bg-surface-0 rounded-lg overflow-hidden transition-all duration-150 focus:outline-none cursor-pointer',
         inSelectionMode
           ? [
               isSelected && isRecommended  && 'ring-2 ring-inset ring-amber-400 border border-amber-400/40',
@@ -688,136 +707,123 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       onTouchMove={cancelLongPress}
       aria-label={`${inSelectionMode ? (isSelected ? 'Deselect' : 'Select') : 'Open'} ${file.filename}`}
     >
-      {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
+      {/* ── Image area ────────────────────────────────────────────────── */}
+      <div className="relative aspect-square overflow-hidden">
+        {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
 
-      {/* Quality score badge — top-right */}
-      {file.quality_score != null && (
-        <div className="absolute top-2 right-2 z-10">
-          <Pill variant="score">{file.quality_score}</Pill>
-        </div>
-      )}
-
-      {/* Star button — top-left (normal mode only) */}
-      {!inSelectionMode && stars && (
-        <button
-          onClick={(e) => { e.stopPropagation(); stars.onToggle(file.id) }}
-          aria-label={isStarred ? 'Unstar' : 'Star'}
-          className={clsx(
-            'absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 transition-all',
-            isStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          )}
-        >
-          <Star
-            size={12}
-            fill={isStarred ? 'currentColor' : 'none'}
-            className={isStarred ? 'text-amber-400' : 'text-white/70'}
-          />
-        </button>
-      )}
-
-      {/* Selection checkmark — top-left (selection mode only) */}
-      {inSelectionMode && isSelected && (
-        <div className={clsx(
-          'absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center',
-          isRecommended ? 'bg-amber-400' : 'bg-white'
-        )}>
-          <Check size={11} className="text-black" strokeWidth={3} />
-        </div>
-      )}
-
-      {/* "AI Pick" label */}
-      {inSelectionMode && isSelected && isRecommended && (
-        <div className="absolute bottom-2 left-2 z-10">
-          <Pill variant="label">AI PICK</Pill>
-        </div>
-      )}
-
-      {/* Hollow ring for recommended-but-deselected */}
-      {inSelectionMode && !isSelected && isRecommended && (
-        <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full border border-amber-400/50 flex items-center justify-center">
-          <span className="text-amber-400/60 text-[9px] leading-none">✦</span>
-        </div>
-      )}
-
-      {/* Review status pill — bottom-right (normal mode, non-pending only) */}
-      {!inSelectionMode && file.review_status && file.review_status !== 'pending' && (
-        <div className="absolute bottom-2 right-2 z-10">
-          {file.review_status === 'approved' && <Pill variant="approved">approved</Pill>}
-          {file.review_status === 'rejected' && <Pill variant="flagged">flagged</Pill>}
-          {file.review_status === 'held'     && <Pill variant="ghost">held</Pill>}
-        </div>
-      )}
-
-      {file.file_type === 'video' ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
+        {/* Quality score badge — top-right */}
+        {file.quality_score != null && (
+          <div className="absolute top-2 right-2 z-10">
+            <ScorePill score={file.quality_score} />
           </div>
-          <span className="absolute bottom-2 left-2 text-white/50 text-xs truncate max-w-[calc(100%-16px)]">
-            {file.filename}
-          </span>
-        </div>
-      ) : (
-        <Image
-          src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className={clsx(
-            'object-cover transition-all duration-300',
-            !inSelectionMode && 'group-hover:scale-[1.03]',
-            loaded ? 'opacity-100' : 'opacity-0'
-          )}
-          onLoad={() => setLoaded(true)}
-          unoptimized
-        />
-      )}
+        )}
 
-      {/* Normal-mode hover overlay — pointer-events-none so star/badge clicks pass through */}
-      {!inSelectionMode && (
-        <div className="absolute inset-0 z-20 pointer-events-none bg-black/0 group-hover:bg-black/60 transition-all flex flex-col justify-between p-2.5 opacity-0 group-hover:opacity-100">
-          {/* Top row: three-dot menu trigger */}
-          <div className="flex justify-end">
-            {onMenuTrigger && (
-              <button
-                className="pointer-events-auto w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded text-white/80 hover:text-white transition-colors"
-                onClick={(e) => { e.stopPropagation(); onMenuTrigger(e.clientX, e.clientY, file) }}
-                aria-label="Options"
-              >
-                <MoreHorizontal size={12} />
-              </button>
+        {/* Star button — top-left (normal mode only) */}
+        {!inSelectionMode && stars && (
+          <button
+            onClick={(e) => { e.stopPropagation(); stars.onToggle(file.id) }}
+            aria-label={isStarred ? 'Unstar' : 'Star'}
+            className={clsx(
+              'absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 transition-all',
+              isStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             )}
-          </div>
-          {/* Bottom row: filename + tags */}
-          <div>
-            <p className="text-white text-xs font-medium truncate mb-1">{file.filename}</p>
-            {(previewTags.length > 0 || previewPerformers.length > 0 || previewBrands.length > 0) ? (
-              <div className="flex flex-wrap gap-1">
-                {previewPerformers.map((pt) => (
-                  <Pill key={pt.id} variant="ghost">{pt.performers.name}</Pill>
-                ))}
-                {previewBrands.map((bt) => (
-                  <Pill key={bt.id} variant="ghost">{bt.brands.name}</Pill>
-                ))}
-                {previewTags.map((t) => (
-                  <Pill key={t.id} variant="ghost">{t.value}</Pill>
-                ))}
-              </div>
-            ) : file.exif_date_taken ? (
-              <p className="text-white/50 text-xs">
-                {new Date(file.exif_date_taken).toLocaleDateString('en-GB', {
-                  day: 'numeric', month: 'short', year: 'numeric',
-                })}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      )}
+          >
+            <Star
+              size={12}
+              fill={isStarred ? 'currentColor' : 'none'}
+              className={isStarred ? 'text-amber-400' : 'text-white/70'}
+            />
+          </button>
+        )}
 
-      {/* Selection-mode hover: empty ring */}
-      {inSelectionMode && !isSelected && (
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="w-7 h-7 rounded-full border-2 border-white/60" />
+        {/* Selection checkmark — top-left (selection mode only) */}
+        {inSelectionMode && isSelected && (
+          <div className={clsx(
+            'absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center',
+            isRecommended ? 'bg-amber-400' : 'bg-white'
+          )}>
+            <Check size={11} className="text-black" strokeWidth={3} />
+          </div>
+        )}
+
+        {/* "AI Pick" label */}
+        {inSelectionMode && isSelected && isRecommended && (
+          <div className="absolute bottom-2 left-2 z-10">
+            <Pill variant="label">AI PICK</Pill>
+          </div>
+        )}
+
+        {/* Hollow ring for recommended-but-deselected */}
+        {inSelectionMode && !isSelected && isRecommended && (
+          <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full border border-amber-400/50 flex items-center justify-center">
+            <span className="text-amber-400/60 text-[9px] leading-none">✦</span>
+          </div>
+        )}
+
+        {/* Review status pill — bottom-left (normal mode, non-pending only) */}
+        {!inSelectionMode && file.review_status && file.review_status !== 'pending' && (
+          <div className="absolute bottom-2 left-2 z-10">
+            {file.review_status === 'approved' && <Pill variant="approved">approved</Pill>}
+            {file.review_status === 'rejected' && <Pill variant="flagged">flagged</Pill>}
+            {file.review_status === 'held'     && <Pill variant="ghost">held</Pill>}
+          </div>
+        )}
+
+        {file.file_type === 'video' ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+            </div>
+          </div>
+        ) : (
+          <Image
+            src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            className={clsx(
+              'object-cover transition-all duration-300',
+              !inSelectionMode && 'group-hover:scale-[1.03]',
+              loaded ? 'opacity-100' : 'opacity-0'
+            )}
+            onLoad={() => setLoaded(true)}
+            unoptimized
+          />
+        )}
+
+        {/* Hover overlay — only three-dot menu, no text */}
+        {!inSelectionMode && onMenuTrigger && (
+          <div className="absolute inset-0 z-20 pointer-events-none bg-black/0 group-hover:bg-black/40 transition-all flex items-start justify-end p-2 opacity-0 group-hover:opacity-100">
+            <button
+              className="pointer-events-auto w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded text-white/80 hover:text-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); onMenuTrigger(e.clientX, e.clientY, file) }}
+              aria-label="Options"
+            >
+              <MoreHorizontal size={12} />
+            </button>
+          </div>
+        )}
+
+        {/* Selection-mode hover: empty ring */}
+        {inSelectionMode && !isSelected && (
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div className="w-7 h-7 rounded-full border-2 border-white/60" />
+          </div>
+        )}
+      </div>
+
+      {/* ── Metadata below image ──────────────────────────────────────── */}
+      {hasMeta && (
+        <div style={{ padding: '4px 6px 5px', display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          {previewPerformers.map((pt) => (
+            <Pill key={pt.id} variant="ghost">{pt.performers.name}</Pill>
+          ))}
+          {previewBrands.map((bt) => (
+            <Pill key={bt.id} variant="ghost">{bt.brands.name}</Pill>
+          ))}
+          {previewTags.map((t) => (
+            <Pill key={t.id} variant="ghost">{t.value}</Pill>
+          ))}
         </div>
       )}
     </div>

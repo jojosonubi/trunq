@@ -43,8 +43,8 @@ const VARIANTS: Record<Props['variant'], CSSProperties> = {
   },
   ghost: {
     background:   'transparent',
-    color:        '#555',
-    borderColor:  '#3a3a3a',
+    color:        'var(--text-secondary)',
+    borderColor:  'var(--surface-3)',
   },
 }
 
@@ -52,6 +52,25 @@ export default function Pill({ variant, children }: Props) {
   return (
     <span style={{ ...BASE, ...VARIANTS[variant] }}>
       {children}
+    </span>
+  )
+}
+
+// ─── Color-coded score pill ───────────────────────────────────────────────────
+
+export function ScorePill({ score }: { score: number }) {
+  const bg = score >= 80 ? 'var(--approved-bg)'
+           : score >= 60 ? '#fef9e6'
+           : 'var(--flagged-bg)'
+  const color = score >= 80 ? 'var(--approved-fg)'
+              : score >= 60 ? '#b8860b'
+              : 'var(--flagged-fg)'
+  const borderColor = score >= 80 ? 'var(--approved-border)'
+                    : score >= 60 ? '#f0dca0'
+                    : 'var(--flagged-border)'
+  return (
+    <span style={{ ...BASE, background: bg, color, borderColor, fontWeight: 600 }}>
+      {score}
     </span>
   )
 }

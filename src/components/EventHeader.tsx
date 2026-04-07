@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, Building2, MapPin, ImageIcon, Pencil, Check, X, Loader2 } from 'lucide-react'
+import { Pencil, Check, X, Loader2 } from 'lucide-react'
 import type { Event } from '@/types'
 import type { UserRole } from '@/lib/auth'
 
@@ -76,17 +75,29 @@ function InlineField({
     return (
       <button
         onClick={startEdit}
-        className="group inline-flex items-center gap-1.5 text-[#888] hover:text-white transition-colors"
         title={`Edit ${placeholder}`}
+        className="group"
+        style={{
+          display:    'inline-flex',
+          alignItems: 'center',
+          gap:        5,
+          color:      'var(--text-muted)',
+          background: 'none',
+          border:     'none',
+          padding:    0,
+          cursor:     'pointer',
+          fontFamily: 'inherit',
+          fontSize:   'inherit',
+        }}
       >
         {children}
-        <Pencil size={10} className="opacity-0 group-hover:opacity-60 transition-opacity" />
+        <Pencil size={9} className="opacity-0 group-hover:opacity-60 transition-opacity" />
       </button>
     )
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <input
         ref={inputRef}
         type={type}
@@ -94,14 +105,24 @@ function InlineField({
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={onKey}
         placeholder={placeholder}
-        className="bg-surface-0 border border-[#333] rounded px-2 py-0.5 text-white text-sm focus:outline-none focus:border-[#555] w-44"
+        style={{
+          background:   'var(--surface-1)',
+          border:       'var(--border-rule)',
+          borderRadius: 2,
+          padding:      '3px 8px',
+          color:        'var(--text-primary)',
+          fontSize:     11,
+          outline:      'none',
+          fontFamily:   'inherit',
+          width:        '11rem',
+        }}
       />
       {saving ? (
-        <Loader2 size={13} className="animate-spin text-[#555]" />
+        <Loader2 size={12} style={{ color: 'var(--text-muted)', animation: 'spin 1s linear infinite' }} />
       ) : (
         <>
-          <button onClick={save}   className="text-emerald-400 hover:text-emerald-300 transition-colors"><Check  size={13} /></button>
-          <button onClick={cancel} className="text-[#555]     hover:text-white          transition-colors"><X      size={13} /></button>
+          <button onClick={save}   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--approved-fg)', padding: 0, display: 'flex' }}><Check  size={12} /></button>
+          <button onClick={cancel} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex' }}><X      size={12} /></button>
         </>
       )}
     </span>
@@ -123,9 +144,12 @@ export default function EventHeader({ event, photoCount, role }: Props) {
   }
 
   return (
-    <div className="mb-10">
-      <h1 className="text-white text-2xl font-semibold mb-3">{event.name}</h1>
-      <div className="flex flex-wrap items-center gap-4 text-sm">
+    <div style={{ marginBottom: 24 }}>
+      <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 10, marginTop: 0 }}>
+        {event.name}
+      </h1>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
 
         {/* Date — editable */}
         <InlineField
@@ -134,7 +158,6 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           type="date"
           onSave={(v) => patchField('date', v ?? event.date)}
         >
-          <Calendar size={13} className="shrink-0" />
           {formatDate(event.date)}
         </InlineField>
 
@@ -144,8 +167,7 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           placeholder="Venue"
           onSave={(v) => patchField('venue', v)}
         >
-          <Building2 size={13} className="shrink-0" />
-          {event.venue ?? <span className="text-[#444] italic">Add venue</span>}
+          {event.venue ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Add venue</span>}
         </InlineField>
 
         {/* Location — editable */}
@@ -154,19 +176,19 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           placeholder="Location / city"
           onSave={(v) => patchField('location', v)}
         >
-          <MapPin size={13} className="shrink-0" />
-          {event.location ?? <span className="text-[#444] italic">Add location</span>}
+          {event.location ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Add location</span>}
         </InlineField>
 
         {/* Photo count — read-only */}
-        <span className="inline-flex items-center gap-1.5 text-[#666]">
-          <ImageIcon size={13} />
+        <span style={{ color: 'var(--text-muted)' }}>
           {photoCount} photo{photoCount !== 1 ? 's' : ''}
         </span>
       </div>
 
       {event.description && (
-        <p className="text-[#888] text-sm mt-3 max-w-2xl">{event.description}</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 8, maxWidth: '42rem' }}>
+          {event.description}
+        </p>
       )}
     </div>
   )

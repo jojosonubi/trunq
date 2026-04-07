@@ -7,9 +7,10 @@ import DropZone from '@/components/DropZone'
 import EventTabs from '@/components/EventTabs'
 import EventHeader from '@/components/EventHeader'
 import Navbar from '@/components/layout/Navbar'
+import Sidebar from '@/components/layout/Sidebar'
 import ViewTracker from '@/components/ViewTracker'
 import type { Event, MediaFileWithTags, Folder, Performer, Brand } from '@/types'
-import { ArrowLeft, ImageIcon } from 'lucide-react'
+import { ImageIcon } from 'lucide-react'
 
 export const revalidate = 0
 
@@ -80,50 +81,44 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
         eventModeHref={profile.role === 'admin' ? `/projects/${event.id}/live` : undefined}
       />
 
-      <main className="max-w-7xl mx-auto page-px py-8">
-        {/* Back link */}
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 text-sm hover:text-white transition-colors mb-8"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <ArrowLeft size={14} />
-          All projects
-        </Link>
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <Sidebar />
 
-        {/* Project header — inline-editable details */}
-        <EventHeader event={event} photoCount={photoCount} role={profile.role} />
+        <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
+          {/* Project header */}
+          <EventHeader event={event} photoCount={photoCount} role={profile.role} />
 
-        {/* Upload zone */}
-        <div className="mb-10">
-          <DropZone eventId={event.id} photographers={event.photographers ?? []} initialFolders={folders} />
-        </div>
+          {/* Upload zone */}
+          <div style={{ marginBottom: 24 }}>
+            <DropZone eventId={event.id} photographers={event.photographers ?? []} initialFolders={folders} />
+          </div>
 
-        {/* Gallery + Review tabs */}
-        <div id="gallery">
-          {mediaFiles.length > 0 ? (
-            <EventTabs
-              files={mediaFiles}
-              untaggedImages={untaggedImages}
-              eventId={event.id}
-              existingToken={existingToken}
-              event={event}
-              initialFolders={folders}
-              initialPerformers={performers}
-              initialBrands={brands}
-              initialTab={initialTab}
-              initialOpenPhotoId={openPhotoId}
-              role={profile.role}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center" style={{ border: 'var(--border-subtle)', borderStyle: 'dashed', borderRadius: 4 }}>
-              <ImageIcon size={32} className="mb-4" style={{ color: 'var(--text-dim)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No media uploaded yet.</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Drop files above to get started.</p>
-            </div>
-          )}
-        </div>
-      </main>
+          {/* Gallery + Review tabs */}
+          <div id="gallery">
+            {mediaFiles.length > 0 ? (
+              <EventTabs
+                files={mediaFiles}
+                untaggedImages={untaggedImages}
+                eventId={event.id}
+                existingToken={existingToken}
+                event={event}
+                initialFolders={folders}
+                initialPerformers={performers}
+                initialBrands={brands}
+                initialTab={initialTab}
+                initialOpenPhotoId={openPhotoId}
+                role={profile.role}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center" style={{ border: 'var(--border-subtle)', borderStyle: 'dashed', borderRadius: 4 }}>
+                <ImageIcon size={32} className="mb-4" style={{ color: 'var(--text-dim)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No media uploaded yet.</p>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Drop files above to get started.</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

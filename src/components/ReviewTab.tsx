@@ -7,7 +7,7 @@ import { Check, Pause, X, Zap, CheckCircle2 } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
-import Pill from '@/components/ui/Pill'
+import Pill, { ScorePill } from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +31,12 @@ function cardBorderClass(status: ReviewStatus): string {
 
 // ─── ReviewTab ────────────────────────────────────────────────────────────────
 
+// Toast state for undo-reject
+interface ToastState {
+  ids: string[]
+  timerId: ReturnType<typeof setTimeout>
+}
+
 export default function ReviewTab({ files, eventId: _eventId }: Props) {
   const router = useRouter()
 
@@ -39,6 +45,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
   const [bulkWorking, setBulkWorking]     = useState(false)
   const [approveThreshold, setApproveThreshold] = useState(75)
   const [rejectThreshold, setRejectThreshold]   = useState(50)
+  const [toast, setToast]                 = useState<ToastState | null>(null)
 
   const imageFiles = useMemo(() => files.filter((f) => f.file_type === 'image'), [files])
 
@@ -47,7 +54,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
   }
 
   // Soft-delete rejected photos via trash API
-  async function trashRejected(ids: string[]) {
+  async function trashPhotos(ids: string[]) {
     await Promise.all(
       ids.map((id) =>
         fetch('/api/trash', {
@@ -58,6 +65,54 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
       )
     )
   }
+
+  // Restore trashed photos (undo)
+  async function restorePhotos(ids: string[]) {
+    await Promise.all(
+      ids.map((id) =>
+        fetch('/api/trash', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'photo', id }),
+        })
+      )
+    )
+  }
+
+  // Undo reject: restore from trash + reset to pending
+  const undoReject = useCallback(async (ids: string[]) => {
+    setToast(null)
+    await restorePhotos(ids)
+    await fetch('/api/review', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status: 'pending' }),
+    })
+    setOverrides((prev) => {
+      const next = { ...prev }
+      ids.forEach((id) => { delete next[id] })
+      return next
+    })
+  }, [])
+
+  // Permanently delete all rejected photos
+  const emptyTrash = useCallback(async () => {
+    const rejectedIds = imageFiles
+      .filter((f) => effectiveStatus(f.id, f.review_status) === 'rejected')
+      .map((f) => f.id)
+    if (!rejectedIds.length) return
+    if (!confirm(`Permanently delete ${rejectedIds.length} rejected photo${rejectedIds.length !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    if (toast) {
+      clearTimeout(toast.timerId)
+      setToast(null)
+    }
+    await Promise.all(
+      rejectedIds.map((id) =>
+        fetch(`/api/trash?type=photo&id=${id}`, { method: 'DELETE' })
+      )
+    )
+    router.refresh()
+  }, [imageFiles, overrides, toast, router]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Patch review status + optionally trash rejected photos
   const setStatus = useCallback(async (ids: string[], status: ReviewStatus) => {
@@ -75,12 +130,18 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
         body: JSON.stringify({ ids, status }),
       })
 
-      // Soft-delete rejected photos
       if (status === 'rejected') {
-        await trashRejected(ids)
+        await trashPhotos(ids)
+        // Clear any existing toast
+        if (toast) clearTimeout(toast.timerId)
+        const timerId = setTimeout(() => {
+          setToast(null)
+          router.refresh()
+        }, 5000)
+        setToast({ ids, timerId })
+      } else {
+        router.refresh()
       }
-
-      router.refresh()
     } finally {
       setLoading((prev) => {
         const next = new Set(prev)
@@ -88,7 +149,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
         return next
       })
     }
-  }, [router])
+  }, [router, toast]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Counts ───────────────────────────────────────────────────────────────
   const counts = useMemo(() => {
@@ -195,16 +256,58 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div>
+      {/* ── Toast ────────────────────────────────────────────────────────── */}
+      {toast && (
+        <div style={{
+          position:     'fixed',
+          bottom:       24,
+          left:         '50%',
+          transform:    'translateX(-50%)',
+          zIndex:       100,
+          display:      'flex',
+          alignItems:   'center',
+          gap:          10,
+          background:   'var(--surface-1)',
+          border:       'var(--border-rule)',
+          borderRadius: 4,
+          padding:      '10px 14px',
+          fontSize:     12,
+          color:        'var(--text-primary)',
+          boxShadow:    '0 4px 16px rgba(0,0,0,0.15)',
+          whiteSpace:   'nowrap',
+        }}>
+          <span style={{ color: 'var(--text-secondary)' }}>
+            {toast.ids.length} photo{toast.ids.length !== 1 ? 's' : ''} moved to trash
+          </span>
+          <button
+            onClick={() => undoReject(toast.ids)}
+            style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 500, padding: 0 }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* ── Progress + threshold sliders ─────────────────────────────────── */}
       <div className="flex items-start justify-between gap-6 mb-4 flex-wrap">
         <div>
-          <p className="text-white text-sm font-medium">
+          <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, marginBottom: 8, marginTop: 0 }}>
             Reviewed {reviewedCount} of {imageFiles.length} photo{imageFiles.length !== 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <Pill variant="approved">{counts.approved} approved</Pill>
             {counts.held > 0     && <Pill variant="ghost">{counts.held} held</Pill>}
-            {counts.rejected > 0 && <Pill variant="flagged">{counts.rejected} rejected</Pill>}
+            {counts.rejected > 0 && (
+              <>
+                <Pill variant="flagged">{counts.rejected} rejected</Pill>
+                <button
+                  onClick={emptyTrash}
+                  style={{ fontSize: 10, color: 'var(--flagged-fg)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0, opacity: 0.7 }}
+                >
+                  Empty trash
+                </button>
+              </>
+            )}
             {counts.pending > 0  && <Pill variant="ghost">{counts.pending} pending</Pill>}
           </div>
         </div>
@@ -309,7 +412,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
 
                       {file.quality_score != null && (
                         <div className="absolute top-1.5 right-1.5">
-                          <Pill variant="score">{file.quality_score}</Pill>
+                          <ScorePill score={file.quality_score} />
                         </div>
                       )}
 
@@ -339,20 +442,27 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                       )}
 
                       <div className="flex gap-1 mt-0.5">
-                        <button
-                          onClick={() => setStatus([file.id], 'approved')}
-                          disabled={isLoading || status === 'approved'}
-                          title="Approve"
-                          className={clsx(
-                            'flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all',
-                            status === 'approved'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-surface-0 text-[#555] hover:bg-emerald-500/10 hover:text-emerald-400 border border-[#222] hover:border-emerald-500/20'
-                          )}
-                        >
-                          <Check size={9} strokeWidth={3} />
-                          OK
-                        </button>
+                        {status === 'approved' ? (
+                          <button
+                            onClick={() => setStatus([file.id], 'pending')}
+                            disabled={isLoading}
+                            title="Undo approval"
+                            className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/10"
+                          >
+                            <Check size={9} strokeWidth={3} />
+                            Undo
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setStatus([file.id], 'approved')}
+                            disabled={isLoading}
+                            title="Approve"
+                            className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-medium transition-all bg-surface-0 text-[#555] hover:bg-emerald-500/10 hover:text-emerald-400 border border-[#222] hover:border-emerald-500/20"
+                          >
+                            <Check size={9} strokeWidth={3} />
+                            OK
+                          </button>
+                        )}
                         <button
                           onClick={() => setStatus([file.id], 'held')}
                           disabled={isLoading || status === 'held'}

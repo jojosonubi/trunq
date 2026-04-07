@@ -507,79 +507,110 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
 
         {/* Filter button + dropdown */}
         <div ref={filterRef} className="relative shrink-0">
-          <button
-            onClick={() => setFilterOpen((v) => !v)}
-            className={clsx(
-              'inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
-              (activeStatus !== null || activeFileType !== null)
-                ? 'border-white/30 text-white bg-white/8'
-                : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
-            )}
-          >
-            <SlidersHorizontal size={14} />
-            Filters
-            {(activeStatus !== null || activeFileType !== null) && (
-              <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-            )}
-          </button>
-
-          {filterOpen && (
-            <div className="absolute top-full left-0 mt-1.5 w-56 bg-surface-0 border border-[#2a2a2a] rounded-xl shadow-2xl p-3 z-30 space-y-3">
-              {/* Review status */}
-              <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Review status</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['pending', 'approved', 'held', 'rejected'] as const).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setActiveStatus((prev) => prev === s ? null : s)}
-                      className={clsx(
-                        'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
-                        activeStatus === s
-                          ? s === 'approved' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                          : s === 'rejected' ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                          : s === 'held'     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                          : 'bg-white/10 border-white/20 text-white'
-                          : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
-                      )}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* File type */}
-              <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">File type</p>
-                <div className="flex gap-1.5">
-                  {(['image', 'video', 'graphic'] as const).map((ft) => (
-                    <button
-                      key={ft}
-                      onClick={() => setActiveFileType((prev) => prev === ft ? null : ft)}
-                      className={clsx(
-                        'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
-                        activeFileType === ft
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
-                      )}
-                    >
-                      {ft}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {(activeStatus !== null || activeFileType !== null) && (
+          {(() => {
+            const activeFilterCount = (activeStatus !== null ? 1 : 0) + (activeFileType !== null ? 1 : 0) + activePills.size
+            const hasActiveFilters  = activeFilterCount > 0
+            return (
+              <>
                 <button
-                  onClick={() => { setActiveStatus(null); setActiveFileType(null) }}
-                  className="text-xs text-[#555] hover:text-white transition-colors"
+                  onClick={() => setFilterOpen((v) => !v)}
+                  className={clsx(
+                    'inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
+                    hasActiveFilters
+                      ? 'border-white/30 text-white bg-white/8'
+                      : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
+                  )}
                 >
-                  Clear filters
+                  <SlidersHorizontal size={14} />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[9px] font-medium leading-none">
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </button>
-              )}
-            </div>
-          )}
+
+                {filterOpen && (
+                  <div className="absolute top-full left-0 mt-1.5 w-64 bg-surface-0 border border-[#2a2a2a] rounded-xl shadow-2xl p-3 z-30 space-y-3">
+                    {/* Tag chips */}
+                    <div>
+                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Tags</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {QUICK_PILLS.map((pill) => (
+                          <button
+                            key={pill}
+                            onClick={() => togglePill(pill)}
+                            className={clsx(
+                              'text-xs px-2.5 py-1 rounded-full border transition-all',
+                              activePills.has(pill)
+                                ? 'bg-white/10 border-white/25 text-white'
+                                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
+                            )}
+                          >
+                            {pill}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Review status */}
+                    <div>
+                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Review status</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(['pending', 'approved', 'held', 'rejected'] as const).map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setActiveStatus((prev) => prev === s ? null : s)}
+                            className={clsx(
+                              'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
+                              activeStatus === s
+                                ? s === 'approved' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                                : s === 'rejected' ? 'bg-red-500/20 border-red-500/40 text-red-300'
+                                : s === 'held'     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                                : 'bg-white/10 border-white/20 text-white'
+                                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
+                            )}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* File type */}
+                    <div>
+                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">File type</p>
+                      <div className="flex gap-1.5">
+                        {(['image', 'video', 'graphic'] as const).map((ft) => (
+                          <button
+                            key={ft}
+                            onClick={() => setActiveFileType((prev) => prev === ft ? null : ft)}
+                            className={clsx(
+                              'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
+                              activeFileType === ft
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
+                            )}
+                          >
+                            {ft}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {hasActiveFilters && (
+                      <button
+                        onClick={() => { setActiveStatus(null); setActiveFileType(null); setActivePills(new Set()) }}
+                        className="text-xs text-[#555] hover:text-white transition-colors"
+                      >
+                        Clear all filters
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
 
         {/* Download all (images in current filtered view) */}
@@ -633,7 +664,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
         </div>
       )}
 
-      {/* ── Row 2: starred pill + tag pills + count + bulk retag ─────────── */}
+      {/* ── Row 2: starred pill + count + bulk retag ────────────────────── */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         {/* Starred filter pill */}
         <button
@@ -649,22 +680,19 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           Starred
         </button>
 
-        {QUICK_PILLS.map((pill) => (
+        {/* Active pill chips (show when active) */}
+        {[...activePills].map((pill) => (
           <button
             key={pill}
             onClick={() => togglePill(pill)}
-            className={clsx(
-              'text-xs px-3 py-1 rounded-full border transition-all',
-              activePills.has(pill)
-                ? 'bg-white/10 border-white/25 text-white'
-                : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
-            )}
+            className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border border-white/25 bg-white/10 text-white transition-all"
           >
             {pill}
+            <X size={9} />
           </button>
         ))}
 
-        {isFiltered && (
+        {isFiltered && activePills.size === 0 && (
           <button
             onClick={clearAll}
             className="text-xs px-3 py-1 rounded-full border border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999] transition-all"

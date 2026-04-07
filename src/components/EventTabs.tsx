@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Images, CheckSquare, Link2, Copy, Check, Users, Tag as TagIcon } from 'lucide-react'
+import { Link2, Copy, Check } from 'lucide-react'
 import Pill from '@/components/ui/Pill'
 import clsx from 'clsx'
 import GalleryWithSearch from '@/components/GalleryWithSearch'
@@ -195,36 +195,48 @@ export default function EventTabs({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const approvedCount = files.filter((f) => f.review_status === 'approved').length
-  const pendingCount  = files.filter((f) => f.review_status === 'pending').length
+  const approvedCount  = files.filter((f) => f.review_status === 'approved').length
+  const pendingCount   = files.filter((f) => f.review_status === 'pending').length
+  const heldCount      = files.filter((f) => f.review_status === 'held').length
+  const rejectedCount  = files.filter((f) => f.review_status === 'rejected').length
+
+  const TAB_LABELS: Record<Tab, string> = {
+    gallery:    'Gallery',
+    review:     'Review',
+    performers: 'Performers',
+    brands:     'Brands',
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div>
-      {/* ── Tab bar + delivery link ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 border-b border-[#1f1f1f] mb-6">
+      {/* ── Tab bar ─────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 'var(--border-rule)', marginBottom: 20 }}>
         {/* Tabs */}
-        <div className="flex">
+        <div style={{ display: 'flex' }}>
           {allowedTabs.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={clsx(
-                'inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-                tab === t
-                  ? 'text-white border-white'
-                  : 'text-[#555] border-transparent hover:text-[#888] hover:border-[#333]'
-              )}
+              style={{
+                display:      'inline-flex',
+                alignItems:   'center',
+                gap:          6,
+                padding:      '8px 12px',
+                fontSize:     11,
+                fontWeight:   tab === t ? 500 : 400,
+                color:        tab === t ? 'var(--text-primary)' : 'var(--text-muted)',
+                background:   'none',
+                border:       'none',
+                borderBottom: tab === t ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+                marginBottom: -1,
+                cursor:       'pointer',
+                fontFamily:   'inherit',
+                transition:   'color 0.15s',
+              }}
             >
-              {t === 'gallery'   && <Images      size={14} />}
-              {t === 'review'    && <CheckSquare size={14} />}
-              {t === 'performers'&& <Users       size={14} />}
-              {t === 'brands'    && <TagIcon     size={14} />}
-              {t === 'gallery'    ? 'Gallery'
-               : t === 'review'  ? 'Review'
-               : t === 'performers' ? 'Performers'
-               : 'Brands'}
+              {TAB_LABELS[t]}
               {t === 'review' && pendingCount > 0 && (
                 <Pill variant="ghost">{pendingCount}</Pill>
               )}
@@ -238,33 +250,62 @@ export default function EventTabs({
           ))}
         </div>
 
-        {/* Delivery link controls (admin + producer only) */}
-        <div className="flex items-center gap-2 pb-2.5">
-          {role === 'photographer' ? null : token ? (
-            <>
-              <span className="text-[#3a3a3a] text-xs font-mono truncate max-w-[180px]">
-                /delivery/{token.slice(0, 10)}…
-              </span>
+        {/* Right side: status pills + delivery link */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 6 }}>
+          {approvedCount > 0 && <Pill variant="approved">{approvedCount} approved</Pill>}
+          {heldCount     > 0 && <Pill variant="ghost">{heldCount} held</Pill>}
+          {rejectedCount > 0 && <Pill variant="flagged">{rejectedCount} rejected</Pill>}
+
+          {role !== 'photographer' && (
+            token ? (
+              <>
+                <span style={{ color: 'var(--text-dim)', fontSize: 11, fontFamily: 'monospace' }}>
+                  /delivery/{token.slice(0, 8)}…
+                </span>
+                <button
+                  onClick={copyLink}
+                  style={{
+                    display:      'inline-flex',
+                    alignItems:   'center',
+                    gap:          4,
+                    fontSize:     10,
+                    color:        'var(--text-muted)',
+                    background:   'transparent',
+                    border:       'var(--border-rule)',
+                    borderRadius: 2,
+                    padding:      '3px 8px',
+                    cursor:       'pointer',
+                    fontFamily:   'inherit',
+                  }}
+                >
+                  {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
+                  {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </>
+            ) : approvedCount > 0 ? (
               <button
-                onClick={copyLink}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+                onClick={generateLink}
+                disabled={generating}
+                style={{
+                  display:      'inline-flex',
+                  alignItems:   'center',
+                  gap:          4,
+                  fontSize:     10,
+                  color:        'var(--text-secondary)',
+                  background:   'transparent',
+                  border:       'var(--border-rule)',
+                  borderRadius: 2,
+                  padding:      '3px 8px',
+                  cursor:       generating ? 'not-allowed' : 'pointer',
+                  opacity:      generating ? 0.5 : 1,
+                  fontFamily:   'inherit',
+                }}
               >
-                {copied
-                  ? <Check size={12} className="text-emerald-400" />
-                  : <Copy size={12} />}
-                {copied ? 'Copied!' : 'Copy link'}
+                <Link2 size={10} />
+                {generating ? 'Generating…' : 'Client link'}
               </button>
-            </>
-          ) : approvedCount > 0 ? (
-            <button
-              onClick={generateLink}
-              disabled={generating}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all disabled:opacity-60 shrink-0"
-            >
-              <Link2 size={12} />
-              {generating ? 'Generating…' : 'Generate client link'}
-            </button>
-          ) : null}
+            ) : null
+          )}
         </div>
       </div>
 
