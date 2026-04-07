@@ -445,20 +445,18 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   const checkDuplicates = useCallback(async (files: File[]): Promise<Set<string>> => {
     if (files.length === 0) return new Set()
-    const supabase   = createClient()
-    const names      = [...new Set(files.map((f) => f.name))]
-    const sizes      = [...new Set(files.map((f) => f.size))]
-    const [nameRes, sizeRes] = await Promise.all([
-      supabase.from('media_files').select('original_filename').eq('event_id', eventId).is('deleted_at', null).in('original_filename', names),
-      supabase.from('media_files').select('file_size').eq('event_id', eventId).is('deleted_at', null).in('file_size', sizes),
-    ])
-    const existingNames = new Set((nameRes.data ?? []).map((r: { original_filename: string }) => r.original_filename))
-    const existingSizes = new Set((sizeRes.data ?? []).map((r: { file_size: number }) => r.file_size))
+    const supabase = createClient()
+    const names    = [...new Set(files.map((f) => f.name))]
+    const { data } = await supabase
+      .from('media_files')
+      .select('original_filename')
+      .eq('event_id', eventId)
+      .is('deleted_at', null)
+      .in('original_filename', names)
+    const existingNames = new Set((data ?? []).map((r: { original_filename: string }) => r.original_filename))
     const dupKeys = new Set<string>()
     for (const f of files) {
-      if (existingNames.has(f.name) || existingSizes.has(f.size)) {
-        dupKeys.add(`${f.name}|${f.size}`)
-      }
+      if (existingNames.has(f.name)) dupKeys.add(`${f.name}|${f.size}`)
     }
     return dupKeys
   }, [eventId])
