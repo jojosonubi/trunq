@@ -45,6 +45,38 @@ function buildArchiveFilename(
   return `${dateStr}_${eventSlug}_${photographerSlug}_${seqStr}.${ext}`
 }
 
+/**
+ * Resolves a unique archive filename for this event.
+ * If `baseFilename` already exists in media_files, appends _v2, _v3 … until unique.
+ */
+async function resolveUniqueFilename(
+  supabase: ReturnType<typeof getServiceClient>,
+  eventId: string,
+  baseFilename: string,
+): Promise<string> {
+  const ext  = baseFilename.includes('.') ? baseFilename.slice(baseFilename.lastIndexOf('.')) : ''
+  const stem = baseFilename.slice(0, baseFilename.length - ext.length)
+
+  // Fetch all existing filenames in this event that share the same stem prefix
+  const { data } = await supabase
+    .from('media_files')
+    .select('filename')
+    .eq('event_id', eventId)
+    .like('filename', `${stem}%`)
+
+  const existing = new Set((data ?? []).map((r: { filename: string }) => r.filename))
+
+  if (!existing.has(baseFilename)) return baseFilename
+
+  for (let v = 2; v <= 999; v++) {
+    const candidate = `${stem}_v${v}${ext}`
+    if (!existing.has(candidate)) return candidate
+  }
+
+  // Extremely unlikely fallback
+  return `${stem}_${Date.now()}${ext}`
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser()
   if (auth.response) return auth.response
@@ -107,15 +139,20 @@ export async function POST(request: NextRequest) {
 
     // ── Build archive-standard filename and storage path ──────────────────────
     const originalFilename = file.name
-    const archiveFilename  = buildArchiveFilename(eventDate, eventName, photographer, seq, ext)
+    const baseFilename     = buildArchiveFilename(eventDate, eventName, photographer, seq, ext)
+    const archiveFilename  = await resolveUniqueFilename(supabase, eventId, baseFilename)
     const storagePath      = `${eventId}/${archiveFilename}`
+
+    if (archiveFilename !== baseFilename) {
+      console.log(`[upload] filename collision resolved: ${baseFilename} → ${archiveFilename}`)
+    }
 
     // ── Upload to primary storage bucket ─────────────────────────────────────
     const { error: uploadError } = await supabase.storage
       .from('media')
       .upload(storagePath, fileBuffer, {
         contentType: file.type,
-        upsert: false,
+        upsert: true,
       })
 
     if (uploadError) {
