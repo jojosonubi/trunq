@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 
 interface Props {
-  variant: 'label' | 'score' | 'approved' | 'flagged' | 'ghost'
+  variant: 'label' | 'score' | 'approved' | 'flagged' | 'ghost' | 'tag'
   children: ReactNode
 }
 
@@ -46,6 +46,14 @@ const VARIANTS: Record<Props['variant'], CSSProperties> = {
     color:        'var(--text-secondary)',
     borderColor:  'var(--surface-3)',
   },
+  tag: {
+    background:    'transparent',
+    color:         'var(--text-muted)',
+    borderColor:   'var(--surface-3)',
+    padding:       '2px 5px',
+    letterSpacing: '0.04em',
+    borderRadius:  '2px',
+  },
 }
 
 export default function Pill({ variant, children }: Props) {
@@ -59,17 +67,17 @@ export default function Pill({ variant, children }: Props) {
 // ─── Color-coded score pill ───────────────────────────────────────────────────
 
 export function ScorePill({ score }: { score: number }) {
-  const bg = score >= 80 ? 'var(--approved-bg)'
-           : score >= 60 ? '#fef9e6'
-           : 'var(--flagged-bg)'
-  const color = score >= 80 ? 'var(--approved-fg)'
+  const color = score >= 80 ? '#1D9E75'
               : score >= 60 ? '#b8860b'
-              : 'var(--flagged-fg)'
-  const borderColor = score >= 80 ? 'var(--approved-border)'
-                    : score >= 60 ? '#f0dca0'
-                    : 'var(--flagged-border)'
+              : '#c0392b'
   return (
-    <span style={{ ...BASE, background: bg, color, borderColor, fontWeight: 600 }}>
+    <span style={{
+      ...BASE,
+      background:   'var(--label-bg)',
+      borderColor:  'var(--label-border)',
+      color,
+      fontWeight:   600,
+    }}>
       {score}
     </span>
   )

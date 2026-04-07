@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react'
 import type { UserProfile } from '@/lib/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import GlobalSearch from '@/components/GlobalSearch'
+import { useEventMode } from '@/context/EventModeContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,9 +17,8 @@ export type StatItem = {
 }
 
 interface Props {
-  profile:        UserProfile
-  eventModeHref?: string
-  stats?:         StatItem[]
+  profile: UserProfile
+  stats?:  StatItem[]
 }
 
 // ─── Nav links ────────────────────────────────────────────────────────────────
@@ -79,18 +79,6 @@ const rightArea: CSSProperties = {
   alignItems: 'center',
   gap:        10,
   flexShrink: 0,
-}
-
-const eventBadge: CSSProperties = {
-  background:   'var(--accent-bg)',
-  border:       '0.5px solid var(--accent)',
-  borderRadius: 2,
-  padding:      '2px 7px',
-  fontSize:     9,
-  color:        'var(--accent-dark)',
-  letterSpacing:'0.06em',
-  textDecoration:'none',
-  whiteSpace:   'nowrap' as const,
 }
 
 function avatarCircle(): CSSProperties {
@@ -170,14 +158,15 @@ function isActive(matchPrefix: string, pathname: string): boolean {
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 
-export default function Navbar({ profile, eventModeHref, stats }: Props) {
-  const pathname = usePathname()
-  const avatar   = initials(profile)
+export default function Navbar({ profile, stats }: Props) {
+  const pathname  = usePathname()
+  const avatar    = initials(profile)
+  const { eventMode } = useEventMode()
 
   return (
     <>
       {/* ── Main bar ──────────────────────────────────────────────────────── */}
-      <div style={bar}>
+      <div style={{ ...bar, borderBottom: eventMode ? '2px solid var(--accent)' : 'var(--border-rule)' }}>
         {/* Wordmark */}
         <Link href="/projects" style={wordmark}>TRUNQ</Link>
 
@@ -202,11 +191,6 @@ export default function Navbar({ profile, eventModeHref, stats }: Props) {
         {/* Right side */}
         <div style={rightArea}>
           <ThemeToggle />
-          {eventModeHref && (
-            <Link href={eventModeHref} style={eventBadge}>
-              ● EVENT MODE
-            </Link>
-          )}
           <Link href="/settings" style={avatarCircle()} aria-label="Account settings">
             {avatar}
           </Link>

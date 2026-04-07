@@ -2,14 +2,16 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Check, X, Loader2 } from 'lucide-react'
+import { Pencil, Check, X, Loader2, Copy, Link2 } from 'lucide-react'
 import type { Event } from '@/types'
 import type { UserRole } from '@/lib/auth'
 
 interface Props {
-  event: Event
-  photoCount: number
-  role: UserRole
+  event:          Event
+  photoCount:     number
+  role:           UserRole
+  existingToken?: string | null
+  eventId?:       string
 }
 
 function formatDate(dateStr: string): string {
@@ -131,8 +133,14 @@ function InlineField({
 
 // ─── EventHeader ──────────────────────────────────────────────────────────────
 
-export default function EventHeader({ event, photoCount, role }: Props) {
+const SEP = <span style={{ color: 'var(--text-dim)', margin: '0 2px' }}>·</span>
+
+export default function EventHeader({ event, photoCount, role, existingToken, eventId }: Props) {
   const router = useRouter()
+
+  const [token, setToken]         = useState<string | null>(existingToken ?? null)
+  const [generating, setGenerating] = useState(false)
+  const [copied, setCopied]       = useState(false)
 
   async function patchField(field: string, value: string | null) {
     await fetch(`/api/projects/${event.id}`, {
@@ -143,15 +151,70 @@ export default function EventHeader({ event, photoCount, role }: Props) {
     router.refresh()
   }
 
+  async function generateLink() {
+    if (!eventId) return
+    setGenerating(true)
+    try {
+      const res  = await fetch('/api/delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId }),
+      })
+      const json = await res.json() as { token?: string }
+      if (json.token) setToken(json.token)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function copyLink() {
+    if (!token) return
+    await navigator.clipboard.writeText(`${window.location.origin}/delivery/${token}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const ghostBtn: React.CSSProperties = {
+    display:      'inline-flex',
+    alignItems:   'center',
+    gap:          4,
+    fontSize:     10,
+    color:        'var(--text-secondary)',
+    background:   'transparent',
+    border:       'var(--border-rule)',
+    borderRadius: 2,
+    padding:      '4px 10px',
+    cursor:       'pointer',
+    fontFamily:   'inherit',
+    letterSpacing: '0.02em',
+    flexShrink:   0,
+  }
+
   return (
-    <div style={{ marginBottom: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 10, marginTop: 0 }}>
-        {event.name}
-      </h1>
+    <div style={{ marginBottom: 20 }}>
+      {/* Title + copy link */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', margin: 0 }}>
+          {event.name}
+        </h1>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
+        {role !== 'photographer' && (
+          token ? (
+            <button onClick={copyLink} style={ghostBtn}>
+              {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+          ) : (
+            <button onClick={generateLink} disabled={generating} style={{ ...ghostBtn, opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}>
+              <Link2 size={10} />
+              {generating ? 'Generating…' : 'Client link'}
+            </button>
+          )
+        )}
+      </div>
 
-        {/* Date — editable */}
+      {/* Meta row */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
         <InlineField
           value={event.date?.slice(0, 10) ?? null}
           placeholder="Event date"
@@ -161,7 +224,8 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           {formatDate(event.date)}
         </InlineField>
 
-        {/* Venue — editable */}
+        {SEP}
+
         <InlineField
           value={event.venue}
           placeholder="Venue"
@@ -170,7 +234,8 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           {event.venue ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Add venue</span>}
         </InlineField>
 
-        {/* Location — editable */}
+        {SEP}
+
         <InlineField
           value={event.location}
           placeholder="Location / city"
@@ -179,14 +244,13 @@ export default function EventHeader({ event, photoCount, role }: Props) {
           {event.location ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Add location</span>}
         </InlineField>
 
-        {/* Photo count — read-only */}
-        <span style={{ color: 'var(--text-muted)' }}>
-          {photoCount} photo{photoCount !== 1 ? 's' : ''}
-        </span>
+        {SEP}
+
+        <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
       </div>
 
       {event.description && (
-        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 8, maxWidth: '42rem' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 8, maxWidth: '42rem', margin: '8px 0 0' }}>
           {event.description}
         </p>
       )}

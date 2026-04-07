@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
+import { useEventMode } from '@/context/EventModeContext'
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ function isActive(entry: NavLink, pathname: string): boolean {
 export default function Sidebar() {
   const pathname = usePathname()
   const [pendingCount, setPendingCount] = useState(0)
+  const { eventMode, toggleEventMode } = useEventMode()
 
   useEffect(() => {
     fetch('/api/queue/count')
@@ -100,34 +102,75 @@ export default function Sidebar() {
     <>
       {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
       <nav style={sidebar} aria-label="Main navigation" className="sidebar-desktop">
-        {NAV.map((entry, i) => {
-          if (entry.kind === 'divider') {
-            return <div key={`div-${i}`} style={dividerStyle} />
-          }
-          const active = isActive(entry, pathname)
-          const count  = entry.badge ? pendingCount : 0
-          return (
-            <Link key={entry.href} href={entry.href} style={linkStyle(active)}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {entry.label}
-                {active && <span style={dot} />}
-              </span>
-              {count > 0 && (
-                <span style={{
-                  fontSize:     9,
-                  fontWeight:   600,
-                  color:        active ? 'var(--accent)' : 'var(--text-muted)',
-                  background:   active ? 'var(--accent-bg)' : 'var(--surface-3)',
-                  borderRadius: 8,
-                  padding:      '1px 5px',
-                  letterSpacing: '0.02em',
-                }}>
-                  {count}
+        <div style={{ flex: 1 }}>
+          {NAV.map((entry, i) => {
+            if (entry.kind === 'divider') {
+              return <div key={`div-${i}`} style={dividerStyle} />
+            }
+            const active = isActive(entry, pathname)
+            const count  = entry.badge ? pendingCount : 0
+            return (
+              <Link key={entry.href} href={entry.href} style={linkStyle(active)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {entry.label}
+                  {active && (
+                    <span style={{
+                      ...dot,
+                      background: eventMode ? 'var(--accent)' : 'currentColor',
+                      animation:  eventMode ? 'pulse-dot 1.4s ease-in-out infinite' : 'none',
+                    }} />
+                  )}
                 </span>
-              )}
-            </Link>
-          )
-        })}
+                {count > 0 && (
+                  <span style={{
+                    fontSize:     9,
+                    fontWeight:   600,
+                    color:        active ? 'var(--accent)' : 'var(--text-muted)',
+                    background:   active ? 'var(--accent-bg)' : 'var(--surface-3)',
+                    borderRadius: 8,
+                    padding:      '1px 5px',
+                    letterSpacing: '0.02em',
+                  }}>
+                    {count}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+
+        {/* ── Event mode toggle ─────────────────────────────────────────── */}
+        <div style={{ borderTop: 'var(--border-rule)', padding: '10px 14px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: eventMode ? 'var(--accent-bg)' : 'transparent',
+            borderLeft: eventMode ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+            margin: '0 -14px', padding: '4px 14px',
+          }}>
+            <span style={{ fontSize: 11, color: eventMode ? 'var(--accent)' : 'var(--text-muted)', fontFamily: 'inherit' }}>
+              Event mode
+            </span>
+            <button
+              onClick={toggleEventMode}
+              aria-label="Toggle event mode"
+              style={{
+                width: 32, height: 18, borderRadius: 9, position: 'relative',
+                background: eventMode ? 'var(--accent)' : 'var(--surface-3)',
+                border: 'none', padding: 0, cursor: 'pointer',
+                transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2,
+                left: eventMode ? 16 : 2,
+                width: 14, height: 14, borderRadius: '50%',
+                background: eventMode ? '#fff' : 'var(--surface-0)',
+                transition: 'left 0.2s',
+                display: 'block',
+              }} />
+            </button>
+          </div>
+        </div>
       </nav>
 
       {/* ── Mobile bottom tab bar ────────────────────────────────────────── */}
@@ -166,6 +209,10 @@ export default function Sidebar() {
       </nav>
 
       <style>{`
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.6); }
+        }
         .sidebar-desktop { display: flex; }
         .sidebar-mobile  { display: none; }
         @media (max-width: 767px) {

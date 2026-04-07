@@ -135,7 +135,6 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
               files={mediaFiles}
               untaggedImages={untaggedImages}
               eventId={event.id}
-              existingToken={existingToken}
               event={event}
               initialFolders={folders}
               initialPerformers={performers}

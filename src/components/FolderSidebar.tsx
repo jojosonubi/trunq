@@ -2,20 +2,42 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { FolderOpen, Folder as FolderIcon, Plus, Pencil, Trash2, Check, X, Files } from 'lucide-react'
-import clsx from 'clsx'
 import type { Folder } from '@/types'
 
 interface Props {
   folders: Folder[]
-  /** file counts per folder id */
   folderCounts: Record<string, number>
   totalCount: number
-  /** null = "All files" is active */
   activeFolderId: string | null
   onSelect: (id: string | null) => void
   onCreateFolder: (name: string) => Promise<void>
   onRenameFolder: (id: string, name: string) => Promise<void>
   onDeleteFolder: (id: string) => Promise<void>
+}
+
+const ITEM_BASE: React.CSSProperties = {
+  display:        'flex',
+  alignItems:     'center',
+  gap:            6,
+  width:          '100%',
+  textAlign:      'left',
+  padding:        '6px 12px',
+  fontSize:       11,
+  fontFamily:     'inherit',
+  background:     'none',
+  border:         'none',
+  borderBottom:   'var(--border-rule)',
+  cursor:         'pointer',
+  transition:     'color 0.12s, background 0.12s',
+}
+
+function itemStyle(active: boolean): React.CSSProperties {
+  return {
+    ...ITEM_BASE,
+    color:        active ? 'var(--accent)' : 'var(--text-secondary)',
+    background:   active ? 'var(--accent-bg)' : 'transparent',
+    borderLeft:   active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+  }
 }
 
 export default function FolderSidebar({
@@ -33,6 +55,7 @@ export default function FolderSidebar({
   const [renamingId, setRenamingId]   = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [busy, setBusy]               = useState(false)
+  const [hovered, setHovered]         = useState<string | null>(null)
 
   const createInputRef = useRef<HTMLInputElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
@@ -70,33 +93,44 @@ export default function FolderSidebar({
 
   const unfiledCount = totalCount - Object.values(folderCounts).reduce((s, n) => s + n, 0)
 
+  const inputStyle: React.CSSProperties = {
+    flex: 1, minWidth: 0,
+    background: 'var(--surface-1)', border: 'var(--border-rule)',
+    borderRadius: 2, color: 'var(--text-primary)',
+    fontSize: 11, padding: '3px 6px', fontFamily: 'inherit', outline: 'none',
+  }
+
+  const iconBtnStyle = (danger?: boolean): React.CSSProperties => ({
+    background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+    color: danger ? 'var(--flagged-fg)' : 'var(--text-muted)',
+    display: 'flex', alignItems: 'center',
+  })
+
   return (
-    <aside className="w-44 shrink-0 flex flex-col gap-0.5">
+    <aside style={{ width: 160, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       {/* All files */}
       <button
         onClick={() => onSelect(null)}
-        className={clsx(
-          'flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-          activeFolderId === null
-            ? 'bg-white/8 text-white'
-            : 'text-[#666] hover:text-[#999] hover:bg-white/4'
-        )}
+        style={itemStyle(activeFolderId === null)}
       >
-        <Files size={14} className="shrink-0" />
-        <span className="flex-1 truncate">All files</span>
-        <span className="text-xs tabular-nums text-[#444]">{totalCount}</span>
+        <Files size={12} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>All files</span>
+        <span style={{ fontSize: 10, color: 'var(--text-dim)', tabularNums: true } as React.CSSProperties}>{totalCount}</span>
       </button>
 
       {/* Folders */}
       {folders.map((folder) => {
-        const isActive  = activeFolderId === folder.id
+        const isActive   = activeFolderId === folder.id
         const isRenaming = renamingId === folder.id
-        const count     = folderCounts[folder.id] ?? 0
+        const count      = folderCounts[folder.id] ?? 0
 
         return (
-          <div key={folder.id} className="group relative">
+          <div key={folder.id} style={{ position: 'relative' }}
+            onMouseEnter={() => setHovered(folder.id)}
+            onMouseLeave={() => setHovered(null)}
+          >
             {isRenaming ? (
-              <div className="flex items-center gap-1 px-2 py-1">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderBottom: 'var(--border-rule)' }}>
                 <input
                   ref={renameInputRef}
                   value={renameValue}
@@ -105,58 +139,36 @@ export default function FolderSidebar({
                     if (e.key === 'Enter')  submitRename(folder.id)
                     if (e.key === 'Escape') setRenamingId(null)
                   }}
-                  className="flex-1 min-w-0 bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded focus:outline-none"
+                  style={inputStyle}
                 />
-                <button
-                  onClick={() => submitRename(folder.id)}
-                  disabled={busy}
-                  className="text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition-colors"
-                  aria-label="Confirm rename"
-                >
-                  <Check size={12} />
+                <button onClick={() => submitRename(folder.id)} disabled={busy} style={iconBtnStyle()}>
+                  <Check size={11} />
                 </button>
-                <button
-                  onClick={() => setRenamingId(null)}
-                  className="text-[#555] hover:text-[#999] transition-colors"
-                  aria-label="Cancel rename"
-                >
-                  <X size={12} />
+                <button onClick={() => setRenamingId(null)} style={iconBtnStyle()}>
+                  <X size={11} />
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => onSelect(folder.id)}
-                className={clsx(
-                  'flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-                  isActive
-                    ? 'bg-white/8 text-white'
-                    : 'text-[#666] hover:text-[#999] hover:bg-white/4'
-                )}
-              >
+              <button onClick={() => onSelect(folder.id)} style={itemStyle(isActive)}>
                 {isActive
-                  ? <FolderOpen size={14} className="shrink-0" />
-                  : <FolderIcon size={14} className="shrink-0" />}
-                <span className="flex-1 truncate">{folder.name}</span>
-                <span className="text-xs tabular-nums text-[#444]">{count}</span>
+                  ? <FolderOpen size={12} style={{ flexShrink: 0 }} />
+                  : <FolderIcon size={12} style={{ flexShrink: 0 }} />}
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
+                <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{count}</span>
               </button>
             )}
 
-            {/* Hover actions (only visible when not renaming) */}
-            {!isRenaming && (
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-0 rounded px-0.5">
-                <button
-                  onClick={(e) => { e.stopPropagation(); startRename(folder) }}
-                  className="p-1 text-[#444] hover:text-white transition-colors"
-                  aria-label="Rename folder"
-                >
+            {/* Hover actions */}
+            {!isRenaming && hovered === folder.id && (
+              <div style={{
+                position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                display: 'flex', alignItems: 'center', gap: 0,
+                background: 'var(--surface-1)', borderRadius: 2, padding: '0 2px',
+              }}>
+                <button onClick={(e) => { e.stopPropagation(); startRename(folder) }} style={iconBtnStyle()} aria-label="Rename">
                   <Pencil size={10} />
                 </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDelete(folder.id) }}
-                  disabled={busy}
-                  className="p-1 text-[#444] hover:text-red-400 transition-colors disabled:opacity-40"
-                  aria-label="Delete folder"
-                >
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(folder.id) }} disabled={busy} style={iconBtnStyle(true)} aria-label="Delete">
                   <Trash2 size={10} />
                 </button>
               </div>
@@ -165,29 +177,21 @@ export default function FolderSidebar({
         )
       })}
 
-      {/* Unfiled virtual folder */}
+      {/* Unfiled */}
       {unfiledCount > 0 && (
-        <button
-          onClick={() => onSelect('__unfiled__')}
-          className={clsx(
-            'flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg text-sm transition-colors',
-            activeFolderId === '__unfiled__'
-              ? 'bg-white/8 text-white'
-              : 'text-[#555] hover:text-[#777] hover:bg-white/4'
-          )}
-        >
-          <FolderIcon size={14} className="shrink-0 text-[#444]" />
-          <span className="flex-1 truncate italic">Unfiled</span>
-          <span className="text-xs tabular-nums text-[#444]">{unfiledCount}</span>
+        <button onClick={() => onSelect('__unfiled__')} style={itemStyle(activeFolderId === '__unfiled__')}>
+          <FolderIcon size={12} style={{ flexShrink: 0, color: 'var(--text-dim)' }} />
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic' }}>Unfiled</span>
+          <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{unfiledCount}</span>
         </button>
       )}
 
       {/* Divider */}
-      <div className="border-t border-[#1a1a1a] my-1" />
+      <div style={{ borderTop: 'var(--border-rule)', margin: '4px 0' }} />
 
       {/* Create folder */}
       {creating ? (
-        <div className="flex items-center gap-1 px-2 py-1">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px' }}>
           <input
             ref={createInputRef}
             value={createValue}
@@ -197,30 +201,28 @@ export default function FolderSidebar({
               if (e.key === 'Enter')  submitCreate()
               if (e.key === 'Escape') { setCreating(false); setCreateValue('') }
             }}
-            className="flex-1 min-w-0 bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded placeholder:text-[#444] focus:outline-none"
+            style={{ ...inputStyle, fontSize: 10 }}
           />
-          <button
-            onClick={submitCreate}
-            disabled={busy || !createValue.trim()}
-            className="text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition-colors"
-            aria-label="Create"
-          >
-            <Check size={12} />
+          <button onClick={submitCreate} disabled={busy || !createValue.trim()} style={iconBtnStyle()}>
+            <Check size={11} />
           </button>
-          <button
-            onClick={() => { setCreating(false); setCreateValue('') }}
-            className="text-[#555] hover:text-[#999] transition-colors"
-            aria-label="Cancel"
-          >
-            <X size={12} />
+          <button onClick={() => { setCreating(false); setCreateValue('') }} style={iconBtnStyle()}>
+            <X size={11} />
           </button>
         </div>
       ) : (
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-2 px-3 py-2 text-xs text-[#444] hover:text-[#888] transition-colors w-full text-left rounded-lg hover:bg-white/4"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '6px 12px', fontSize: 11, fontFamily: 'inherit',
+            color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer',
+            width: '100%', textAlign: 'left',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
-          <Plus size={12} />
+          <Plus size={10} />
           New folder
         </button>
       )}

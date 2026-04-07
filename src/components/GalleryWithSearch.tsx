@@ -664,24 +664,26 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
         </div>
       )}
 
-      {/* ── Row 2: starred pill + count + bulk retag ────────────────────── */}
+      {/* ── Row 2: active chips (only when filter panel open or filter active) ── */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {/* Starred filter pill */}
-        <button
-          onClick={() => setShowStarredOnly((v) => !v)}
-          className={clsx(
-            'inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all',
-            showStarredOnly
-              ? 'bg-amber-400/15 border-amber-400/40 text-amber-400'
-              : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
-          )}
-        >
-          <Star size={10} fill={showStarredOnly ? 'currentColor' : 'none'} />
-          Starred
-        </button>
+        {/* Starred filter pill — show only when panel open or active */}
+        {(filterOpen || showStarredOnly) && (
+          <button
+            onClick={() => setShowStarredOnly((v) => !v)}
+            className={clsx(
+              'inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all',
+              showStarredOnly
+                ? 'bg-amber-400/15 border-amber-400/40 text-amber-400'
+                : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
+            )}
+          >
+            <Star size={10} fill={showStarredOnly ? 'currentColor' : 'none'} />
+            Starred
+          </button>
+        )}
 
-        {/* Active pill chips (show when active) */}
-        {[...activePills].map((pill) => (
+        {/* Active pill chips — show only when panel open or pills active */}
+        {(filterOpen || activePills.size > 0) && [...activePills].map((pill) => (
           <button
             key={pill}
             onClick={() => togglePill(pill)}
@@ -692,7 +694,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           </button>
         ))}
 
-        {isFiltered && activePills.size === 0 && (
+        {isFiltered && activePills.size === 0 && !filterOpen && (
           <button
             onClick={clearAll}
             className="text-xs px-3 py-1 rounded-full border border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999] transition-all"

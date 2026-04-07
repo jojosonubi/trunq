@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link2, Copy, Check } from 'lucide-react'
 import Pill from '@/components/ui/Pill'
 import clsx from 'clsx'
 import GalleryWithSearch from '@/components/GalleryWithSearch'
@@ -21,7 +20,6 @@ interface Props {
   files: MediaFileWithTags[]
   untaggedImages: MediaFileWithTags[]
   eventId: string
-  existingToken: string | null
   event: Event
   initialFolders: Folder[]
   initialPerformers: Performer[]
@@ -37,7 +35,6 @@ export default function EventTabs({
   files,
   untaggedImages,
   eventId,
-  existingToken,
   event,
   initialFolders,
   initialPerformers,
@@ -67,10 +64,6 @@ export default function EventTabs({
     window.addEventListener('uploads-complete', onUploadsComplete)
     return () => window.removeEventListener('uploads-complete', onUploadsComplete)
   }, [allowedTabs])
-  const [token, setToken]       = useState<string | null>(existingToken)
-  const [generating, setGenerating] = useState(false)
-  const [copied, setCopied]     = useState(false)
-
   // ── Folder state ──────────────────────────────────────────────────────────
 
   const [folders, setFolders]                   = useState<Folder[]>(initialFolders)
@@ -171,30 +164,6 @@ export default function EventTabs({
     }
   }, [router])
 
-  // ── Delivery link actions ─────────────────────────────────────────────────
-
-  async function generateLink() {
-    setGenerating(true)
-    try {
-      const res  = await fetch('/api/delivery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event_id: eventId }),
-      })
-      const json = await res.json() as { token?: string }
-      if (json.token) setToken(json.token)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  async function copyLink() {
-    if (!token) return
-    await navigator.clipboard.writeText(`${window.location.origin}/delivery/${token}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   const approvedCount  = files.filter((f) => f.review_status === 'approved').length
   const pendingCount   = files.filter((f) => f.review_status === 'pending').length
   const heldCount      = files.filter((f) => f.review_status === 'held').length
@@ -224,7 +193,7 @@ export default function EventTabs({
                 alignItems:   'center',
                 gap:          6,
                 padding:      '8px 12px',
-                fontSize:     11,
+                fontSize:     12,
                 fontWeight:   tab === t ? 500 : 400,
                 color:        tab === t ? 'var(--text-primary)' : 'var(--text-muted)',
                 background:   'none',
@@ -250,62 +219,11 @@ export default function EventTabs({
           ))}
         </div>
 
-        {/* Right side: status pills + delivery link */}
+        {/* Right side: status pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 6 }}>
           {approvedCount > 0 && <Pill variant="approved">{approvedCount} approved</Pill>}
           {heldCount     > 0 && <Pill variant="ghost">{heldCount} held</Pill>}
           {rejectedCount > 0 && <Pill variant="flagged">{rejectedCount} rejected</Pill>}
-
-          {role !== 'photographer' && (
-            token ? (
-              <>
-                <span style={{ color: 'var(--text-dim)', fontSize: 11, fontFamily: 'monospace' }}>
-                  /delivery/{token.slice(0, 8)}…
-                </span>
-                <button
-                  onClick={copyLink}
-                  style={{
-                    display:      'inline-flex',
-                    alignItems:   'center',
-                    gap:          4,
-                    fontSize:     10,
-                    color:        'var(--text-muted)',
-                    background:   'transparent',
-                    border:       'var(--border-rule)',
-                    borderRadius: 2,
-                    padding:      '3px 8px',
-                    cursor:       'pointer',
-                    fontFamily:   'inherit',
-                  }}
-                >
-                  {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
-                  {copied ? 'Copied' : 'Copy link'}
-                </button>
-              </>
-            ) : approvedCount > 0 ? (
-              <button
-                onClick={generateLink}
-                disabled={generating}
-                style={{
-                  display:      'inline-flex',
-                  alignItems:   'center',
-                  gap:          4,
-                  fontSize:     10,
-                  color:        'var(--text-secondary)',
-                  background:   'transparent',
-                  border:       'var(--border-rule)',
-                  borderRadius: 2,
-                  padding:      '3px 8px',
-                  cursor:       generating ? 'not-allowed' : 'pointer',
-                  opacity:      generating ? 0.5 : 1,
-                  fontFamily:   'inherit',
-                }}
-              >
-                <Link2 size={10} />
-                {generating ? 'Generating…' : 'Client link'}
-              </button>
-            ) : null
-          )}
         </div>
       </div>
 

@@ -816,13 +816,13 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       {hasMeta && (
         <div style={{ padding: '4px 6px 5px', display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {previewPerformers.map((pt) => (
-            <Pill key={pt.id} variant="ghost">{pt.performers.name}</Pill>
+            <Pill key={pt.id} variant="tag">{pt.performers.name}</Pill>
           ))}
           {previewBrands.map((bt) => (
-            <Pill key={bt.id} variant="ghost">{bt.brands.name}</Pill>
+            <Pill key={bt.id} variant="tag">{bt.brands.name}</Pill>
           ))}
           {previewTags.map((t) => (
-            <Pill key={t.id} variant="ghost">{t.value}</Pill>
+            <Pill key={t.id} variant="tag">{t.value}</Pill>
           ))}
         </div>
       )}

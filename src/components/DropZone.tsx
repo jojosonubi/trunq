@@ -444,6 +444,8 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     }
   }
 
+  const [dropExpanded, setDropExpanded] = useState(false)
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': [], 'video/*': [] },
@@ -613,19 +615,12 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     document.body
   )
 
+  const showFullDrop  = isDragActive || dropExpanded
+  const rootProps     = getRootProps()
+
   return (
     <>
       <div className="space-y-3">
-
-        {/* ── Folder picker ─────────────────────────────────────────── */}
-        {!isUploading && !pendingFiles && (
-          <FolderPicker
-            folders={localFolders}
-            selectedId={selectedFolderId}
-            onSelect={setSelectedFolderId}
-            onCreate={createFolder}
-          />
-        )}
 
         {/* ── Photographer picker ───────────────────────────────────── */}
         {pendingFiles && (
@@ -675,37 +670,68 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
         {/* ── Drop area ─────────────────────────────────────────────── */}
         {!pendingFiles && (
-          <div
-            {...getRootProps()}
-            className={clsx(
-              'relative border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-all',
-              isDragActive
-                ? 'border-white/40 bg-white/5'
-                : 'border-[#1f1f1f] hover:border-[#333] hover:bg-surface-0',
-              isUploading && 'opacity-50 cursor-not-allowed pointer-events-none',
-            )}
-          >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-3">
-              <div className={clsx(
-                'w-12 h-12 rounded-full flex items-center justify-center transition-colors',
-                isDragActive ? 'bg-white/10' : 'bg-surface-0',
-              )}>
-                <UploadCloud size={22} className={isDragActive ? 'text-white' : 'text-[#888]'} />
-              </div>
-              {isDragActive ? (
-                <p className="text-white text-sm font-medium">Drop to upload</p>
-              ) : (
-                <>
-                  <p className="text-white text-sm font-medium">Drop files here</p>
-                  <p className="text-[#888888] text-xs">
-                    or <span className="text-white underline underline-offset-2">browse</span>
-                    {' '}— images &amp; videos accepted
-                  </p>
-                </>
+          showFullDrop ? (
+            <div
+              {...rootProps}
+              className={clsx(
+                'relative border-2 border-dashed rounded-lg px-6 py-10 text-center cursor-pointer transition-all',
+                isDragActive
+                  ? 'border-white/40 bg-white/5'
+                  : 'border-[#1f1f1f] hover:border-[#333] hover:bg-surface-0',
+                isUploading && 'opacity-50 cursor-not-allowed pointer-events-none',
               )}
+            >
+              <input {...getInputProps()} />
+              <div className="flex flex-col items-center gap-3">
+                <div className={clsx(
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-colors',
+                  isDragActive ? 'bg-white/10' : 'bg-surface-0',
+                )}>
+                  <UploadCloud size={22} className={isDragActive ? 'text-white' : 'text-[#888]'} />
+                </div>
+                {isDragActive ? (
+                  <p className="text-white text-sm font-medium">Drop to upload</p>
+                ) : (
+                  <>
+                    <p className="text-white text-sm font-medium">Drop files here</p>
+                    <p className="text-[#888888] text-xs">
+                      or <span className="text-white underline underline-offset-2">browse</span>
+                      {' '}— images &amp; videos accepted
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Compact bar */
+            <div
+              {...rootProps}
+              onClick={(e) => {
+                setDropExpanded(true)
+                ;(rootProps as { onClick?: React.MouseEventHandler<HTMLElement> }).onClick?.(e)
+              }}
+              style={{
+                height:         40,
+                display:        'flex',
+                alignItems:     'center',
+                justifyContent: 'center',
+                gap:            8,
+                border:         `1px dashed ${isDragActive ? 'var(--accent)' : 'var(--surface-3)'}`,
+                borderRadius:   2,
+                background:     isDragActive ? 'var(--accent-bg)' : 'transparent',
+                cursor:         isUploading ? 'not-allowed' : 'pointer',
+                opacity:        isUploading ? 0.5 : 1,
+                transition:     'border-color 0.15s, background 0.15s',
+                pointerEvents:  isUploading ? 'none' : 'auto',
+              }}
+            >
+              <input {...getInputProps()} />
+              <UploadCloud size={13} style={{ color: isDragActive ? 'var(--accent)' : 'var(--text-dim)', flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: isDragActive ? 'var(--accent)' : 'var(--text-muted)' }}>
+                {isDragActive ? 'Drop to upload' : 'Drop files or browse'}
+              </span>
+            </div>
+          )
         )}
       </div>
 

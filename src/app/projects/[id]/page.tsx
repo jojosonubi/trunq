@@ -76,17 +76,14 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   return (
     <div className="min-h-screen" style={{ background: 'var(--surface-0)' }}>
       <ViewTracker eventId={event.id} />
-      <Navbar
-        profile={profile}
-        eventModeHref={profile.role === 'admin' ? `/projects/${event.id}/live` : undefined}
-      />
+      <Navbar profile={profile} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <Sidebar />
 
         <main className="main-content" style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
           {/* Project header */}
-          <EventHeader event={event} photoCount={photoCount} role={profile.role} />
+          <EventHeader event={event} photoCount={photoCount} role={profile.role} existingToken={existingToken} eventId={event.id} />
 
           {/* Upload zone */}
           <div style={{ marginBottom: 24 }}>
@@ -100,7 +97,6 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
                 files={mediaFiles}
                 untaggedImages={untaggedImages}
                 eventId={event.id}
-                existingToken={existingToken}
                 event={event}
                 initialFolders={folders}
                 initialPerformers={performers}
