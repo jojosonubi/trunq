@@ -122,20 +122,21 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer())
     const fileHash   = createHash('sha256').update(fileBuffer).digest('hex')
 
-    // ── Fetch event metadata + current file count in parallel ─────────────────
-    const [eventRes, countRes] = await Promise.all([
+    // ── Fetch event metadata + atomic sequence number ─────────────────────────
+    const [eventRes, seqRes] = await Promise.all([
       supabase.from('events').select('date, name').eq('id', eventId).single(),
-      // Count ALL files ever uploaded to this event (including soft-deleted) so
-      // the sequence number never collides with a storage path already in use.
-      supabase
-        .from('media_files')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId),
+      // next_media_seq uses INSERT ... ON CONFLICT DO UPDATE — atomic, no races.
+      supabase.rpc('next_media_seq', { p_event_id: eventId }),
     ])
+
+    if (seqRes.error) {
+      console.error('[upload] Sequence fetch error:', seqRes.error.message)
+      return NextResponse.json({ error: 'Failed to get sequence number' }, { status: 500 })
+    }
 
     const eventDate = eventRes.data?.date ?? new Date().toISOString().slice(0, 10)
     const eventName = eventRes.data?.name ?? 'event'
-    const seq       = (countRes.count ?? 0) + 1
+    const seq       = seqRes.data as number
 
     // ── Build archive-standard filename and storage path ──────────────────────
     const originalFilename                   = file.name
