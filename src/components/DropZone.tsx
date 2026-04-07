@@ -283,7 +283,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   const uploadFile = useCallback(
     async (id: string, file: File, photographer: string | null, folderId: string | null) => {
-      const MAX_UPLOAD_SIZE = 50 * 1024 * 1024
+      const MAX_UPLOAD_SIZE = 100 * 1024 * 1024
       if (file.size > MAX_UPLOAD_SIZE) {
         updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — file too large' })
         return
