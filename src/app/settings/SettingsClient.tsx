@@ -421,7 +421,7 @@ export default function SettingsClient({
                   {initials(currentProfile)}
                 </div>
                 <div>
-                  <p className="text-white text-sm font-medium">{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
+                  <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, margin: 0 }}>{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
                   <p className="text-[#555] text-xs mt-0.5">{currentProfile.email}</p>
                   <span className="inline-block mt-1.5">
                     <Pill variant="ghost">{currentProfile.role}</Pill>

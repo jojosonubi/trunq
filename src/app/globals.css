@@ -99,6 +99,13 @@ hr {
   }
 }
 
+/* ─── Mobile main content ────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .main-content {
+    padding: 16px 16px 64px !important;
+  }
+}
+
 /* ─── Typography: tracking utilities ────────────────────────────────────── */
 .track-heading { letter-spacing: -0.03em; }
 .track-label   { letter-spacing: 0.12em;  }

@@ -256,7 +256,7 @@ export default function QueueClient({ initialPhotos, events }: Props) {
     <div style={{ display: 'flex', alignItems: 'flex-start' }}>
       <Sidebar />
 
-      <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
+      <main className="main-content" style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div style={{

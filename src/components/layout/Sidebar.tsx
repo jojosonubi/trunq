@@ -145,14 +145,17 @@ export default function Sidebar() {
                 alignItems:     'center',
                 justifyContent: 'center',
                 flex:           1,
-                padding:        '8px 4px',
-                fontSize:       9,
+                paddingTop:     8,
+                paddingLeft:    4,
+                paddingRight:   4,
+                paddingBottom:  0,
+                fontSize:       10,
                 color:          active ? 'var(--accent)' : 'var(--text-muted)',
                 borderTop:      active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-                background:     active ? 'var(--accent-bg)' : 'transparent',
+                background:     'transparent',
                 textDecoration: 'none',
-                transition:     'color 0.15s, background 0.15s',
-                letterSpacing:  '0.04em',
+                transition:     'color 0.15s',
+                letterSpacing:  '0.08em',
                 textTransform:  'uppercase',
               }}
             >
@@ -172,7 +175,8 @@ export default function Sidebar() {
             flex-direction: row;
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            height: 56px;
+            height: 48px;
+            padding-bottom: env(safe-area-inset-bottom);
             background: var(--surface-1);
             border-top: var(--border-rule);
             z-index: 50;

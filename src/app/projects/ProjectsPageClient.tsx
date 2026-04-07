@@ -153,7 +153,7 @@ export default function ProjectsPageClient({
       <Sidebar />
 
       {/* ── Main content ────────────────────────────────────────────────────── */}
-      <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
+      <main className="main-content" style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
 
         {/* Header row */}
         <div style={{

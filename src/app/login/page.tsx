@@ -6,24 +6,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, AlertCircle } from 'lucide-react'
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
-
-function TrunqLogo() {
-  return (
-    <div className="flex items-center gap-2.5 justify-center">
-      <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0">
-        <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
-          <rect x="1" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-          <rect x="8" y="1" width="5" height="5" rx="1" fill="#0a0a0a" />
-          <rect x="1" y="8" width="5" height="5" rx="1" fill="#0a0a0a" />
-          <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
-        </svg>
-      </div>
-      <span className="text-white font-semibold text-xl tracking-tight">Trunq</span>
-    </div>
-  )
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
@@ -68,11 +50,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-surface-0 flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-[360px]">
 
-        <div className="mb-10">
-          <TrunqLogo />
+        <div style={{ marginBottom: 40, textAlign: 'center' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: '0.18em', color: 'var(--text-primary)', fontFamily: 'inherit' }}>
+            TRUNQ
+          </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <input
             type="email"
             value={email}
@@ -80,7 +64,12 @@ export default function LoginPage() {
             placeholder="Email address"
             required
             autoComplete="email"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            style={{
+              width: '100%', background: 'var(--surface-1)', border: 'var(--border-rule)',
+              borderRadius: 2, padding: '10px 12px', fontSize: 13,
+              color: 'var(--text-primary)', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
           />
           <input
             type="password"
@@ -89,12 +78,22 @@ export default function LoginPage() {
             placeholder="Password"
             required
             autoComplete="current-password"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            style={{
+              width: '100%', background: 'var(--surface-1)', border: 'var(--border-rule)',
+              borderRadius: 2, padding: '10px 12px', fontSize: 13,
+              color: 'var(--text-primary)', fontFamily: 'inherit',
+              outline: 'none', boxSizing: 'border-box',
+            }}
           />
 
           {error && (
-            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
-              <AlertCircle size={14} className="shrink-0" />
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              color: 'var(--flagged-fg)', fontSize: 12,
+              background: 'var(--flagged-bg)', border: '0.5px solid var(--flagged-border)',
+              borderRadius: 2, padding: '8px 10px',
+            }}>
+              <AlertCircle size={13} style={{ flexShrink: 0 }} />
               {error}
             </div>
           )}
@@ -102,17 +101,23 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black text-sm font-semibold py-3 rounded-xl hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+            style={{
+              width: '100%', background: 'var(--accent)', color: '#fff',
+              fontSize: 13, fontWeight: 500, padding: '10px 12px',
+              borderRadius: 2, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', marginTop: 4,
+              opacity: loading ? 0.5 : 1,
+            }}
           >
             {loading
-              ? <Loader2 size={16} className="animate-spin mx-auto" />
+              ? <Loader2 size={16} style={{ display: 'block', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
               : 'Sign in'}
           </button>
         </form>
 
-        <p className="text-center text-[#3a3a3a] text-xs mt-8">
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 11, marginTop: 32 }}>
           Have an invite?{' '}
-          <Link href="/signup" className="text-[#666] hover:text-white transition-colors">
+          <Link href="/signup" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
             Create account
           </Link>
         </p>

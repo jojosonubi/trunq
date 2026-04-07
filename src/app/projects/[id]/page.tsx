@@ -84,7 +84,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
       <div style={{ display: 'flex', alignItems: 'flex-start' }}>
         <Sidebar />
 
-        <main style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
+        <main className="main-content" style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
           {/* Project header */}
           <EventHeader event={event} photoCount={photoCount} role={profile.role} />
 
