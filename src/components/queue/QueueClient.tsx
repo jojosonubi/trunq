@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from 'next/image'
-import { Check, X } from 'lucide-react'
+import { Check, X, RotateCcw, Loader2 } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import { transformUrl } from '@/lib/supabase/storage'
+import { ScorePill } from '@/components/ui/Pill'
 import type { MediaFile } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -34,14 +35,15 @@ async function setStatus(ids: string[], status: 'approved' | 'rejected') {
 
 function QueueCard({
   photo, selected, focused,
-  onSelect, onApprove, onReject,
+  onSelect, onApprove, onReject, onRescore,
 }: {
-  photo:     QueuePhoto
-  selected:  boolean
-  focused:   boolean
-  onSelect:  () => void
-  onApprove: (e: React.MouseEvent) => void
-  onReject:  (e: React.MouseEvent) => void
+  photo:      QueuePhoto
+  selected:   boolean
+  focused:    boolean
+  onSelect:   () => void
+  onApprove:  (e: React.MouseEvent) => void
+  onReject:   (e: React.MouseEvent) => void
+  onRescore?: (e: React.MouseEvent) => void
 }) {
   const src = transformUrl(photo.signed_url ?? photo.public_url, 400)
 
@@ -160,6 +162,26 @@ function QueueCard({
           <Check size={10} color="#fff" />
         </div>
       )}
+
+      {/* Score pill — top-right */}
+      <div style={{ position: 'absolute', top: 5, right: 5, zIndex: 5 }}>
+        {photo.quality_score != null ? (
+          <ScorePill score={photo.quality_score} />
+        ) : (
+          <button
+            onClick={onRescore}
+            title="Score missing — click to re-score"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 8, padding: '2px 5px', borderRadius: 2,
+              background: 'rgba(0,0,0,0.5)', color: 'rgba(255,255,255,0.5)',
+              border: 'none', cursor: 'pointer',
+            }}
+          >
+            — <RotateCcw size={7} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -172,6 +194,9 @@ export default function QueueClient({ initialPhotos, events }: Props) {
   const [filterProject, setFilterProject] = useState('')
   const [filterPhotog,  setFilterPhotog]  = useState('')
   const [focusedIndex,  setFocusedIndex]  = useState(0)
+  const [rescoring,     setRescoring]     = useState<Set<string>>(new Set())
+  const [backfilling,   setBackfilling]   = useState(false)
+  const [backfillProgress, setBackfillProgress] = useState<{ processed: number; total: number } | null>(null)
 
   // Unique photographers from photos
   const photographers = [...new Set(
@@ -200,6 +225,57 @@ export default function QueueClient({ initialPhotos, events }: Props) {
     setPhotos((prev) => prev.filter((p) => !ids.includes(p.id)))
     setSelected((prev) => { const n = new Set(prev); ids.forEach((id) => n.delete(id)); return n })
   }, [])
+
+  const unscoredCount = useMemo(
+    () => photos.filter((p) => p.file_type === 'image' && p.quality_score == null).length,
+    [photos]
+  )
+
+  const rescoreOne = useCallback(async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRescoring((prev) => new Set([...prev, id]))
+    try {
+      const res = await fetch('/api/tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_file_id: id }),
+      })
+      if (res.ok) {
+        const json = await res.json() as { quality_score?: number }
+        if (json.quality_score != null) {
+          setPhotos((prev) => prev.map((p) => p.id === id ? { ...p, quality_score: json.quality_score! } : p))
+        }
+      }
+    } finally {
+      setRescoring((prev) => { const n = new Set(prev); n.delete(id); return n })
+    }
+  }, [])
+
+  const rescoreAll = useCallback(async () => {
+    if (backfilling) return
+    const unscored = photos.filter((p) => p.file_type === 'image' && p.quality_score == null)
+    if (!unscored.length) return
+    setBackfilling(true)
+    setBackfillProgress({ processed: 0, total: unscored.length })
+    try {
+      const res = await fetch('/api/tag/backfill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (res.ok) {
+        const json = await res.json() as { processed: number; scores: { id: string; score: number }[] }
+        setPhotos((prev) => {
+          const scoreMap = Object.fromEntries(json.scores.map((s) => [s.id, s.score]))
+          return prev.map((p) => p.id in scoreMap ? { ...p, quality_score: scoreMap[p.id] } : p)
+        })
+        setBackfillProgress({ processed: json.processed, total: unscored.length })
+      }
+    } finally {
+      setBackfilling(false)
+      setTimeout(() => setBackfillProgress(null), 3000)
+    }
+  }, [backfilling, photos])
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -270,18 +346,51 @@ export default function QueueClient({ initialPhotos, events }: Props) {
           <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-muted)' }}>
             Queue
           </p>
-          <span style={{
-            fontSize:     9,
-            fontWeight:   600,
-            color:        'var(--text-muted)',
-            background:   'var(--surface-2)',
-            border:       'var(--border-rule)',
-            borderRadius: 8,
-            padding:      '2px 7px',
-            letterSpacing: '0.04em',
-          }}>
-            {filtered.length} pending
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {unscoredCount > 0 && (
+              <button
+                onClick={rescoreAll}
+                disabled={backfilling}
+                style={{
+                  display:      'inline-flex',
+                  alignItems:   'center',
+                  gap:          5,
+                  fontSize:     10,
+                  color:        'var(--text-secondary)',
+                  background:   'transparent',
+                  border:       'var(--border-rule)',
+                  borderRadius: 2,
+                  padding:      '3px 9px',
+                  cursor:       backfilling ? 'not-allowed' : 'pointer',
+                  opacity:      backfilling ? 0.6 : 1,
+                  fontFamily:   'inherit',
+                  whiteSpace:   'nowrap',
+                }}
+              >
+                {backfilling
+                  ? <><Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} /> Scoring…</>
+                  : <><RotateCcw size={10} /> Re-score all ({unscoredCount})</>
+                }
+              </button>
+            )}
+            {backfillProgress && !backfilling && (
+              <span style={{ fontSize: 10, color: 'var(--approved-fg)' }}>
+                ✓ {backfillProgress.processed} scored
+              </span>
+            )}
+            <span style={{
+              fontSize:     9,
+              fontWeight:   600,
+              color:        'var(--text-muted)',
+              background:   'var(--surface-2)',
+              border:       'var(--border-rule)',
+              borderRadius: 8,
+              padding:      '2px 7px',
+              letterSpacing: '0.04em',
+            }}>
+              {filtered.length} pending
+            </span>
+          </div>
         </div>
 
         {/* ── Filter bar ──────────────────────────────────────────────────── */}
@@ -355,15 +464,26 @@ export default function QueueClient({ initialPhotos, events }: Props) {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
             {filtered.map((photo, i) => (
-              <QueueCard
-                key={photo.id}
-                photo={photo}
-                selected={selected.has(photo.id)}
-                focused={i === focusedIndex}
-                onSelect={() => { setFocusedIndex(i); toggleSelect(photo.id) }}
-                onApprove={(e) => { e.stopPropagation(); approve([photo.id]) }}
-                onReject={(e) => { e.stopPropagation(); reject([photo.id]) }}
-              />
+              <div key={photo.id} style={{ position: 'relative' }}>
+                <QueueCard
+                  photo={{ ...photo, quality_score: rescoring.has(photo.id) ? photo.quality_score : photo.quality_score }}
+                  selected={selected.has(photo.id)}
+                  focused={i === focusedIndex}
+                  onSelect={() => { setFocusedIndex(i); toggleSelect(photo.id) }}
+                  onApprove={(e) => { e.stopPropagation(); approve([photo.id]) }}
+                  onReject={(e) => { e.stopPropagation(); reject([photo.id]) }}
+                  onRescore={(e) => rescoreOne(photo.id, e)}
+                />
+                {rescoring.has(photo.id) && (
+                  <div style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 2, pointerEvents: 'none',
+                  }}>
+                    <Loader2 size={16} style={{ color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}

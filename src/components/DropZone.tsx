@@ -32,6 +32,7 @@ interface QueueItem {
   folderId: string | null
   uploadedBytes: number
   retryCount: number
+  scoringFailed?: boolean
 }
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
@@ -235,6 +236,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [, setTick] = useState(0)
   const [footerExpanded, setFooterExpanded] = useState(true)
+  const [scoringToast, setScoringToast] = useState<string | null>(null)
 
   // ── Folder state ──────────────────────────────────────────────────────────
   const [localFolders, setLocalFolders]     = useState<Folder[]>(initialFolders)
@@ -346,16 +348,29 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
         if (mediaFile.file_type === 'image') {
           updateItem(id, { status: 'tagging', progress: 80, mediaFile })
-          try {
-            const tagRes  = await fetch('/api/tag', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ media_file_id: mediaFile.id, public_url: mediaFile.public_url }),
-            })
-            const tagJson = await tagRes.json()
-            if (!tagRes.ok) console.warn('[Archive] Tagging failed:', tagJson)
-          } catch (err) {
-            console.warn('[Archive] Tagging error:', err)
+          const TAG_BACKOFF = [1000, 2000, 4000]
+          let scored = false
+          for (let attempt = 0; attempt <= 3; attempt++) {
+            if (attempt > 0) {
+              await new Promise((res) => setTimeout(res, TAG_BACKOFF[attempt - 1]))
+            }
+            try {
+              const tagRes = await fetch('/api/tag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ media_file_id: mediaFile.id }),
+              })
+              if (tagRes.ok) { scored = true; break }
+              const json = await tagRes.json().catch(() => ({}))
+              console.warn(`[Archive] Tagging attempt ${attempt + 1} failed:`, json)
+            } catch (err) {
+              console.warn(`[Archive] Tagging attempt ${attempt + 1} error:`, err)
+            }
+          }
+          if (!scored) {
+            updateItem(id, { scoringFailed: true })
+            setScoringToast(mediaFile.id)
+            setTimeout(() => setScoringToast(null), 8000)
           }
         } else {
           updateItem(id, { status: 'processing', progress: 85, mediaFile })
@@ -570,6 +585,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
             const rightText =
               item.status === 'error'                              ? (item.error ?? 'Error') :
+              item.status === 'done' && item.scoringFailed         ? 'Score failed' :
               item.status === 'done'                               ? 'Done' :
               item.retryCount > 0 && item.status === 'uploading'  ? `Retry ${item.retryCount}/3…` :
               itemSpeed !== null                                   ? fmtSpeed(itemSpeed) :
@@ -577,6 +593,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
             const rightClass =
               item.status === 'error'                             ? 'text-red-400' :
+              item.status === 'done' && item.scoringFailed        ? '' :  // inline style used below
               item.status === 'tagging'                           ? 'text-purple-400' :
               item.status === 'done'                              ? 'text-emerald-400' :
               item.retryCount > 0 && item.status === 'uploading' ? 'text-amber-400' :
@@ -590,9 +607,20 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                   <span className="text-white text-xs font-medium truncate flex-1 min-w-0">
                     {item.file.name}
                   </span>
-                  <span className={clsx('text-[10px] tabular-nums shrink-0', rightClass)}>
-                    {rightText}
-                  </span>
+                  {item.scoringFailed && item.status === 'done' ? (
+                    <span style={{
+                      fontSize: 9, padding: '1px 5px', borderRadius: 2,
+                      background: 'var(--flagged-bg)', color: 'var(--flagged-fg)',
+                      border: '0.5px solid var(--flagged-border)', flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Score failed
+                    </span>
+                  ) : (
+                    <span className={clsx('text-[10px] tabular-nums shrink-0', rightClass)}>
+                      {rightText}
+                    </span>
+                  )}
                 </div>
                 <div className="h-px bg-surface-0 rounded-full overflow-hidden ml-[21px]">
                   <div
@@ -737,6 +765,29 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
       {/* ── Sticky footer upload widget ───────────────────────────── */}
       {footerWidget}
+
+      {/* ── Scoring failure toast ─────────────────────────────────────── */}
+      {scoringToast && typeof window !== 'undefined' && createPortal(
+        <div style={{
+          position:     'fixed',
+          bottom:       24,
+          right:        24,
+          zIndex:       9999,
+          background:   'var(--flagged-bg)',
+          color:        'var(--flagged-fg)',
+          border:       '0.5px solid var(--flagged-border)',
+          borderRadius: 2,
+          padding:      '10px 14px',
+          fontSize:     11,
+          fontFamily:   'inherit',
+          maxWidth:     320,
+          lineHeight:   1.5,
+          boxShadow:    '0 4px 16px rgba(0,0,0,0.15)',
+        }}>
+          Photo uploaded but scoring failed — you can re-score from the queue.
+        </div>,
+        document.body
+      )}
     </>
   )
 }

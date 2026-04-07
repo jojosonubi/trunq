@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Check, Pause, X, Zap, CheckCircle2 } from 'lucide-react'
+import { Check, Pause, X, Zap, CheckCircle2, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
@@ -46,6 +46,8 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
   const [approveThreshold, setApproveThreshold] = useState(75)
   const [rejectThreshold, setRejectThreshold]   = useState(50)
   const [toast, setToast]                 = useState<ToastState | null>(null)
+  const [rescoring, setRescoring]         = useState<Set<string>>(new Set())
+  const [scoreOverrides, setScoreOverrides] = useState<Record<string, number>>({})
 
   const imageFiles = useMemo(() => files.filter((f) => f.file_type === 'image'), [files])
 
@@ -113,6 +115,26 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
     )
     router.refresh()
   }, [imageFiles, overrides, toast, router]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-score a single photo via /api/tag
+  const rescoreFile = useCallback(async (id: string) => {
+    setRescoring((prev) => new Set([...prev, id]))
+    try {
+      const res = await fetch('/api/tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_file_id: id }),
+      })
+      if (res.ok) {
+        const json = await res.json() as { quality_score?: number }
+        if (json.quality_score != null) {
+          setScoreOverrides((prev) => ({ ...prev, [id]: json.quality_score! }))
+        }
+      }
+    } finally {
+      setRescoring((prev) => { const n = new Set(prev); n.delete(id); return n })
+    }
+  }, [])
 
   // Patch review status + optionally trash rejected photos
   const setStatus = useCallback(async (ids: string[], status: ReviewStatus) => {
@@ -387,8 +409,10 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {group.files.map((file) => {
-                const status    = effectiveStatus(file.id, file.review_status)
-                const isLoading = loading.has(file.id)
+                const status      = effectiveStatus(file.id, file.review_status)
+                const isLoading   = loading.has(file.id)
+                const isRescoring = rescoring.has(file.id)
+                const score       = scoreOverrides[file.id] ?? file.quality_score
                 const previewTags = (file.tags ?? []).slice(0, 2)
 
                 return (
@@ -410,11 +434,31 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                         unoptimized
                       />
 
-                      {file.quality_score != null && (
-                        <div className="absolute top-1.5 right-1.5">
-                          <ScorePill score={file.quality_score} />
-                        </div>
-                      )}
+                      <div className="absolute top-1.5 right-1.5">
+                        {isRescoring ? (
+                          <span style={{
+                            fontSize: 8, padding: '2px 5px', borderRadius: 2,
+                            background: 'var(--label-bg)', color: 'var(--text-dim)',
+                            border: '0.5px solid var(--label-border)',
+                          }}>…</span>
+                        ) : score != null ? (
+                          <ScorePill score={score} />
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); rescoreFile(file.id) }}
+                            title="Score missing — click to re-score"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 3,
+                              fontSize: 8, padding: '2px 5px', borderRadius: 2,
+                              background: 'transparent', color: 'var(--text-dim)',
+                              border: '0.5px solid var(--surface-3)', cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            — <RotateCcw size={7} />
+                          </button>
+                        )}
+                      </div>
 
                       {status !== 'pending' && (
                         <div className={clsx(
