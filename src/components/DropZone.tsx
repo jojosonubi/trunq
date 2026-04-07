@@ -327,7 +327,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
         const shouldRetry =
           attempt < MAX_RETRIES &&
-          (networkError !== null || (result !== null && result.status >= 500))
+          (networkError !== null || (result !== null && result.status >= 500 && result.status !== 409))
 
         if (shouldRetry) {
           attempt++
@@ -341,7 +341,13 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
           return
         }
 
-        const { ok, data } = result!
+        const { ok, status, data } = result!
+
+        // 409 = server detected a storage-level duplicate — skip, don't error
+        if (status === 409 && data.duplicate) {
+          updateItem(id, { status: 'skipped', progress: 100, uploadedBytes: file.size, error: 'Duplicate — skipped' })
+          return
+        }
 
         if (!ok || data.error) {
           let errorMsg = 'Upload failed — server error'
