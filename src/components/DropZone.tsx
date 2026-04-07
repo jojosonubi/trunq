@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { extractExif } from '@/lib/exif'
+import { createClient } from '@/lib/supabase/client'
 import type { MediaFile, Folder } from '@/types'
 import {
   UploadCloud, CheckCircle2, XCircle, Loader2,
@@ -25,7 +26,7 @@ interface QueueItem {
   id: string
   file: File
   progress: number
-  status: 'pending' | 'uploading' | 'processing' | 'tagging' | 'done' | 'error'
+  status: 'pending' | 'uploading' | 'processing' | 'tagging' | 'done' | 'error' | 'skipped'
   error?: string
   mediaFile?: MediaFile
   photographer: string | null
@@ -88,11 +89,12 @@ function xhrUpload(
 
 function StatusIcon({ status }: { status: QueueItem['status'] }) {
   switch (status) {
-    case 'done':       return <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-    case 'error':      return <XCircle      size={13} className="text-red-400 shrink-0" />
+    case 'done':       return <CheckCircle2 size={13} className="shrink-0" style={{ color: '#1D9E75' }} />
+    case 'error':      return <XCircle      size={13} className="shrink-0" style={{ color: 'var(--flagged-fg)' }} />
+    case 'skipped':    return <AlertTriangle size={13} className="shrink-0" style={{ color: '#b8860b' }} />
     case 'tagging':    return <Sparkles     size={13} className="text-purple-400 shrink-0 animate-pulse" />
     case 'uploading':
-    case 'processing': return <Loader2      size={13} className="text-blue-400 shrink-0 animate-spin" />
+    case 'processing': return <Loader2      size={13} className="shrink-0 animate-spin" style={{ color: 'var(--accent)' }} />
     default:           return <FileImage    size={13} className="text-[#555] shrink-0" />
   }
 }
@@ -105,6 +107,7 @@ function statusLabel(status: QueueItem['status']): string {
     case 'tagging':    return 'Tagging…'
     case 'done':       return 'Done'
     case 'error':      return 'Failed'
+    case 'skipped':    return 'Skipped'
   }
 }
 
@@ -264,7 +267,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   useEffect(() => {
     if (queue.length === 0 || !isUploading) return
-    const allDone = queue.every((i) => i.status === 'done' || i.status === 'error')
+    const allDone = queue.every((i) => i.status === 'done' || i.status === 'error' || i.status === 'skipped')
     if (allDone) {
       setIsUploading(false)
       const successCount = queue.filter((i) => i.status === 'done').length
@@ -280,6 +283,12 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   const uploadFile = useCallback(
     async (id: string, file: File, photographer: string | null, folderId: string | null) => {
+      const MAX_UPLOAD_SIZE = 50 * 1024 * 1024
+      if (file.size > MAX_UPLOAD_SIZE) {
+        updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — file too large' })
+        return
+      }
+
       updateItem(id, { status: 'uploading', progress: 5 })
 
       let exifData = {}
@@ -328,17 +337,21 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
         }
 
         if (networkError) {
-          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: networkError.message })
+          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — network error' })
           return
         }
 
         const { ok, data } = result!
 
         if (!ok || data.error) {
-          updateItem(id, {
-            status: 'error', progress: 100, uploadedBytes: file.size,
-            error: (data.error as string) ?? 'Upload failed',
-          })
+          let errorMsg = 'Upload failed — server error'
+          const serverMsg = String(data?.error ?? '').toLowerCase()
+          if (serverMsg.includes('format') || serverMsg.includes('unsupported') || serverMsg.includes('mime')) {
+            errorMsg = 'Upload failed — unsupported format'
+          } else if (serverMsg.includes('large') || serverMsg.includes('size') || serverMsg.includes('limit')) {
+            errorMsg = 'Upload failed — file too large'
+          }
+          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: errorMsg })
           return
         }
 
@@ -428,18 +441,89 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     return json.folder
   }, [eventId])
 
+  // ── Duplicate detection ───────────────────────────────────────────────────
+
+  const checkDuplicates = useCallback(async (files: File[]): Promise<Set<string>> => {
+    if (files.length === 0) return new Set()
+    const supabase   = createClient()
+    const names      = [...new Set(files.map((f) => f.name))]
+    const sizes      = [...new Set(files.map((f) => f.size))]
+    const [nameRes, sizeRes] = await Promise.all([
+      supabase.from('media_files').select('original_filename').eq('event_id', eventId).is('deleted_at', null).in('original_filename', names),
+      supabase.from('media_files').select('file_size').eq('event_id', eventId).is('deleted_at', null).in('file_size', sizes),
+    ])
+    const existingNames = new Set((nameRes.data ?? []).map((r: { original_filename: string }) => r.original_filename))
+    const existingSizes = new Set((sizeRes.data ?? []).map((r: { file_size: number }) => r.file_size))
+    const dupKeys = new Set<string>()
+    for (const f of files) {
+      if (existingNames.has(f.name) || existingSizes.has(f.size)) {
+        dupKeys.add(`${f.name}|${f.size}`)
+      }
+    }
+    return dupKeys
+  }, [eventId])
+
+  // ── Retry handlers ────────────────────────────────────────────────────────
+
+  const retryItem = useCallback((id: string) => {
+    const item = queue.find((i) => i.id === id)
+    if (!item || item.status !== 'error') return
+    setIsUploading(true)
+    updateItem(id, { status: 'pending', progress: 0, uploadedBytes: 0, retryCount: 0, error: undefined })
+    setTimeout(() => uploadFile(id, item.file, item.photographer, item.folderId), 0)
+  }, [queue, updateItem, uploadFile])
+
+  const retryAllFailed = useCallback(() => {
+    const failed = queue.filter((i) => i.status === 'error')
+    if (failed.length === 0) return
+    setIsUploading(true)
+    failed.forEach((item, i) => {
+      updateItem(item.id, { status: 'pending', progress: 0, uploadedBytes: 0, retryCount: 0, error: undefined })
+      setTimeout(() => uploadFile(item.id, item.file, item.photographer, item.folderId), i * 150)
+    })
+  }, [queue, updateItem, uploadFile])
+
   // ── Drop handler ──────────────────────────────────────────────────────────
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length === 0) return
+
+      // Batch duplicate check before upload
+      let dupKeys = new Set<string>()
+      try {
+        dupKeys = await checkDuplicates(acceptedFiles)
+      } catch {
+        // Check failed — proceed with all files
+      }
+
+      const dupeFiles   = acceptedFiles.filter((f) => dupKeys.has(`${f.name}|${f.size}`))
+      const uploadFiles = acceptedFiles.filter((f) => !dupKeys.has(`${f.name}|${f.size}`))
+
+      if (dupeFiles.length > 0) {
+        const skippedItems: QueueItem[] = dupeFiles.map((file) => ({
+          id:            crypto.randomUUID(),
+          file,
+          progress:      100,
+          status:        'skipped' as const,
+          photographer:  null,
+          folderId:      null,
+          uploadedBytes: 0,
+          retryCount:    0,
+          error:         'Duplicate — skipped',
+        }))
+        setQueue((prev) => [...prev, ...skippedItems])
+      }
+
+      if (uploadFiles.length === 0) return
+
       if (photographers.length >= 2) {
-        setPendingFiles(acceptedFiles)
+        setPendingFiles(uploadFiles)
       } else {
-        startUploads(acceptedFiles, photographers[0] ?? null, selectedFolderId)
+        startUploads(uploadFiles, photographers[0] ?? null, selectedFolderId)
       }
     },
-    [photographers, startUploads, selectedFolderId],
+    [photographers, startUploads, selectedFolderId, checkDuplicates],
   )
 
   function resetForMore() {
@@ -480,8 +564,10 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     return s
   }, 0)
 
-  const doneCount  = queue.filter((i) => i.status === 'done').length
-  const errorCount = queue.filter((i) => i.status === 'error').length
+  const doneCount     = queue.filter((i) => i.status === 'done').length
+  const errorCount    = queue.filter((i) => i.status === 'error').length
+  const skippedCount  = queue.filter((i) => i.status === 'skipped').length
+  const uploadCount   = queue.filter((i) => i.status !== 'skipped').length
   const batchPct   = totalBatchBytes > 0
     ? Math.min(100, Math.round((uploadedBatchBytes / totalBatchBytes) * 100))
     : 0
@@ -516,24 +602,24 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
         <div className="flex-1 min-w-0">
           {isUploading ? (
             <>
-              <p className="text-white text-xs font-medium text-left">
-                Uploading {doneCount + errorCount + 1} of {queue.length}…
+              <p className="text-xs font-medium text-left" style={{ color: 'var(--text-primary)' }}>
+                Uploading {doneCount + errorCount + 1} of {uploadCount}…
               </p>
               <div className="h-1 bg-[#1f1f1f] rounded-full overflow-hidden mt-1.5">
                 <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                  style={{ width: `${batchPct}%` }}
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${batchPct}%`, background: 'var(--accent)' }}
                 />
               </div>
             </>
-          ) : submittedCount !== null ? (
-            <p className="text-emerald-400 text-xs font-medium text-left flex items-center gap-1.5">
-              <CheckCircle2 size={12} />
-              {doneCount} uploaded{errorCount > 0 ? `, ${errorCount} failed` : ''}
-            </p>
           ) : (
-            <p className="text-[#888] text-xs text-left">
-              {doneCount} of {queue.length} uploaded
+            <p className="text-xs font-medium text-left flex items-center gap-1.5" style={{ color: doneCount > 0 ? '#1D9E75' : 'var(--text-secondary)' }}>
+              {doneCount > 0 && <CheckCircle2 size={12} />}
+              {[
+                doneCount  > 0 && `${doneCount} uploaded`,
+                errorCount > 0 && `${errorCount} failed`,
+                skippedCount > 0 && `${skippedCount} duplicate${skippedCount !== 1 ? 's' : ''} skipped`,
+              ].filter(Boolean).join(', ') || `${queue.length} processed`}
             </p>
           )}
         </div>
@@ -565,6 +651,18 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
         </div>
       </button>
 
+      {/* Retry all failed */}
+      {!isUploading && errorCount > 0 && (
+        <div className="flex items-center px-4 py-2 border-t border-[#1a1a1a]">
+          <button
+            onClick={retryAllFailed}
+            style={{ fontSize: 11, padding: '4px 10px', border: 'var(--border-rule)', borderRadius: 2, color: 'var(--text-secondary)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Retry all failed ({errorCount})
+          </button>
+        </div>
+      )}
+
       {/* Slow-connection warning */}
       {footerExpanded && slowConnection && (
         <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 text-amber-400 text-xs">
@@ -584,27 +682,29 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
               : null
 
             const rightText =
-              item.status === 'error'                              ? (item.error ?? 'Error') :
+              item.status === 'skipped'                            ? (item.error ?? 'Duplicate — skipped') :
+              item.status === 'error'                              ? (item.error ?? 'Upload failed') :
               item.status === 'done' && item.scoringFailed         ? 'Score failed' :
               item.status === 'done'                               ? 'Done' :
               item.retryCount > 0 && item.status === 'uploading'  ? `Retry ${item.retryCount}/3…` :
               itemSpeed !== null                                   ? fmtSpeed(itemSpeed) :
                                                                      statusLabel(item.status)
 
-            const rightClass =
-              item.status === 'error'                             ? 'text-red-400' :
-              item.status === 'done' && item.scoringFailed        ? '' :  // inline style used below
-              item.status === 'tagging'                           ? 'text-purple-400' :
-              item.status === 'done'                              ? 'text-emerald-400' :
-              item.retryCount > 0 && item.status === 'uploading' ? 'text-amber-400' :
-              itemSpeed !== null                                  ? 'text-blue-400' :
-                                                                    'text-[#555]'
+            const rightColor =
+              item.status === 'skipped'                            ? '#b8860b' :
+              item.status === 'error'                              ? 'var(--flagged-fg)' :
+              item.status === 'done' && item.scoringFailed         ? 'var(--flagged-fg)' :
+              item.status === 'tagging'                            ? '#a855f7' :
+              item.status === 'done'                               ? '#1D9E75' :
+              item.retryCount > 0 && item.status === 'uploading'  ? '#b8860b' :
+              itemSpeed !== null                                   ? 'var(--accent)' :
+                                                                     'var(--text-muted)'
 
             return (
               <li key={item.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <StatusIcon status={item.status} />
-                  <span className="text-white text-xs font-medium truncate flex-1 min-w-0">
+                  <span className="text-xs font-medium truncate flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
                     {item.file.name}
                   </span>
                   {item.scoringFailed && item.status === 'done' ? (
@@ -617,21 +717,30 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                       Score failed
                     </span>
                   ) : (
-                    <span className={clsx('text-[10px] tabular-nums shrink-0', rightClass)}>
+                    <span className="text-[10px] tabular-nums shrink-0" style={{ color: rightColor }}>
                       {rightText}
                     </span>
+                  )}
+                  {item.status === 'error' && (
+                    <button
+                      onClick={() => retryItem(item.id)}
+                      style={{ fontSize: 9, padding: '2px 7px', border: 'var(--border-rule)', borderRadius: 2, color: 'var(--text-secondary)', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                    >
+                      Retry
+                    </button>
                   )}
                 </div>
                 <div className="h-px bg-surface-0 rounded-full overflow-hidden ml-[21px]">
                   <div
-                    className={clsx(
-                      'h-full rounded-full transition-all duration-300',
-                      item.status === 'done'    ? 'bg-emerald-500' :
-                      item.status === 'error'   ? 'bg-red-500'     :
-                      item.status === 'tagging' ? 'bg-purple-500'  :
-                      'bg-blue-500',
-                    )}
-                    style={{ width: `${item.progress}%` }}
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${item.progress}%`,
+                      background: item.status === 'done'    ? '#1D9E75' :
+                                  item.status === 'error'   ? 'var(--flagged-fg)' :
+                                  item.status === 'skipped' ? '#b8860b' :
+                                  item.status === 'tagging' ? '#a855f7' :
+                                  'var(--accent)',
+                    }}
                   />
                 </div>
               </li>
