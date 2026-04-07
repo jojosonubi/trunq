@@ -75,22 +75,23 @@ export default async function ProjectsPage() {
           <div className="max-w-7xl mx-auto page-px py-8">
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="relative mb-8">
-                <div className="w-24 h-24 rounded-full bg-white/3 border border-[#1f1f1f] flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-surface-0 border border-[#2a2a2a] flex items-center justify-center">
-                    <ImageIcon size={24} className="text-[#555]" />
+                <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-2)', border: 'var(--border-rule)' }}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}>
+                    <ImageIcon size={24} style={{ color: 'var(--text-muted)' }} />
                   </div>
                 </div>
               </div>
 
-              <h2 className="text-white text-xl font-semibold mb-3">Welcome to Trunq</h2>
-              <p className="text-[#666] text-sm mb-2 max-w-sm leading-relaxed">
+              <h2 className="text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Welcome to Trunq</h2>
+              <p className="text-sm mb-2 max-w-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 Your media archive. Upload photos from any photographer, review and approve selects, then deliver to clients — all in one place.
               </p>
-              <p className="text-[#444] text-xs mb-10">Start by creating your first project.</p>
+              <p className="text-xs mb-10" style={{ color: 'var(--text-muted)' }}>Start by creating your first project.</p>
 
               <Link
                 href="/projects/new"
-                className="inline-flex items-center gap-2 bg-white text-black text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
+                style={{ background: 'var(--accent)', color: '#fff' }}
               >
                 <Plus size={15} />
                 Create your first project
@@ -104,8 +105,8 @@ export default async function ProjectsPage() {
                 ].map((f) => (
                   <div key={f.title} className="space-y-1.5">
                     <div className="w-5 h-px bg-surface-2" />
-                    <p className="text-white text-xs font-medium">{f.title}</p>
-                    <p className="text-[#444] text-[11px] leading-relaxed">{f.body}</p>
+                    <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{f.title}</p>
+                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.body}</p>
                   </div>
                 ))}
               </div>

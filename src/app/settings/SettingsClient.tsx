@@ -263,9 +263,10 @@ export default function SettingsClient({
   }
 
   // ── Backup: retry ─────────────────────────────────────────────────────────
-  const [retrying,    setRetrying]    = useState<Set<string>>(new Set())
-  const [retryingAll, setRetryingAll] = useState(false)
-  const [localStats,  setLocalStats]  = useState(backupStats ?? null)
+  const [retrying,        setRetrying]        = useState<Set<string>>(new Set())
+  const [retryingAll,     setRetryingAll]     = useState(false)
+  const [localStats,      setLocalStats]      = useState(backupStats ?? null)
+  const [backupsExpanded, setBackupsExpanded] = useState(false)
 
   async function retryOne(id: string) {
     setRetrying((prev) => new Set(prev).add(id))
@@ -352,6 +353,7 @@ export default function SettingsClient({
   const [auditActionFilter, setAuditActionFilter] = useState('')
   const [auditDateFrom,     setAuditDateFrom]     = useState('')
   const [auditDateTo,       setAuditDateTo]       = useState('')
+  const [auditExpanded,     setAuditExpanded]     = useState(false)
 
   const uniqueActions = Array.from(new Set(auditLogs.map((l) => l.action))).sort()
 
@@ -716,11 +718,13 @@ export default function SettingsClient({
                             </button>
                           </div>
                           <div className="space-y-2">
-                            {localStats.missing_files.map((file) => (
+                            {(backupsExpanded ? localStats.missing_files : localStats.missing_files.slice(0, 3)).map((file) => (
                               <Card key={file.id} className="flex items-center gap-4 px-4 py-3">
                                 <div className="flex-1 min-w-0">
                                   <p className="text-[#888] text-sm truncate">{file.filename}</p>
-                                  <p className="text-[#333] text-xs mt-0.5 font-mono truncate">{file.storage_path}</p>
+                                  <p className="text-[#333] text-xs mt-0.5 font-mono truncate">
+                                    {file.storage_path.length > 20 ? `…${file.storage_path.slice(-17)}` : file.storage_path}
+                                  </p>
                                 </div>
                                 <button
                                   onClick={() => retryOne(file.id)}
@@ -733,6 +737,17 @@ export default function SettingsClient({
                                 </button>
                               </Card>
                             ))}
+                            {localStats.missing_files.length > 3 && (
+                              <button
+                                onClick={() => setBackupsExpanded((p) => !p)}
+                                className="w-full text-center text-xs py-2 transition-colors"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                {backupsExpanded
+                                  ? 'Show less'
+                                  : `Show all ${localStats.missing_files.length}`}
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -742,12 +757,16 @@ export default function SettingsClient({
 
                 {/* Integrity verification */}
                 <div className="mb-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <p style={{ fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>File integrity</p>
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>File integrity</p>
+                      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>Verify stored checksums match the files in your backup bucket</p>
+                    </div>
                     <button
                       onClick={runVerify}
                       disabled={verifying}
-                      className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 shrink-0 disabled:opacity-40 transition-colors"
+                      style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', borderRadius: 6, fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontFamily: 'inherit' }}
                     >
                       {verifying
                         ? <><Loader2 size={11} className="animate-spin" /> Verifying…</>
@@ -944,13 +963,13 @@ export default function SettingsClient({
                 <div className="space-y-4">
                   {/* Summary pills */}
                   <div className="flex flex-wrap gap-3">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-0 border border-[#1f1f1f] rounded-lg">
-                      <span className="text-[#555] text-xs">Unlicensed</span>
-                      <span className="text-white text-sm font-semibold tabular-nums">{unlicensedPhotos.length}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--flagged-bg)', border: '0.5px solid var(--flagged-border)' }}>
+                      <span className="text-xs" style={{ color: 'var(--flagged-fg)' }}>Unlicensed</span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--flagged-fg)' }}>{unlicensedPhotos.length}</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-surface-0 border border-[#1f1f1f] rounded-lg">
-                      <span className="text-amber-400 text-xs">Expiring soon</span>
-                      <span className="text-white text-sm font-semibold tabular-nums">{expiringRights.length}</span>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#fef9e6', border: '0.5px solid #f0dca0' }}>
+                      <span className="text-xs" style={{ color: '#b8860b' }}>Expiring soon</span>
+                      <span className="text-sm font-semibold tabular-nums" style={{ color: '#b8860b' }}>{expiringRights.length}</span>
                     </div>
                   </div>
 
@@ -1071,7 +1090,7 @@ export default function SettingsClient({
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredLogs.map((log, i) => {
+                          {(auditExpanded ? filteredLogs : filteredLogs.slice(0, 5)).map((log, i) => {
                             const metaEntries = Object.entries(log.metadata ?? {}).filter(([k]) =>
                               !['ids', 'count', 'fields', 'token', 'code'].includes(k)
                             )
@@ -1079,6 +1098,12 @@ export default function SettingsClient({
                               .slice(0, 2)
                               .map(([k, v]) => `${k}: ${String(v)}`)
                               .join(' · ')
+
+                            const actionColor = log.action.includes('approved')
+                              ? 'var(--approved-fg)'
+                              : log.action.includes('rejected')
+                              ? 'var(--flagged-fg)'
+                              : 'var(--text-primary)'
 
                             return (
                               <tr key={log.id} className={`${i > 0 ? 'border-t border-[#111]' : ''} hover:bg-white/2 transition-colors`}>
@@ -1091,7 +1116,7 @@ export default function SettingsClient({
                                 <td className="px-4 py-2.5 text-[#666] max-w-[120px] truncate">
                                   {log.profiles?.full_name ?? log.profiles?.email?.split('@')[0] ?? <span className="text-[#333] italic">system</span>}
                                 </td>
-                                <td className="px-4 py-2.5 text-white whitespace-nowrap">
+                                <td className="px-4 py-2.5 whitespace-nowrap" style={{ color: actionColor }}>
                                   {ACTION_LABELS[log.action] ?? log.action}
                                 </td>
                                 <td className="px-4 py-2.5 text-[#444] whitespace-nowrap font-mono">
@@ -1109,6 +1134,17 @@ export default function SettingsClient({
                         </tbody>
                       </table>
                     </div>
+                    {filteredLogs.length > 5 && (
+                      <div className="px-4 py-2.5 border-t border-[#111]">
+                        <button
+                          onClick={() => setAuditExpanded((p) => !p)}
+                          className="text-[11px] transition-colors"
+                          style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
+                        >
+                          {auditExpanded ? 'Show less' : `Show all ${filteredLogs.length}`}
+                        </button>
+                      </div>
+                    )}
                     {auditLogs.length === 500 && (
                       <div className="px-4 py-2.5 border-t border-[#111] text-[#2a2a2a] text-[11px]">
                         Showing the most recent 500 entries
@@ -1124,29 +1160,31 @@ export default function SettingsClient({
               <section className="pb-16">
                 <SectionHead id="danger" icon={AlertTriangle} title="Danger zone" />
 
-                <Card className="border-red-500/10">
+                <Card>
                   <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
                     <div>
-                      <p className="text-white text-sm font-medium">Export all data</p>
-                      <p className="text-[#555] text-xs mt-0.5">Download a full archive of all events and media</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Export all data</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Download a full archive of all events and media</p>
                     </div>
                     <button
                       disabled
                       title="Coming soon"
-                      className="text-xs px-3 py-2 border border-[#222] text-[#444] rounded-lg cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded cursor-not-allowed opacity-40"
+                      style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                     >
                       Coming soon
                     </button>
                   </div>
                   <div className="flex items-center justify-between px-5 py-4">
                     <div>
-                      <p className="text-red-400/80 text-sm font-medium">Delete account</p>
-                      <p className="text-[#555] text-xs mt-0.5">Permanently remove your account and all associated data</p>
+                      <p className="text-sm font-medium" style={{ color: 'var(--flagged-fg)' }}>Delete account</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Permanently remove your account and all associated data</p>
                     </div>
                     <button
                       disabled
                       title="Contact support to delete your account"
-                      className="text-xs px-3 py-2 border border-red-500/20 text-red-400/40 rounded-lg cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded cursor-not-allowed opacity-50"
+                      style={{ background: 'var(--flagged-bg)', border: '0.5px solid var(--flagged-border)', color: 'var(--flagged-fg)', fontFamily: 'inherit' }}
                     >
                       Contact support
                     </button>
