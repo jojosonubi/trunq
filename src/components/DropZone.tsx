@@ -275,6 +275,17 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     }
   }, [queue, isUploading, router])
 
+  // ── Auto-remove done items after 2 s ──────────────────────────────────────
+
+  useEffect(() => {
+    const doneIds = queue.filter((i) => i.status === 'done').map((i) => i.id)
+    if (doneIds.length === 0) return
+    const timer = setTimeout(() => {
+      setQueue((prev) => prev.filter((i) => !doneIds.includes(i.id)))
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [queue])
+
   // ── Per-file upload ───────────────────────────────────────────────────────
 
   const uploadFile = useCallback(
@@ -679,10 +690,13 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
           )}
         </div>
 
-        {/* Speed / eta */}
+        {/* Speed + ETA */}
         {isUploading && overallSpeedBps !== null && (
-          <span className="text-[#555] text-[11px] tabular-nums shrink-0">
+          <span className="text-[#555] text-[11px] tabular-nums shrink-0 text-right leading-tight">
             {fmtSpeed(overallSpeedBps)}
+            {etaSec !== null && fmtETA(etaSec) && (
+              <><br /><span style={{ fontSize: 10 }}>{fmtETA(etaSec)}</span></>
+            )}
           </span>
         )}
 
