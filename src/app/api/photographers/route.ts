@@ -45,25 +45,24 @@ export async function POST(request: NextRequest) {
 
   const supabase = getServiceClient()
 
-  // Upsert on lower(name) — handled by the unique index via ON CONFLICT
-  const { data, error } = await supabase
+  // Check for existing record by case-insensitive name match
+  const { data: existing, error: selectError } = await supabase
     .from('photographers')
-    .upsert({ name }, { onConflict: 'name', ignoreDuplicates: false })
+    .select()
+    .ilike('name', name)
+    .maybeSingle()
+
+  if (selectError) return NextResponse.json({ error: selectError.message }, { status: 500 })
+  if (existing)    return NextResponse.json({ photographer: existing }, { status: 200 })
+
+  // Not found — insert new record
+  const { data: inserted, error: insertError } = await supabase
+    .from('photographers')
+    .insert({ name })
     .select()
     .single()
 
-  if (error) {
-    // If the unique index fires (different casing), fetch the existing record
-    if (error.code === '23505') {
-      const { data: existing } = await supabase
-        .from('photographers')
-        .select()
-        .ilike('name', name)
-        .single()
-      return NextResponse.json({ photographer: existing }, { status: 200 })
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
 
-  return NextResponse.json({ photographer: data }, { status: 201 })
+  return NextResponse.json({ photographer: inserted }, { status: 201 })
 }
