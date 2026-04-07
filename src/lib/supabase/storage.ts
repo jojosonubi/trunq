@@ -1,16 +1,13 @@
 import { createServiceClient } from './service'
 
 const MEDIA_BUCKET = 'media'
-// 7-day TTL — covers the longest realistic working session; avoids mid-session expiry
-const DEFAULT_EXPIRY = 7 * 24 * 60 * 60
 
 /**
- * Append Supabase image transformation params to a URL.
- * Handles both signed URLs and public object URLs (future-proof for if the
- * bucket is ever made public).
+ * Append Supabase image transformation params to a storage URL.
+ * Handles both public object URLs and legacy signed URLs.
  *
- * Signed:  /storage/v1/object/sign/   → /storage/v1/render/image/sign/
  * Public:  /storage/v1/object/public/ → /storage/v1/render/image/public/
+ * Signed:  /storage/v1/object/sign/   → /storage/v1/render/image/sign/
  *
  * Never apply to download/export paths — those must stay full resolution.
  */
@@ -18,8 +15,8 @@ export function transformUrl(url: string, width: number, quality = 75): string {
   if (!url) return url
 
   for (const [from, to] of [
-    ['/storage/v1/object/sign/',   '/storage/v1/render/image/sign/'],
     ['/storage/v1/object/public/', '/storage/v1/render/image/public/'],
+    ['/storage/v1/object/sign/',   '/storage/v1/render/image/sign/'],
   ] as const) {
     const rendered = url.replace(from, to)
     if (rendered !== url) {
@@ -38,56 +35,52 @@ export function transformUrl(url: string, width: number, quality = 75): string {
 }
 
 /**
- * Generate a signed URL for a single storage path.
- * Throws if Supabase returns an error.
+ * Get the permanent public URL for a single storage path.
+ * Synchronous — no network call, no expiry.
  */
-export async function signStoragePath(
-  storagePath: string,
-  expiresIn = DEFAULT_EXPIRY,
-): Promise<string> {
+export function getPublicUrl(storagePath: string): string {
   const supabase = createServiceClient()
-  const { data, error } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .createSignedUrl(storagePath, expiresIn)
-  if (error || !data) throw new Error(`Failed to sign path "${storagePath}": ${error?.message}`)
-  return data.signedUrl
+  return supabase.storage.from(MEDIA_BUCKET).getPublicUrl(storagePath).data.publicUrl
 }
 
 /**
- * Batch-sign an array of storage paths.
- * Returns a Map of storagePath → signedUrl.
- * Missing entries (e.g. Supabase returned no URL for a path) are omitted.
+ * Return the public URL for a single path.
+ * Async signature kept for call-site compatibility. expiresIn is ignored.
+ */
+export async function signStoragePath(storagePath: string, _expiresIn?: number): Promise<string> {
+  return getPublicUrl(storagePath)
+}
+
+/**
+ * Build a Map of storagePath → public URL for an array of paths.
+ * expiresIn is accepted but ignored — public URLs don't expire.
  */
 export async function signStoragePaths(
   paths: string[],
-  expiresIn = DEFAULT_EXPIRY,
+  _expiresIn?: number,
 ): Promise<Map<string, string>> {
   if (paths.length === 0) return new Map()
   const supabase = createServiceClient()
-  const { data, error } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .createSignedUrls(paths, expiresIn)
-  if (error || !data) throw new Error(`Failed to batch-sign paths: ${error?.message}`)
   const map = new Map<string, string>()
-  for (const item of data) {
-    if (item.signedUrl && item.path) map.set(item.path, item.signedUrl)
+  for (const path of paths) {
+    map.set(path, supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl)
   }
   return map
 }
 
 /**
- * Attach a `signed_url` field to every file in the array using a single
- * batch request. Files whose storage_path cannot be signed get an empty string.
+ * Attach a `signed_url` field (now a permanent public URL) to every file.
+ * Drop-in replacement for the old signed implementation.
+ * expiresIn is accepted but ignored — public URLs don't expire.
  */
 export async function signMediaFiles<T extends { storage_path: string }>(
   files: T[],
-  expiresIn = DEFAULT_EXPIRY,
+  _expiresIn?: number,
 ): Promise<(T & { signed_url: string })[]> {
   if (files.length === 0) return []
-  const paths = files.map((f) => f.storage_path)
-  const urlMap = await signStoragePaths(paths, expiresIn)
+  const supabase = createServiceClient()
   return files.map((f) => ({
     ...f,
-    signed_url: urlMap.get(f.storage_path) ?? '',
+    signed_url: supabase.storage.from(MEDIA_BUCKET).getPublicUrl(f.storage_path).data.publicUrl,
   }))
 }
