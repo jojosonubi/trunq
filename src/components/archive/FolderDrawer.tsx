@@ -1,239 +1,271 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
+import { useState } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SortBy = 'year' | 'project' | 'client' | 'photographer'
 
+export interface Project {
+  id:              string
+  name:            string
+  date:            string
+  venue:           string | null
+  cover_image_url: string | null
+  photoCount:      number
+}
+
 export interface FolderItem {
-  id:     string
-  label:  string    // short tab label
-  name:   string    // full name in body
-  count:  number
-  active: boolean
-  pill?:  ReactNode
+  id:       string
+  label:    string
+  projects: Project[]
 }
 
 interface Props {
-  folders:      FolderItem[]
-  sortBy:       SortBy
-  onSelect:     (id: string) => void
-  onSortChange: (sort: SortBy) => void
+  folders:        FolderItem[]
+  activeFolder:   string
+  onFolderChange: (id: string) => void
+  onNewProject?:  () => void
+  role?:          string
 }
 
-// ─── Sort options ─────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'year',         label: 'Year'         },
-  { value: 'project',      label: 'Project'      },
-  { value: 'client',       label: 'Client'       },
-  { value: 'photographer', label: 'Photographer' },
-]
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const wrapper: CSSProperties = {
-  display:       'flex',
-  flexDirection: 'column',
-  gap:           0,
-  borderBottom:  'var(--border-rule)',
-  paddingBottom: 16,
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
 }
 
-const toolbar: CSSProperties = {
-  display:     'flex',
-  alignItems:  'center',
-  gap:         10,
-  marginBottom: 14,
-}
+// ─── Project card ─────────────────────────────────────────────────────────────
 
-const sortLabel: CSSProperties = {
-  fontSize:      9,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.1em',
-  color:         'var(--text-dim)',
-  flexShrink:    0,
-}
+function ProjectCard({ project }: { project: Project }) {
+  const router  = useRouter()
+  const [hover, setHover] = useState(false)
 
-const segGroup: CSSProperties = {
-  display: 'flex',
-}
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => router.push(`/projects/${project.id}`)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/projects/${project.id}`) } }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        borderRadius: 3,
+        overflow:     'hidden',
+        background:   hover ? 'var(--surface-2)' : 'var(--surface-1)',
+        border:       '0.5px solid var(--surface-3)',
+        cursor:       'pointer',
+        transition:   'background 0.12s',
+      }}
+    >
+      {/* Thumbnail */}
+      <div style={{ aspectRatio: '16/10', background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
+        {project.cover_image_url ? (
+          <Image
+            src={transformUrl(project.cover_image_url, 400)}
+            alt={project.name}
+            fill
+            sizes="(max-width: 768px) 50vw, 25vw"
+            style={{ objectFit: 'cover' }}
+            unoptimized
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: 'var(--surface-2)' }} />
+        )}
+      </div>
 
-function segBtn(active: boolean, position: 'first' | 'mid' | 'last'): CSSProperties {
-  const radius =
-    position === 'first' ? '2px 0 0 2px' :
-    position === 'last'  ? '0 2px 2px 0' : '0'
-
-  return {
-    fontSize:      9,
-    letterSpacing: '0.06em',
-    fontWeight:    active ? 600 : 400,
-    padding:       '3px 9px',
-    background:    active ? 'var(--accent-bg)' : 'transparent',
-    color:         active ? 'var(--accent-dark)' : 'var(--text-muted)',
-    border:        active ? '0.5px solid var(--accent-border)' : 'var(--border-subtle)',
-    borderRadius:  radius,
-    cursor:        'pointer',
-    marginLeft:    position === 'first' ? 0 : -1,
-    transition:    'color 0.12s, background 0.12s, border-color 0.12s',
-    lineHeight:    1,
-    fontFamily:    'inherit',
-    position:      'relative' as const,
-    zIndex:        active ? 1 : 0,
-  }
-}
-
-const folderList: CSSProperties = {
-  display:       'flex',
-  flexDirection: 'column',
-  gap:           4,
-}
-
-// Per-folder container — needs padding-top to reserve space for the tab
-function folderWrap(): CSSProperties {
-  return {
-    position:   'relative',
-    paddingTop: 18,
-  }
-}
-
-// Tab: absolutely positioned at the stagger offset, sits above the body
-function tabStyle(active: boolean, offsetPct: number): CSSProperties {
-  return {
-    position:     'absolute',
-    top:          0,
-    left:         `calc(${offsetPct}% + 0px)`,
-    height:       18,
-    minWidth:     90,
-    maxWidth:     '40%',
-    borderRadius: '2px 2px 0 0',
-    border:       active ? '0.5px solid var(--accent)' : '0.5px solid var(--surface-3)',
-    borderBottom: 'none',
-    background:   active ? 'var(--accent)' : 'var(--surface-1)',
-    display:      'flex',
-    alignItems:   'center',
-    paddingInline: 8,
-    cursor:       'pointer',
-    zIndex:       1,
-    overflow:     'hidden',
-  }
-}
-
-function tabLabel(active: boolean): CSSProperties {
-  return {
-    fontSize:      9,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-    fontWeight:    500,
-    color:         active ? 'var(--text-primary)' : 'var(--text-dim)',
-    whiteSpace:    'nowrap' as const,
-    overflow:      'hidden',
-    textOverflow:  'ellipsis',
-  }
-}
-
-// Body: full-width row beneath the tab
-function bodyStyle(active: boolean): CSSProperties {
-  return {
-    height:       40,
-    borderRadius: '0 3px 3px 3px',
-    border:       active ? '0.5px solid var(--accent-border)' : 'var(--border-subtle)',
-    background:   active ? 'var(--accent-bg)' : 'var(--surface-1)',
-    padding:      '0 14px',
-    display:      'flex',
-    alignItems:   'center',
-    justifyContent: 'space-between',
-    cursor:       'pointer',
-  }
-}
-
-function bodyName(active: boolean): CSSProperties {
-  return {
-    fontSize:   11,
-    color:      active ? 'var(--accent)' : 'var(--text-muted)',
-    fontWeight: active ? 500 : 400,
-    overflow:   'hidden',
-    whiteSpace: 'nowrap' as const,
-    textOverflow: 'ellipsis',
-    flex:       1,
-    minWidth:   0,
-  }
-}
-
-const bodyRight: CSSProperties = {
-  display:    'flex',
-  alignItems: 'center',
-  gap:        6,
-  flexShrink: 0,
-  marginLeft: 10,
-}
-
-function countStyle(active: boolean): CSSProperties {
-  return {
-    fontSize:      9,
-    letterSpacing: '0.04em',
-    color:         active ? 'var(--accent-dark)' : 'var(--text-dim)',
-    fontVariantNumeric: 'tabular-nums' as const,
-  }
+      {/* Metadata */}
+      <div style={{ padding: '8px 10px', borderTop: '0.5px solid var(--surface-3)' }}>
+        <p style={{
+          fontSize:      11,
+          fontWeight:    500,
+          color:         'var(--text-primary)',
+          letterSpacing: '-0.01em',
+          margin:        0,
+          overflow:      'hidden',
+          whiteSpace:    'nowrap',
+          textOverflow:  'ellipsis',
+        }}>
+          {project.name}
+        </p>
+        <p style={{
+          fontSize:     9,
+          color:        'var(--text-muted)',
+          marginTop:    3,
+          marginBottom: 0,
+          overflow:     'hidden',
+          whiteSpace:   'nowrap',
+          textOverflow: 'ellipsis',
+        }}>
+          {[formatDate(project.date), project.venue].filter(Boolean).join(' · ')}
+        </p>
+        {project.photoCount > 0 && (
+          <div style={{ marginTop: 4 }}>
+            <Pill variant="ghost">{project.photoCount.toLocaleString()} photo{project.photoCount !== 1 ? 's' : ''}</Pill>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── FolderDrawer ─────────────────────────────────────────────────────────────
 
-export default function FolderDrawer({ folders, sortBy, onSelect, onSortChange }: Props) {
+export default function FolderDrawer({ folders, activeFolder, onFolderChange, onNewProject, role }: Props) {
+  const [hoveredTab, setHoveredTab] = useState<string | null>(null)
+
+  const activeItem = folders.find((f) => f.id === activeFolder) ?? folders[0]
+
+  if (folders.length === 0) return null
+
   return (
-    <div style={wrapper}>
-      {/* ── Sort toolbar ────────────────────────────────────────────────── */}
-      <div style={toolbar}>
-        <span style={sortLabel}>Sort by</span>
-        <div style={segGroup}>
-          {SORT_OPTIONS.map((opt, i) => {
-            const position =
-              i === 0                        ? 'first' :
-              i === SORT_OPTIONS.length - 1  ? 'last'  : 'mid'
-            return (
-              <button
-                key={opt.value}
-                style={segBtn(sortBy === opt.value, position)}
-                onClick={() => onSortChange(opt.value)}
-              >
-                {opt.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Folder stack ────────────────────────────────────────────────── */}
-      <div style={folderList}>
-        {folders.map((folder, index) => {
-          const offsetPct = (index % 5) * 20
+    <div>
+      {/* ── Tab row ───────────────────────────────────────────────────────── */}
+      <div style={{
+        display:    'flex',
+        alignItems: 'flex-end',
+        gap:        2,
+        overflowX:  'auto',
+        WebkitOverflowScrolling: 'touch' as any,
+        // no margin-bottom — tabs connect flush to body
+      }}>
+        {folders.map((folder) => {
+          const isActive  = folder.id === activeItem?.id
+          const isHovered = hoveredTab === folder.id && !isActive
+          const n         = folder.projects.length
           return (
-            <div key={folder.id} style={folderWrap()}>
-              {/* Tab */}
-              <div
-                style={tabStyle(folder.active, offsetPct)}
-                onClick={() => onSelect(folder.id)}
-              >
-                <span style={tabLabel(folder.active)}>{folder.label}</span>
-              </div>
-
-              {/* Body */}
-              <div
-                style={bodyStyle(folder.active)}
-                onClick={() => onSelect(folder.id)}
-              >
-                <span style={bodyName(folder.active)}>{folder.name}</span>
-                <div style={bodyRight}>
-                  <span style={countStyle(folder.active)}>{folder.count}</span>
-                  {folder.pill}
-                </div>
-              </div>
-            </div>
+            <button
+              key={folder.id}
+              onClick={() => onFolderChange(folder.id)}
+              onMouseEnter={() => setHoveredTab(folder.id)}
+              onMouseLeave={() => setHoveredTab(null)}
+              style={{
+                height:        isActive ? 28 : 24,
+                padding:       '0 14px',
+                borderRadius:  '3px 3px 0 0',
+                border:        isActive ? '0.5px solid var(--surface-3)' : '0.5px solid var(--surface-3)',
+                borderBottom:  'none',
+                fontSize:      10,
+                fontWeight:    500,
+                letterSpacing: '0.06em',
+                fontFamily:    'inherit',
+                whiteSpace:    'nowrap',
+                cursor:        'pointer',
+                background:    isActive   ? 'var(--surface-0)'
+                             : isHovered  ? 'var(--surface-1)'
+                             :               'var(--surface-2)',
+                color:         isActive   ? 'var(--accent)'
+                             : isHovered  ? 'var(--text-secondary)'
+                             :               'var(--text-muted)',
+                zIndex:        isActive ? 2 : 1,
+                position:      'relative',
+                display:       'inline-flex',
+                alignItems:    'center',
+                flexShrink:    0,
+                transition:    'background 0.1s, color 0.1s',
+                // Active tab overlaps body's top border by 1px → flush connection
+                marginBottom:  isActive ? -1 : 0,
+              }}
+            >
+              {folder.label}
+              <span style={{
+                fontSize:    8,
+                color:       'var(--text-dim)',
+                marginLeft:  6,
+                fontWeight:  400,
+                letterSpacing: 0,
+              }}>
+                {n} project{n !== 1 ? 's' : ''}
+              </span>
+            </button>
           )
         })}
       </div>
+
+      {/* ── Folder body ────────────────────────────────────────────────────── */}
+      {activeItem && (
+        <div style={{
+          background:   'var(--surface-0)',
+          border:       '0.5px solid var(--surface-3)',
+          borderRadius: '0 3px 3px 3px',
+          padding:      16,
+          minHeight:    120,
+          position:     'relative',
+          zIndex:       1,
+        }}>
+          {/* Header row */}
+          <div style={{
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'space-between',
+            marginBottom:   12,
+          }}>
+            <p style={{
+              fontSize:      8,
+              textTransform: 'uppercase',
+              letterSpacing: '0.14em',
+              color:         'var(--text-muted)',
+              margin:        0,
+              fontFamily:    'inherit',
+            }}>
+              {activeItem.label} · {activeItem.projects.length} project{activeItem.projects.length !== 1 ? 's' : ''}
+            </p>
+
+            {role !== 'photographer' && onNewProject && (
+              <button
+                onClick={onNewProject}
+                style={{
+                  background:   'var(--accent)',
+                  color:        '#fff',
+                  fontSize:     10,
+                  padding:      '5px 12px',
+                  borderRadius: 2,
+                  border:       'none',
+                  fontWeight:   500,
+                  cursor:       'pointer',
+                  fontFamily:   'inherit',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                + New project
+              </button>
+            )}
+          </div>
+
+          {/* Project grid */}
+          {activeItem.projects.length > 0 ? (
+            <div style={{
+              display:              'grid',
+              gridTemplateColumns:  'repeat(4, minmax(0, 1fr))',
+              gap:                  8,
+            }}>
+              {activeItem.projects.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', paddingTop: 24, margin: 0 }}>
+              No projects in this group.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Mobile scroll styles */}
+      <style>{`
+        @media (max-width: 767px) {
+          .folder-tab-row {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+          }
+        }
+      `}</style>
     </div>
   )
 }
