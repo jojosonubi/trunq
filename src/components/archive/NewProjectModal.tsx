@@ -134,8 +134,7 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
       }
     }
 
-    router.refresh()
-    onClose()
+    router.push(`/projects/${eventId}`)
   }
 
   if (!isOpen) return null
