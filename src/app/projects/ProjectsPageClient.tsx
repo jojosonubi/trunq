@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Plus, ImageIcon } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import FolderDrawer, { type FolderItem, type SortBy, type Project } from '@/components/archive/FolderDrawer'
 import NewProjectModal from '@/components/archive/NewProjectModal'
@@ -145,6 +146,53 @@ export default function ProjectsPageClient({
     const newFolders = buildFolders(events, newSort, photoCountMap)
     setSortBy(newSort)
     setActiveFolder(newFolders[0]?.id ?? '')
+  }
+
+  if (events.length === 0) {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center py-32 text-center">
+          <div className="relative mb-8">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-2)', border: 'var(--border-rule)' }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}>
+                <ImageIcon size={24} style={{ color: 'var(--text-muted)' }} />
+              </div>
+            </div>
+          </div>
+
+          <h2 className="text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Welcome to Trunq</h2>
+          <p className="text-sm mb-2 max-w-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Your media archive. Upload photos from any photographer, review and approve selects, then deliver to clients — all in one place.
+          </p>
+          <p className="text-xs mb-10" style={{ color: 'var(--text-muted)' }}>Start by creating your first project.</p>
+
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2"
+            style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 2, fontSize: 13, fontWeight: 500, padding: '12px 32px', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <Plus size={14} />
+            Create your first project
+          </button>
+
+          <div className="mt-16 grid grid-cols-3 gap-6 max-w-lg text-left">
+            {[
+              { title: 'Multi-photographer upload', body: 'Tag each batch by photographer on upload.' },
+              { title: 'Review & approve', body: 'Approve, hold, or reject — then deliver with one link.' },
+              { title: 'AI tagging', body: 'Auto-tag scene, mood, and subjects. Search by keyword.' },
+            ].map((f) => (
+              <div key={f.title} className="space-y-1.5">
+                <div className="w-5 h-px bg-surface-2" />
+                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{f.title}</p>
+                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <NewProjectModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+      </>
+    )
   }
 
   return (
