@@ -67,8 +67,8 @@ export default function Pill({ variant, children }: Props) {
 // ─── Color-coded score pill ───────────────────────────────────────────────────
 
 export function ScorePill({ score }: { score: number }) {
-  const color = score >= 80 ? '#1D9E75'
-              : score >= 60 ? '#b8860b'
+  const color = score >= 70 ? '#1D9E75'
+              : score >= 50 ? '#b8860b'
               : '#c0392b'
   return (
     <span style={{

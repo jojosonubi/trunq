@@ -68,8 +68,8 @@ function isExpired(expiresAt: string | null | undefined) {
 }
 
 function scoreColour(score: number) {
-  if (score >= 80) return '#1D9E75'
-  if (score >= 60) return '#b8860b'
+  if (score >= 70) return '#1D9E75'
+  if (score >= 50) return '#b8860b'
   return '#c0392b'
 }
 

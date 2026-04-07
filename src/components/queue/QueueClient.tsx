@@ -251,17 +251,17 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
 
   // Bulk by score
   const bulkApproveHigh = useCallback(() => {
-    const ids = filtered.filter((p) => p.quality_score != null && p.quality_score >= 80).map((p) => p.id)
+    const ids = filtered.filter((p) => p.quality_score != null && p.quality_score >= 70).map((p) => p.id)
     if (ids.length) approve(ids)
   }, [filtered, approve])
 
   const bulkRejectLow = useCallback(() => {
-    const ids = filtered.filter((p) => p.quality_score != null && p.quality_score < 40).map((p) => p.id)
+    const ids = filtered.filter((p) => p.quality_score != null && p.quality_score < 50).map((p) => p.id)
     if (ids.length) reject(ids)
   }, [filtered, reject])
 
-  const highCount = useMemo(() => filtered.filter((p) => p.quality_score != null && p.quality_score >= 80).length, [filtered])
-  const lowCount  = useMemo(() => filtered.filter((p) => p.quality_score != null && p.quality_score < 40).length,  [filtered])
+  const highCount = useMemo(() => filtered.filter((p) => p.quality_score != null && p.quality_score >= 70).length, [filtered])
+  const lowCount  = useMemo(() => filtered.filter((p) => p.quality_score != null && p.quality_score < 50).length,  [filtered])
 
   const rescoreOne = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -408,12 +408,12 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 6 }}>
               {highCount > 0 && (
                 <button onClick={bulkApproveHigh} style={{ ...ghostBtnStyle, color: '#1D9E75', borderColor: 'rgba(29,158,117,0.35)' }}>
-                  <Check size={10} /> Approve ≥80 ({highCount})
+                  <Check size={10} /> Approve ≥70 ({highCount})
                 </button>
               )}
               {lowCount > 0 && (
                 <button onClick={bulkRejectLow} style={{ ...ghostBtnStyle, color: '#c0392b', borderColor: 'rgba(192,57,43,0.35)' }}>
-                  <X size={10} /> Reject &lt;40 ({lowCount})
+                  <X size={10} /> Reject &lt;50 ({lowCount})
                 </button>
               )}
               {unscoredCount > 0 && (
