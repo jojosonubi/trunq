@@ -611,11 +611,55 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   const [dropExpanded, setDropExpanded] = useState(false)
 
+  // ── Local dropzone (existing UI element) ──────────────────────────────────
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': [], 'video/*': [] },
     multiple: true,
     disabled: isUploading || !!pendingFiles,
+  })
+
+  // ── Window-level drag detection ───────────────────────────────────────────
+  // Tracks drag depth so dragleave on child elements doesn't hide the overlay.
+  const [isWindowDragging, setIsWindowDragging] = useState(false)
+  const dragDepthRef = useRef(0)
+
+  useEffect(() => {
+    function onDragEnter(e: DragEvent) {
+      if (!e.dataTransfer?.types.includes('Files')) return
+      dragDepthRef.current++
+      setIsWindowDragging(true)
+    }
+    function onDragLeave() {
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+      if (dragDepthRef.current === 0) setIsWindowDragging(false)
+    }
+    function onDrop() {
+      dragDepthRef.current = 0
+      setIsWindowDragging(false)
+    }
+    document.addEventListener('dragenter', onDragEnter)
+    document.addEventListener('dragleave', onDragLeave)
+    document.addEventListener('drop', onDrop)
+    return () => {
+      document.removeEventListener('dragenter', onDragEnter)
+      document.removeEventListener('dragleave', onDragLeave)
+      document.removeEventListener('drop', onDrop)
+    }
+  }, [])
+
+  // ── Full-screen drop target (portal) ─────────────────────────────────────
+  const {
+    getRootProps: getWindowRootProps,
+    getInputProps: getWindowInputProps,
+    isDragActive: isOverlay,
+  } = useDropzone({
+    onDrop,
+    accept: { 'image/*': [], 'video/*': [] },
+    multiple: true,
+    disabled: isUploading || !!pendingFiles,
+    noClick: true,
+    noKeyboard: true,
   })
 
   // ── Batch statistics ──────────────────────────────────────────────────────
@@ -943,6 +987,48 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
       {/* ── Sticky footer upload widget ───────────────────────────── */}
       {footerWidget}
+
+      {/* ── Full-screen drag overlay ──────────────────────────────────── */}
+      {isWindowDragging && !isUploading && !pendingFiles && typeof window !== 'undefined' && createPortal(
+        <div
+          {...getWindowRootProps()}
+          style={{
+            position:       'fixed',
+            inset:          0,
+            zIndex:         9998,
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'center',
+            background:     isOverlay ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(6px)',
+            transition:     'background 0.15s',
+          }}
+        >
+          <input {...getWindowInputProps()} />
+          <div style={{
+            display:       'flex',
+            flexDirection: 'column',
+            alignItems:    'center',
+            gap:           16,
+            padding:       '48px 64px',
+            border:        `2px dashed ${isOverlay ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}`,
+            borderRadius:  16,
+            background:    isOverlay ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+            transition:    'border-color 0.15s, background 0.15s',
+            pointerEvents: 'none',
+          }}>
+            <UploadCloud
+              size={44}
+              style={{ color: isOverlay ? 'var(--accent)' : 'rgba(255,255,255,0.4)', transition: 'color 0.15s' }}
+            />
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: 'white', fontSize: 18, fontWeight: 600, margin: 0 }}>Drop to upload</p>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, margin: '6px 0 0' }}>Images &amp; videos</p>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* ── Scoring failure toast ─────────────────────────────────────── */}
       {scoringToast && typeof window !== 'undefined' && createPortal(
