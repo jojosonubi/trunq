@@ -572,10 +572,10 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
       if (uploadFiles.length === 0) return
 
-      if (photographers.length >= 2) {
+      if (photographers.length >= 1) {
         setPendingFiles(uploadFiles)
       } else {
-        startUploads(uploadFiles, photographers[0] ?? null, selectedFolderId)
+        startUploads(uploadFiles, null, selectedFolderId)
       }
     },
     [photographers, startUploads, selectedFolderId, checkDuplicates],

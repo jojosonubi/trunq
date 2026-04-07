@@ -6,7 +6,7 @@ import { Camera, ChevronLeft, Wifi, WifiOff, Radio } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import type { Event, MediaFile } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
+import { transformUrl, getPublicUrl } from '@/lib/supabase/storage'
 
 interface Profile { id: string; name?: string; email?: string; role: string }
 interface Props { event: Event; profile: Profile }
@@ -34,20 +34,8 @@ export default function EventModeClient({ event, profile }: Props) {
   const p = profile as any
   const photographerName: string = p.full_name || p.name || profile.email?.split('@')[0] || profile.id
 
-  async function fetchSignedUrls(files: MediaFile[]): Promise<MediaFile[]> {
-    if (files.length === 0) return files
-    try {
-      const res = await fetch('/api/signed-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths: files.map((f) => f.storage_path) }),
-      })
-      if (!res.ok) return files
-      const urlMap = await res.json() as Record<string, string>
-      return files.map((f) => ({ ...f, signed_url: urlMap[f.storage_path] ?? f.public_url }))
-    } catch {
-      return files
-    }
+  function attachPublicUrls(files: MediaFile[]): MediaFile[] {
+    return files.map((f) => ({ ...f, signed_url: getPublicUrl(f.storage_path) }))
   }
 
   // Subscribe to realtime so the "recent photos" strip stays live
@@ -57,10 +45,10 @@ export default function EventModeClient({ event, profile }: Props) {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'media_files',
         filter: `event_id=eq.${event.id}`,
-      }, async (payload) => {
+      }, (payload) => {
         const newFile = payload.new as MediaFile
-        const [signed] = await fetchSignedUrls([newFile])
-        setRecentPhotos((prev) => [signed, ...prev].slice(0, 30))
+        const [withUrl] = attachPublicUrls([newFile])
+        setRecentPhotos((prev) => [withUrl, ...prev].slice(0, 30))
         setTotalCount((prev) => prev + 1)
       })
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'))
@@ -73,8 +61,8 @@ export default function EventModeClient({ event, profile }: Props) {
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(30)
-      .then(async ({ data }) => {
-        if (data) setRecentPhotos(await fetchSignedUrls(data as MediaFile[]))
+      .then(({ data }) => {
+        if (data) setRecentPhotos(attachPublicUrls(data as MediaFile[]))
       })
 
     return () => { supabase.removeChannel(channel) }
@@ -134,17 +122,7 @@ export default function EventModeClient({ event, profile }: Props) {
           try {
             const json = JSON.parse(responseText) as { mediaFile?: MediaFile }
             if (json.mediaFile) {
-              // Sign the URL for the feed viewer
-              const signRes = await fetch('/api/signed-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paths: [json.mediaFile.storage_path] }),
-              })
-              let mediaFile = json.mediaFile
-              if (signRes.ok) {
-                const urlMap = await signRes.json() as Record<string, string>
-                mediaFile = { ...mediaFile, signed_url: urlMap[json.mediaFile.storage_path] ?? mediaFile.public_url }
-              }
+              const mediaFile = { ...json.mediaFile, signed_url: getPublicUrl(json.mediaFile.storage_path) }
               channelRef.current?.send({
                 type: 'broadcast',
                 event: 'new-photo',
