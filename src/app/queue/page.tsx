@@ -11,7 +11,7 @@ export default async function QueuePage() {
   const profile  = await requireAuth()
   const supabase = createClient()
 
-  const [photosResult, eventsResult] = await Promise.all([
+  const [photosResult, eventsResult, approvedResult, rejectedResult] = await Promise.all([
     supabase
       .from('media_files')
       .select('*, events!inner(id, name, date, photographers)')
@@ -24,6 +24,16 @@ export default async function QueuePage() {
       .select('id, name')
       .is('deleted_at', null)
       .order('date', { ascending: false }),
+    supabase
+      .from('media_files')
+      .select('*', { count: 'exact', head: true })
+      .eq('review_status', 'approved')
+      .is('deleted_at', null),
+    supabase
+      .from('media_files')
+      .select('*', { count: 'exact', head: true })
+      .eq('review_status', 'rejected')
+      .is('deleted_at', null),
   ])
 
   const rawPhotos = (photosResult.data ?? []) as (MediaFile & {
@@ -45,6 +55,8 @@ export default async function QueuePage() {
         initialPhotos={photos}
         events={(eventsResult.data ?? []) as { id: string; name: string }[]}
         role={profile.role}
+        approvedCount={approvedResult.count ?? 0}
+        rejectedCount={rejectedResult.count ?? 0}
       />
     </div>
   )
