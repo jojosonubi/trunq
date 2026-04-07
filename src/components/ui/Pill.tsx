@@ -66,19 +66,20 @@ export default function Pill({ variant, children }: Props) {
 
 // ─── Color-coded score pill ───────────────────────────────────────────────────
 
-export function ScorePill({ score }: { score: number }) {
-  const color = score >= 70 ? '#1D9E75'
-              : score >= 50 ? '#b8860b'
+export function ScorePill({ score }: { score: number | null }) {
+  const color = score == null   ? 'var(--text-muted)'
+              : score >= 70     ? '#1D9E75'
+              : score >= 50     ? '#b8860b'
               : '#c0392b'
   return (
     <span style={{
       ...BASE,
-      background:   'var(--label-bg)',
-      borderColor:  'var(--label-border)',
+      background:  'var(--label-bg)',
+      borderColor: 'var(--label-border)',
       color,
-      fontWeight:   600,
+      fontWeight:  600,
     }}>
-      {score}
+      {score ?? '—'}
     </span>
   )
 }

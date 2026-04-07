@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Check, Copy } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import { transformUrl } from '@/lib/supabase/storage'
+import { ScorePill } from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,12 +68,6 @@ function isExpired(expiresAt: string | null | undefined) {
   return new Date(expiresAt) < new Date()
 }
 
-function scoreColour(score: number) {
-  if (score >= 70) return '#1D9E75'
-  if (score >= 50) return '#b8860b'
-  return '#c0392b'
-}
-
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
 const SECTION_HEAD: React.CSSProperties = {
@@ -107,27 +102,6 @@ function chip(active: boolean): React.CSSProperties {
 }
 
 // ─── Inline components ────────────────────────────────────────────────────────
-
-function ScoreBadge({ score }: { score: number | null }) {
-  if (score == null) return null
-  return (
-    <div style={{
-      position:     'absolute',
-      top:          4,
-      right:        4,
-      background:   'rgba(244,235,220,0.92)',
-      borderRadius: 1,
-      padding:      '1px 4px',
-      fontSize:     7,
-      fontWeight:   600,
-      color:        scoreColour(score),
-      lineHeight:   1.4,
-      pointerEvents:'none',
-    }}>
-      {score}
-    </div>
-  )
-}
 
 function CheckCircle() {
   return (
@@ -564,7 +538,11 @@ function RightPanel({ photos, selected, onToggle, onSelectAll, onClearAll }: Rig
                   />
                 )}
                 {sel && <CheckCircle />}
-                <ScoreBadge score={photo.quality_score} />
+                {photo.quality_score != null && (
+                  <div style={{ position: 'absolute', top: 4, right: 4, pointerEvents: 'none' }}>
+                    <ScorePill score={photo.quality_score} />
+                  </div>
+                )}
               </div>
             )
           })}
