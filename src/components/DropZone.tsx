@@ -59,29 +59,25 @@ function fmtETA(sec: number): string {
   return `~${Math.floor(sec / 3600)}h remaining`
 }
 
-// ─── XHR upload with progress events ─────────────────────────────────────────
+// ─── XHR PUT with progress (presigned URL upload direct to Supabase) ─────────
 
-function xhrUpload(
-  formData: FormData,
+function xhrPut(
+  url: string,
+  file: File,
+  contentType: string,
   onProgress: (loaded: number) => void,
-): Promise<{ ok: boolean; status: number; data: Record<string, unknown> }> {
+): Promise<number> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
-    xhr.open('POST', '/api/upload')
+    xhr.open('PUT', url)
+    xhr.setRequestHeader('Content-Type', contentType)
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) onProgress(e.loaded)
     })
-    xhr.addEventListener('load', () => {
-      try {
-        const data = JSON.parse(xhr.responseText) as Record<string, unknown>
-        resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, data })
-      } catch {
-        resolve({ ok: false, status: xhr.status, data: {} })
-      }
-    })
+    xhr.addEventListener('load', () => resolve(xhr.status))
     xhr.addEventListener('error', () => reject(new Error('Network error')))
     xhr.addEventListener('abort', () => reject(new Error('Aborted')))
-    xhr.send(formData)
+    xhr.send(file)
   })
 }
 
@@ -283,75 +279,44 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   const uploadFile = useCallback(
     async (id: string, file: File, photographer: string | null, folderId: string | null) => {
-      const MAX_UPLOAD_SIZE = 100 * 1024 * 1024
-      if (file.size > MAX_UPLOAD_SIZE) {
-        updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — file too large' })
-        return
-      }
-
       updateItem(id, { status: 'uploading', progress: 5 })
 
-      let exifData = {}
+      // ── Step 1: Presign + hash + EXIF in parallel ────────────────────────────
+      let presignResult: {
+        upload_url:       string
+        storage_path:     string
+        archive_filename: string
+        is_base:          boolean
+      } | null = null
+      let exifData: Record<string, unknown> = {}
+      let fileHash = ''
+
       try {
-        exifData = await extractExif(file)
-      } catch {
-        // proceed without EXIF
-      }
+        const [presignRes, exif, hashBuffer] = await Promise.all([
+          fetch('/api/upload/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event_id:          eventId,
+              original_filename: file.name,
+              mime_type:         file.type,
+              photographer,
+              folder_id:         folderId,
+            }),
+          }),
+          extractExif(file).catch(() => ({})),
+          file.arrayBuffer().then((buf) => crypto.subtle.digest('SHA-256', buf)),
+        ])
 
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('event_id', eventId)
-      formData.append('exif_data', JSON.stringify(exifData))
-      if (photographer) formData.append('photographer', photographer)
-      if (folderId)     formData.append('folder_id', folderId)
+        exifData = exif as Record<string, unknown>
+        fileHash = Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('')
 
-      const BACKOFF    = [1000, 2000, 4000]
-      const MAX_RETRIES = 3
-      let attempt = 0
-
-      while (true) {
-        uploadStartRef.current[id] = Date.now()
-        updateItem(id, { uploadedBytes: 0, progress: 5 })
-
-        let result: { ok: boolean; status: number; data: Record<string, unknown> } | null = null
-        let networkError: Error | null = null
-
-        try {
-          result = await xhrUpload(formData, (loaded) => {
-            const pct = 10 + Math.round((loaded / file.size) * 55)
-            updateItem(id, { uploadedBytes: loaded, progress: Math.min(65, pct) })
-          })
-        } catch (err) {
-          networkError = err instanceof Error ? err : new Error('Unknown error')
-        }
-
-        const shouldRetry =
-          attempt < MAX_RETRIES &&
-          (networkError !== null || (result !== null && result.status >= 500 && result.status !== 409))
-
-        if (shouldRetry) {
-          attempt++
-          updateItem(id, { retryCount: attempt, status: 'uploading', progress: 5, uploadedBytes: 0 })
-          await new Promise((res) => setTimeout(res, BACKOFF[attempt - 1]))
-          continue
-        }
-
-        if (networkError) {
-          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — network error' })
-          return
-        }
-
-        const { ok, status, data } = result!
-
-        // 409 = server detected a storage-level duplicate — skip, don't error
-        if (status === 409 && data.duplicate) {
-          updateItem(id, { status: 'skipped', progress: 100, uploadedBytes: file.size, error: 'Duplicate — skipped' })
-          return
-        }
-
-        if (!ok || data.error) {
+        if (!presignRes.ok) {
+          const err = await presignRes.json().catch(() => ({})) as Record<string, unknown>
+          const serverMsg = String(err?.error ?? '').toLowerCase()
           let errorMsg = 'Upload failed — server error'
-          const serverMsg = String(data?.error ?? '').toLowerCase()
           if (serverMsg.includes('format') || serverMsg.includes('unsupported') || serverMsg.includes('mime')) {
             errorMsg = 'Upload failed — unsupported format'
           } else if (serverMsg.includes('large') || serverMsg.includes('size') || serverMsg.includes('limit')) {
@@ -361,43 +326,129 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
           return
         }
 
-        updateItem(id, { progress: 70, uploadedBytes: file.size })
-
-        const mediaFile = data.mediaFile as MediaFile
-
-        if (mediaFile.file_type === 'image') {
-          updateItem(id, { status: 'tagging', progress: 80, mediaFile })
-          const TAG_BACKOFF = [1000, 2000, 4000]
-          let scored = false
-          for (let attempt = 0; attempt <= 3; attempt++) {
-            if (attempt > 0) {
-              await new Promise((res) => setTimeout(res, TAG_BACKOFF[attempt - 1]))
-            }
-            try {
-              const tagRes = await fetch('/api/tag', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ media_file_id: mediaFile.id }),
-              })
-              if (tagRes.ok) { scored = true; break }
-              const json = await tagRes.json().catch(() => ({}))
-              console.warn(`[Archive] Tagging attempt ${attempt + 1} failed:`, json)
-            } catch (err) {
-              console.warn(`[Archive] Tagging attempt ${attempt + 1} error:`, err)
-            }
-          }
-          if (!scored) {
-            updateItem(id, { scoringFailed: true })
-            setScoringToast(mediaFile.id)
-            setTimeout(() => setScoringToast(null), 8000)
-          }
-        } else {
-          updateItem(id, { status: 'processing', progress: 85, mediaFile })
-        }
-
-        updateItem(id, { status: 'done', progress: 100, uploadedBytes: file.size })
+        presignResult = await presignRes.json() as typeof presignResult
+      } catch {
+        updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — network error' })
         return
       }
+
+      if (!presignResult) return
+      const { upload_url, storage_path, archive_filename } = presignResult
+      updateItem(id, { progress: 15 })
+
+      // ── Step 2: PUT file directly to Supabase (bypasses Vercel) ─────────────
+      const BACKOFF     = [1000, 2000, 4000]
+      const MAX_RETRIES = 3
+      let attempt = 0
+
+      while (true) {
+        uploadStartRef.current[id] = Date.now()
+        updateItem(id, { uploadedBytes: 0, progress: 15 })
+
+        let putError: Error | null = null
+        let putStatus = 0
+
+        try {
+          putStatus = await xhrPut(upload_url, file, file.type, (loaded) => {
+            const pct = 15 + Math.round((loaded / file.size) * 55)
+            updateItem(id, { uploadedBytes: loaded, progress: Math.min(70, pct) })
+          })
+        } catch (err) {
+          putError = err instanceof Error ? err : new Error('Unknown error')
+        }
+
+        const shouldRetry =
+          attempt < MAX_RETRIES &&
+          (putError !== null || putStatus >= 500)
+
+        if (shouldRetry) {
+          attempt++
+          updateItem(id, { retryCount: attempt, status: 'uploading', progress: 15, uploadedBytes: 0 })
+          await new Promise((res) => setTimeout(res, BACKOFF[attempt - 1]))
+          continue
+        }
+
+        if (putError) {
+          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — network error' })
+          return
+        }
+
+        if (putStatus < 200 || putStatus >= 300) {
+          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — server error' })
+          return
+        }
+
+        break
+      }
+
+      updateItem(id, { progress: 72, uploadedBytes: file.size, status: 'processing' })
+
+      // ── Step 3: Record upload in DB ──────────────────────────────────────────
+      let mediaFile: MediaFile | null = null
+      try {
+        const completeRes = await fetch('/api/upload/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storage_path,
+            archive_filename,
+            original_filename: file.name,
+            event_id:          eventId,
+            photographer,
+            folder_id:         folderId,
+            exif_data:         exifData,
+            file_hash:         fileHash,
+            file_size:         file.size,
+            mime_type:         file.type,
+          }),
+        })
+
+        if (!completeRes.ok) {
+          const err = await completeRes.json().catch(() => ({})) as Record<string, unknown>
+          console.error('[DropZone] complete failed:', err)
+          updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — server error' })
+          return
+        }
+
+        const json = await completeRes.json() as { mediaFile: MediaFile }
+        mediaFile = json.mediaFile
+      } catch {
+        updateItem(id, { status: 'error', progress: 100, uploadedBytes: file.size, error: 'Upload failed — network error' })
+        return
+      }
+
+      updateItem(id, { progress: 82, mediaFile: mediaFile ?? undefined })
+
+      // ── Step 4: Tagging (images only) ────────────────────────────────────────
+      if (mediaFile && mediaFile.file_type === 'image') {
+        updateItem(id, { status: 'tagging', progress: 87 })
+        const TAG_BACKOFF = [1000, 2000, 4000]
+        let scored = false
+        for (let a = 0; a <= 3; a++) {
+          if (a > 0) await new Promise((res) => setTimeout(res, TAG_BACKOFF[a - 1]))
+          try {
+            const tagRes = await fetch('/api/tag', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ media_file_id: mediaFile.id }),
+            })
+            if (tagRes.ok) { scored = true; break }
+            const tagJson = await tagRes.json().catch(() => ({}))
+            console.warn(`[Archive] Tagging attempt ${a + 1} failed:`, tagJson)
+          } catch (err) {
+            console.warn(`[Archive] Tagging attempt ${a + 1} error:`, err)
+          }
+        }
+        if (!scored) {
+          updateItem(id, { scoringFailed: true })
+          setScoringToast(mediaFile.id)
+          setTimeout(() => setScoringToast(null), 8000)
+        }
+      } else {
+        updateItem(id, { status: 'processing', progress: 92 })
+      }
+
+      updateItem(id, { status: 'done', progress: 100, uploadedBytes: file.size })
     },
     [eventId, updateItem],
   )
