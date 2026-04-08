@@ -101,7 +101,7 @@ export default function Sidebar() {
   return (
     <>
       {/* ── Desktop sidebar ──────────────────────────────────────────────── */}
-      <nav style={sidebar} aria-label="Main navigation" className="sidebar-desktop">
+      <nav style={sidebar} aria-label="Main navigation" className="sidebar-desktop hidden md:flex">
         <div style={{ flex: 1 }}>
           {NAV.map((entry, i) => {
             if (entry.kind === 'divider') {
