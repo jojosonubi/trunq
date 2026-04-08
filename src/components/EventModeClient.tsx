@@ -7,6 +7,7 @@ import Link from 'next/link'
 import clsx from 'clsx'
 import type { Event, MediaFile } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
+import { neutralizeOrientation } from '@/lib/exif'
 
 interface Profile { id: string; name?: string; email?: string; role: string }
 interface Props { event: Event; profile: Profile }
@@ -90,8 +91,9 @@ export default function EventModeClient({ event, profile }: Props) {
     setUploads((prev) => [...newUploads, ...prev])
 
     for (const item of newUploads) {
+      const uploadFile = await neutralizeOrientation(item.file)
       const formData = new FormData()
-      formData.append('file', item.file)
+      formData.append('file', uploadFile)
       formData.append('event_id', event.id)
       formData.append('photographer', photographerName)
 

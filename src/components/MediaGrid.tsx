@@ -272,7 +272,7 @@ async function saveUsage() {
             <Image
               src={transformUrl(file.signed_url ?? file.public_url, 1600)} alt={file.filename} fill
               sizes="(max-width: 1280px) 70vw, 80vw" className="object-contain" priority
-              style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s', imageOrientation: 'from-image' }}
+              style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
               unoptimized
             />
           </div>

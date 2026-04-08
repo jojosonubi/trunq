@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { extractExif } from '@/lib/exif'
+import { extractExif, neutralizeOrientation } from '@/lib/exif'
 import { createClient } from '@/lib/supabase/client'
 import type { MediaFile, Folder } from '@/types'
 import {
@@ -289,8 +289,11 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   // ── Per-file upload ───────────────────────────────────────────────────────
 
   const uploadFile = useCallback(
-    async (id: string, file: File, photographer: string | null, folderId: string | null) => {
+    async (id: string, originalFile: File, photographer: string | null, folderId: string | null) => {
       updateItem(id, { status: 'uploading', progress: 5 })
+
+      // Strip EXIF orientation tag so the file is stored at raw pixel orientation
+      const file = await neutralizeOrientation(originalFile)
 
       // ── Step 1: Presign + hash + EXIF in parallel ────────────────────────────
       let presignResult: {
