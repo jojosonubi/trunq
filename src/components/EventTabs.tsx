@@ -230,7 +230,8 @@ export default function EventTabs({
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {tab === 'gallery' ? (
         <div className="flex gap-6 items-start">
-          {/* Folder sidebar */}
+          {/* Folder sidebar — hidden on mobile */}
+          <div className="hidden sm:block">
           <FolderSidebar
             folders={folders}
             folderCounts={folderCounts}
@@ -242,6 +243,7 @@ export default function EventTabs({
             onDeleteFolder={deleteFolder}
             onFileDrop={(folderId, fileId) => assignFolder([fileId], folderId)}
           />
+          </div>
 
           {/* Gallery */}
           <div className="flex-1 min-w-0">
