@@ -237,7 +237,7 @@ export default function Sidebar() {
           .sidebar-mobile-search {
             display: block;
             position: fixed;
-            bottom: calc(48px + env(safe-area-inset-bottom) + 8px);
+            bottom: calc(48px + env(safe-area-inset-bottom) + 12px);
             left: 16px;
             right: 16px;
             z-index: 51;

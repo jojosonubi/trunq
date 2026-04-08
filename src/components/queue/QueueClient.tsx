@@ -559,7 +559,7 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
 
           <ProgressBar approved={approvedCount} pending={photos.length} rejected={rejectedCount} />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: 10, marginTop: 8 }}>
             {(['J/K — navigate', 'A — approve', 'R — reject'] as const).map((hint) => (
               <span key={hint} style={{ fontSize: 9, color: 'var(--text-dim)', letterSpacing: '0.07em' }}>{hint}</span>
             ))}

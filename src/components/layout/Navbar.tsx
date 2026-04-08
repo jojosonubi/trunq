@@ -170,18 +170,8 @@ export default function Navbar({ profile, stats }: Props) {
         {/* Wordmark */}
         <Link href="/projects" style={wordmark}>TRUNQ</Link>
 
-        {/* Nav links — desktop only */}
-        <nav style={navArea} className="hidden md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              style={navLinkStyle(isActive(link.matchPrefix, pathname))}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {/* Nav spacer — keeps right side pushed right when no links shown */}
+        <div style={{ flex: 1 }} />
 
         {/* Centred search — desktop only */}
         <div className="hidden md:block" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
