@@ -143,7 +143,7 @@ function ProjectCard({ project }: { project: Project }) {
       }}
     >
       {/* Thumbnail */}
-      <div style={{ aspectRatio: '16/10', background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
+      <div className="project-card-thumb" style={{ background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
         {project.cover_image_url ? (
           <Image
             src={project.cover_image_url}
@@ -223,7 +223,7 @@ function ProjectCard({ project }: { project: Project }) {
       </div>
 
       {/* Metadata */}
-      <div style={{ padding: '8px 10px', borderTop: '0.5px solid var(--surface-3)' }}>
+      <div className="project-card-meta" style={{ padding: '8px 10px', borderTop: '0.5px solid var(--surface-3)' }}>
         {renaming ? (
           <input
             autoFocus
@@ -252,7 +252,7 @@ function ProjectCard({ project }: { project: Project }) {
             }}
           />
         ) : (
-          <p style={{
+          <p className="project-card-name" style={{
             fontSize:      11,
             fontWeight:    500,
             color:         'var(--text-primary)',
@@ -265,7 +265,7 @@ function ProjectCard({ project }: { project: Project }) {
             {project.name}
           </p>
         )}
-        <p style={{
+        <p className="project-card-date" style={{
           fontSize:     9,
           color:        'var(--text-muted)',
           marginTop:    3,
@@ -490,10 +490,9 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
 
           {/* Project grid */}
           {activeItem.projects.length > 0 ? (
-            <div style={{
-              display:              'grid',
-              gridTemplateColumns:  'repeat(4, minmax(0, 1fr))',
-              gap:                  8,
+            <div className="project-grid" style={{
+              display: 'grid',
+              gap:     8,
             }}>
               {activeItem.projects.map((project) => (
                 <ProjectCard key={project.id} project={project} />
@@ -507,12 +506,36 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
         </div>
       )}
 
-      {/* Mobile scroll styles */}
       <style>{`
+        /* Desktop: 4-column grid, wide thumbnail, compact text */
+        .project-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .project-card-thumb { aspect-ratio: 16/10; }
+
         @media (max-width: 767px) {
-          .folder-tab-row {
-            overflow-x: auto;
-            flex-wrap: nowrap;
+          /* 2-column grid */
+          .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+          /* Taller thumbnail */
+          .project-card-thumb { aspect-ratio: 4/3; }
+
+          /* More padding in metadata */
+          .project-card-meta { padding: 10px 12px !important; }
+
+          /* Readable name — allow wrapping, no truncation */
+          .project-card-name {
+            font-size: 13px !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            line-height: 1.3;
+          }
+
+          /* Larger date/count text */
+          .project-card-date {
+            font-size: 11px !important;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
           }
         }
       `}</style>
