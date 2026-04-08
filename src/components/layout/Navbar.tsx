@@ -170,8 +170,8 @@ export default function Navbar({ profile, stats }: Props) {
         {/* Wordmark */}
         <Link href="/projects" style={wordmark}>TRUNQ</Link>
 
-        {/* Nav links */}
-        <nav style={navArea}>
+        {/* Nav links — desktop only */}
+        <nav style={navArea} className="hidden md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
