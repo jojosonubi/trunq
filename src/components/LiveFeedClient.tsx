@@ -6,7 +6,6 @@ import { Radio } from 'lucide-react'
 import Link from 'next/link'
 import type { Event, MediaFile } from '@/types'
 import { liveFeedChannel } from '@/components/EventModeClient'
-import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
 
 interface Props { event: Event; initialPhotos: MediaFile[] }
@@ -80,7 +79,7 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-1.5 space-y-1.5">
             {photos.map((photo) => (
               <div key={photo.id} className="break-inside-avoid overflow-hidden rounded-sm bg-surface-0 relative group">
-                <img src={transformUrl(photo.signed_url ?? photo.public_url, 400)} alt="" className="w-full h-auto block" loading="lazy" />
+                <img src={photo.signed_url ?? photo.public_url} alt="" className="w-full h-auto block" loading="lazy" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2">
                   <div>
                     {photo.photographer && <p className="text-white text-xs font-medium">{photo.photographer}</p>}

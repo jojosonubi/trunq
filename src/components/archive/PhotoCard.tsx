@@ -1,7 +1,6 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
 import type { MediaFileWithTags } from '@/types'
 
@@ -91,7 +90,7 @@ function StarIcon() {
 // ─── PhotoCard ────────────────────────────────────────────────────────────────
 
 export default function PhotoCard({ file, onClick }: Props) {
-  const src = transformUrl(file.signed_url ?? file.public_url, 400)
+  const src = file.signed_url ?? file.public_url
 
   const displayTags = file.tags
     .filter((t) => t.tag_type !== 'ai_generated' || t.confidence == null || t.confidence >= 0.7)

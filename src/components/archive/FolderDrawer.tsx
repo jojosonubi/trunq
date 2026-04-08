@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { MoreHorizontal, Pencil, ImagePlus, Trash2 } from 'lucide-react'
-import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
 import EventCoverPicker from '@/components/EventCoverPicker'
 
@@ -147,7 +146,7 @@ function ProjectCard({ project }: { project: Project }) {
       <div style={{ aspectRatio: '16/10', background: 'var(--surface-2)', position: 'relative', overflow: 'hidden' }}>
         {project.cover_image_url ? (
           <Image
-            src={transformUrl(project.cover_image_url, 400)}
+            src={project.cover_image_url}
             alt={project.name}
             fill
             sizes="(max-width: 768px) 50vw, 25vw"

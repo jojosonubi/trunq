@@ -22,7 +22,6 @@ import Image from 'next/image'
 import { X, Upload, Images, CornerDownRight, Check } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
 
 type Mode = 'choose' | 'archive-browse' | 'crop'
 
@@ -65,7 +64,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
   // ── Archive pick ──────────────────────────────────────────────────────────
 
   function pickFromArchive(file: MediaFileWithTags) {
-    setImageSrc(transformUrl(file.signed_url ?? file.public_url, 800))
+    setImageSrc(file.signed_url ?? file.public_url)
     setCropRect(null)
     setMode('crop')
   }
@@ -260,7 +259,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                   className="relative aspect-square bg-surface-0 rounded-lg overflow-hidden border border-[#1f1f1f] hover:border-white/30 transition-all group"
                 >
                   <Image
-                    src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill
+                    src={file.signed_url ?? file.public_url} alt={file.filename} fill
                     sizes="150px" className="object-cover group-hover:scale-[1.05] transition-transform duration-200"
                     unoptimized
                   />

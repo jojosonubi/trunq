@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Search, X, Calendar, Users, Loader2, ImageIcon } from 'lucide-react'
 import type { SearchResults, EventResult, PhotoResult, PerformerResult } from '@/app/api/search/route'
-import { transformUrl } from '@/lib/supabase/storage'
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-GB', {
@@ -49,7 +48,7 @@ function EventRow({ event, onClick }: { event: EventResult; onClick: () => void 
 }
 
 function PhotoRow({ photo, onClick }: { photo: PhotoResult; onClick: () => void }) {
-  const imgSrc = transformUrl(photo.signed_url ?? photo.public_url, 200)
+  const imgSrc = photo.signed_url ?? photo.public_url
   return (
     <button
       onClick={onClick}

@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { requireAuth } from '@/lib/auth'
-import { signMediaFiles, transformUrl } from '@/lib/supabase/storage'
+import { signMediaFiles } from '@/lib/supabase/storage'
 import { Camera, ArrowLeft, Images, CalendarDays } from 'lucide-react'
 import type { MediaFile } from '@/types'
 
@@ -153,7 +153,7 @@ export default async function PhotographerProfilePage({ params }: Props) {
                   <div key={f.id} className="break-inside-avoid overflow-hidden rounded-lg bg-surface-0">
                     {f.signed_url ? (
                       <Image
-                        src={transformUrl(f.signed_url, 400)}
+                        src={f.signed_url}
                         alt={f.filename}
                         width={400}
                         height={300}

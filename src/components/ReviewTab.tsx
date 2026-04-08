@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { Check, Pause, X, Zap, CheckCircle2, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
 import Pill, { ScorePill } from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -426,7 +425,7 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
                   >
                     <div className="relative aspect-square bg-surface-0">
                       <Image
-                        src={transformUrl(file.signed_url ?? file.public_url, 400)}
+                        src={file.signed_url ?? file.public_url}
                         alt={file.filename}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"

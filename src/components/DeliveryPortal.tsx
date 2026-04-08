@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Download, Archive, Calendar, MapPin, ShieldOff } from 'lucide-react'
 import type { MediaFile, Event } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,7 +132,7 @@ export default function DeliveryPortal({ event, files }: Props) {
                 onClick={() => setLightboxIndex(i)}
               >
                 <Image
-                  src={transformUrl(file.signed_url ?? file.public_url, 400)}
+                  src={file.signed_url ?? file.public_url}
                   alt={file.filename}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -177,7 +176,7 @@ export default function DeliveryPortal({ event, files }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={transformUrl(lightboxFile.signed_url ?? lightboxFile.public_url, 800)}
+              src={lightboxFile.signed_url ?? lightboxFile.public_url}
               alt={lightboxFile.filename}
               fill
               sizes="100vw"

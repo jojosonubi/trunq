@@ -6,7 +6,6 @@ import { Camera, ChevronLeft, Wifi, WifiOff, Radio } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
 import type { Event, MediaFile } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
 import { neutralizeOrientation } from '@/lib/exif'
 
 interface Profile { id: string; name?: string; email?: string; role: string }
@@ -253,7 +252,7 @@ export default function EventModeClient({ event, profile }: Props) {
               {recentPhotos.map((photo) => (
                 <div key={photo.id} className="aspect-square relative overflow-hidden bg-surface-0">
                   <img
-                    src={transformUrl(photo.signed_url ?? photo.public_url, 400)}
+                    src={photo.signed_url ?? photo.public_url}
                     alt=""
                     className="w-full h-full object-cover"
                     loading="lazy"

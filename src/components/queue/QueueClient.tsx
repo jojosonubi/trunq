@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import { Check, X, RotateCcw, Loader2, Copy } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
-import { transformUrl } from '@/lib/supabase/storage'
 import { ScorePill } from '@/components/ui/Pill'
 import type { MediaFile } from '@/types'
 
@@ -120,7 +119,7 @@ function QueueCard({
   onRescore?:  (e: React.MouseEvent) => void
   isRescoring: boolean
 }) {
-  const src = transformUrl(photo.signed_url ?? photo.public_url, 400)
+  const src = photo.signed_url ?? photo.public_url
 
   const borderColor = selected
     ? 'var(--accent)'

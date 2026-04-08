@@ -8,7 +8,6 @@ import { createPortal } from 'react-dom'
 import type { Event } from '@/types'
 import { Calendar, MapPin, Building2, ImageIcon, Clock, MoreHorizontal, Pencil, Trash2, ImagePlus } from 'lucide-react'
 import EventCoverPicker from '@/components/EventCoverPicker'
-import { transformUrl } from '@/lib/supabase/storage'
 import Pill from '@/components/ui/Pill'
 
 interface Props {
@@ -84,7 +83,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
         <div className="relative aspect-[16/10] w-full overflow-hidden" style={{ background: 'var(--surface-0)' }}>
           {event.cover_image_url ? (
             <Image
-              src={transformUrl(event.cover_image_url, 400)}
+              src={event.cover_image_url}
               alt={event.name}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"

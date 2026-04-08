@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import type { MediaFileWithTags } from '@/types'
-import { transformUrl } from '@/lib/supabase/storage'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -183,7 +182,7 @@ export default function CropTool({ file, platform, savedCrop, onCropChange }: Pr
         {/* Full image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={transformUrl(file.signed_url ?? file.public_url, 800)}
+          src={file.signed_url ?? file.public_url}
           alt=""
           className="absolute inset-0 w-full h-full object-contain pointer-events-none"
           draggable={false}
@@ -244,7 +243,7 @@ export default function CropTool({ file, platform, savedCrop, onCropChange }: Pr
             <div className="relative overflow-hidden" style={{ width: prevW, height: PREV_H }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={transformUrl(file.signed_url ?? file.public_url, 800)}
+                src={file.signed_url ?? file.public_url}
                 alt=""
                 className="absolute pointer-events-none"
                 draggable={false}

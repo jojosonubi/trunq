@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { X, Check, Upload, ImageIcon, Loader2 } from 'lucide-react'
-import { transformUrl } from '@/lib/supabase/storage'
 
 interface GalleryPhoto {
   id: string
@@ -134,7 +133,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
                         }`}
                       >
                         <Image
-                          src={transformUrl(photo.signed_url, 200)}
+                          src={photo.signed_url}
                           alt=""
                           fill
                           className="object-cover"

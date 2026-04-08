@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { FullPhotoResult } from '@/app/api/search/full/route'
-import { transformUrl } from '@/lib/supabase/storage'
 
 // ─── Colour palette (matches GalleryWithSearch and tag API) ──────────────────
 
@@ -446,7 +445,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
 // ─── Photo card ───────────────────────────────────────────────────────────────
 
 function PhotoCard({ photo, onOpen }: { photo: FullPhotoResult; onOpen: () => void }) {
-  const imgSrc = transformUrl(photo.signed_url ?? photo.public_url, 400)
+  const imgSrc = photo.signed_url ?? photo.public_url
 
   return (
     <div
@@ -495,7 +494,7 @@ function SearchLightbox({
   const photo   = photos[index]
   const hasPrev = index > 0
   const hasNext = index < photos.length - 1
-  const imgSrc  = transformUrl(photo.signed_url ?? photo.public_url, 800)
+  const imgSrc = photo.signed_url ?? photo.public_url
 
   return (
     <div

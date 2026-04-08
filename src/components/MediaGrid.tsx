@@ -9,7 +9,6 @@ import Pill, { ScorePill } from '@/components/ui/Pill'
 import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import clsx from 'clsx'
-import { transformUrl } from '@/lib/supabase/storage'
 
 // ─── Star props ──────────────────────────────────────────────────────────────
 
@@ -270,7 +269,7 @@ async function saveUsage() {
         ) : (
           <div className="absolute inset-0">
             <Image
-              src={transformUrl(file.signed_url ?? file.public_url, 1600)} alt={file.filename} fill
+              src={file.signed_url ?? file.public_url} alt={file.filename} fill
               sizes="(max-width: 1280px) 70vw, 80vw" className="object-contain" priority
               style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
               unoptimized
@@ -799,7 +798,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
           </div>
         ) : (
           <Image
-            src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill
+            src={file.signed_url ?? file.public_url} alt={file.filename} fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className={clsx(
               'object-contain transition-opacity duration-300',

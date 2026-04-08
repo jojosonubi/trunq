@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { Check, Copy } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
-import { transformUrl } from '@/lib/supabase/storage'
 import { ScorePill } from '@/components/ui/Pill'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -521,7 +520,7 @@ function RightPanel({ photos, selected, hasActiveFilter, onToggle, onSelectAll, 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
           {photos.map((photo) => {
             const sel = selected.has(photo.id)
-            const src = photo.signed_url ? transformUrl(photo.signed_url, 200) : null
+            const src = photo.signed_url ?? null
             return (
               <div
                 key={photo.id}

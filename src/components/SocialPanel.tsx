@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import { X, Download, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
 import clsx from 'clsx'
-import { transformUrl } from '@/lib/supabase/storage'
 import CropTool, {
   PLATFORMS,
   PLATFORM_EXPORT,
@@ -299,7 +298,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
                   )}
                 >
                   <Image
-                    src={transformUrl(file.signed_url ?? file.public_url, 200)}
+                    src={file.signed_url ?? file.public_url}
                     alt=""
                     fill
                     className="object-cover"
