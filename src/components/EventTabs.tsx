@@ -240,6 +240,7 @@ export default function EventTabs({
             onCreateFolder={createFolder}
             onRenameFolder={renameFolder}
             onDeleteFolder={deleteFolder}
+            onFileDrop={(folderId, fileId) => assignFolder([fileId], folderId)}
           />
 
           {/* Gallery */}

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal } from 'lucide-react'
+import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare } from 'lucide-react'
 import type { UserRole } from '@/lib/auth'
 import clsx from 'clsx'
 import MediaGrid from '@/components/MediaGrid'
@@ -266,6 +266,16 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
     setFolderSelectMode(true)
   }
 
+  function enterFolderSelectModeWith(id: string) {
+    setFolderSelectedIds(new Set([id]))
+    setFolderSelectMode(true)
+  }
+
+  function selectAllVisible() {
+    setFolderSelectedIds(new Set(filtered.map((f) => f.id)))
+    setFolderSelectMode(true)
+  }
+
   function exitFolderSelectMode() {
     setFolderSelectMode(false)
     setFolderSelectedIds(new Set())
@@ -372,6 +382,13 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFolderSelectedIds(new Set(filtered.map((f) => f.id)))}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
+            >
+              <CheckSquare size={12} />
+              Select all
+            </button>
             {folderSelectedIds.size > 0 && (
               <>
                 {/* Assign to existing folder */}
@@ -647,6 +664,16 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
             Move
           </button>
         )}
+
+        {filtered.length > 0 && (
+          <button
+            onClick={selectAllVisible}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+          >
+            <CheckSquare size={14} />
+            Select all
+          </button>
+        )}
       </div>
 
       {/* ── Download progress bar ─────────────────────────────────────────── */}
@@ -854,6 +881,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           initialOpenPhotoId={initialOpenPhotoId}
           event={event}
           onTrash={role === 'admin' ? handleTrashPhoto : undefined}
+          onQuickSelect={enterFolderSelectModeWith}
         />
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">

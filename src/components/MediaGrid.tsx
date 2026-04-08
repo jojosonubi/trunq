@@ -48,6 +48,8 @@ interface Props {
   event?: Pick<Event, 'name' | 'venue' | 'location'>
   /** Called when admin moves a photo to trash */
   onTrash?: (id: string) => void
+  /** When provided, shows a hover checkbox on each card in normal mode for quick selection */
+  onQuickSelect?: (id: string) => void
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -266,11 +268,11 @@ async function saveUsage() {
         {file.file_type === 'video' ? (
           <video src={file.signed_url ?? file.public_url} controls className="max-w-full max-h-full" />
         ) : (
-          <div className="relative w-full h-full">
+          <div className="absolute inset-0">
             <Image
-              src={transformUrl(file.signed_url ?? file.public_url, 800)} alt={file.filename} fill
-              sizes="70vw" className="object-contain" priority
-                style={{ transform: "rotate(" + rotation + "deg)", transition: "transform 0.2s" }}
+              src={transformUrl(file.signed_url ?? file.public_url, 1600)} alt={file.filename} fill
+              sizes="(max-width: 1280px) 70vw, 80vw" className="object-contain" priority
+              style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s', imageOrientation: 'from-image' }}
               unoptimized
             />
           </div>
@@ -653,9 +655,11 @@ interface CellProps {
   stars?: StarProps
   /** Called when the user triggers the options menu (hover button or long-press) */
   onMenuTrigger?: (x: number, y: number, file: MediaFileWithTags) => void
+  /** When provided, shows a hover checkbox for quick multi-selection */
+  onQuickSelect?: (id: string) => void
 }
 
-function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellProps) {
+function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuickSelect }: CellProps) {
   const [loaded, setLoaded] = useState(false)
   const inSelectionMode = cellSelection !== undefined
   const isSelected      = cellSelection?.isSelected      ?? false
@@ -700,6 +704,11 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
             ]
           : 'border border-[#1f1f1f] hover:border-[#333]'
       )}
+      draggable={!inSelectionMode}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', file.id)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
       onTouchStart={handleTouchStart}
@@ -710,6 +719,17 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
       {/* ── Image area ────────────────────────────────────────────────── */}
       <div className="relative aspect-square overflow-hidden">
         {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
+
+        {/* Quick-select checkbox — top-left, visible on hover in normal mode */}
+        {!inSelectionMode && onQuickSelect && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuickSelect(file.id) }}
+            aria-label="Select"
+            className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+          >
+            <div className="w-[18px] h-[18px] rounded-sm border border-white/50 bg-black/50 flex items-center justify-center" />
+          </button>
+        )}
 
         {/* Quality score badge — top-right */}
         {file.quality_score != null && (
@@ -782,8 +802,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
             src={transformUrl(file.signed_url ?? file.public_url, 400)} alt={file.filename} fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className={clsx(
-              'object-cover transition-all duration-300',
-              !inSelectionMode && 'group-hover:scale-[1.03]',
+              'object-contain transition-opacity duration-300',
               loaded ? 'opacity-100' : 'opacity-0'
             )}
             onLoad={() => setLoaded(true)}
@@ -832,7 +851,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger }: CellP
 
 // ─── MediaGrid ───────────────────────────────────────────────────────────────
 
-export default function MediaGrid({ files, selection, compact, stars, folderProps, initialOpenPhotoId, event, onTrash }: Props) {
+export default function MediaGrid({ files, selection, compact, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect }: Props) {
   const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
@@ -883,6 +902,7 @@ export default function MediaGrid({ files, selection, compact, stars, folderProp
             }
             stars={stars}
             onMenuTrigger={folderProps ? handleMenuTrigger : undefined}
+            onQuickSelect={onQuickSelect}
           />
         ))}
       </div>

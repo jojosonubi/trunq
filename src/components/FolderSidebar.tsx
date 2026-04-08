@@ -13,6 +13,7 @@ interface Props {
   onCreateFolder: (name: string) => Promise<void>
   onRenameFolder: (id: string, name: string) => Promise<void>
   onDeleteFolder: (id: string) => Promise<void>
+  onFileDrop?: (folderId: string, fileId: string) => void
 }
 
 const ITEM_BASE: React.CSSProperties = {
@@ -49,6 +50,7 @@ export default function FolderSidebar({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onFileDrop,
 }: Props) {
   const [creating, setCreating]       = useState(false)
   const [createValue, setCreateValue] = useState('')
@@ -56,6 +58,7 @@ export default function FolderSidebar({
   const [renameValue, setRenameValue] = useState('')
   const [busy, setBusy]               = useState(false)
   const [hovered, setHovered]         = useState<string | null>(null)
+  const [dragOverId, setDragOverId]   = useState<string | null>(null)
 
   const createInputRef = useRef<HTMLInputElement>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
@@ -124,10 +127,20 @@ export default function FolderSidebar({
         const isRenaming = renamingId === folder.id
         const count      = folderCounts[folder.id] ?? 0
 
+        const isDragOver = dragOverId === folder.id
+
         return (
           <div key={folder.id} style={{ position: 'relative' }}
             onMouseEnter={() => setHovered(folder.id)}
             onMouseLeave={() => setHovered(null)}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverId(folder.id) }}
+            onDragLeave={() => setDragOverId(null)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOverId(null)
+              const fileId = e.dataTransfer.getData('text/plain')
+              if (fileId) onFileDrop?.(folder.id, fileId)
+            }}
           >
             {isRenaming ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderBottom: 'var(--border-rule)' }}>
@@ -149,8 +162,11 @@ export default function FolderSidebar({
                 </button>
               </div>
             ) : (
-              <button onClick={() => onSelect(folder.id)} style={itemStyle(isActive)}>
-                {isActive
+              <button onClick={() => onSelect(folder.id)} style={{
+                ...itemStyle(isActive),
+                ...(isDragOver ? { background: 'var(--accent-bg)', borderLeft: '1.5px solid var(--accent)', color: 'var(--accent)' } : {}),
+              }}>
+                {isActive || isDragOver
                   ? <FolderOpen size={12} style={{ flexShrink: 0 }} />
                   : <FolderIcon size={12} style={{ flexShrink: 0 }} />}
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>

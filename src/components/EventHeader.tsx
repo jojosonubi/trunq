@@ -192,29 +192,14 @@ export default function EventHeader({ event, photoCount, role, existingToken, ev
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {/* Title + copy link */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 6 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', margin: 0 }}>
-          {event.name}
-        </h1>
+      {/* Title */}
+      <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', margin: '0 0 6px' }}>
+        {event.name}
+      </h1>
 
-        {role !== 'photographer' && (
-          token ? (
-            <button onClick={copyLink} style={ghostBtn}>
-              {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
-              {copied ? 'Copied' : 'Copy link'}
-            </button>
-          ) : (
-            <button onClick={generateLink} disabled={generating} style={{ ...ghostBtn, opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}>
-              <Link2 size={10} />
-              {generating ? 'Generating…' : 'Client link'}
-            </button>
-          )
-        )}
-      </div>
-
-      {/* Meta row */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
+      {/* Meta row + Deliver button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)' }}>
         <InlineField
           value={event.date?.slice(0, 10) ?? null}
           placeholder="Event date"
@@ -246,7 +231,22 @@ export default function EventHeader({ event, photoCount, role, existingToken, ev
 
         {SEP}
 
-        <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
+          <span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
+        </div>
+
+        {role !== 'photographer' && (
+          token ? (
+            <button onClick={copyLink} style={{ ...ghostBtn, flexShrink: 0 }}>
+              {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+          ) : (
+            <button onClick={generateLink} disabled={generating} style={{ ...ghostBtn, flexShrink: 0, opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}>
+              <Link2 size={10} />
+              {generating ? 'Generating…' : 'Deliver'}
+            </button>
+          )
+        )}
       </div>
 
       {event.description && (
