@@ -719,31 +719,54 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
       <div className="relative aspect-square overflow-hidden">
         {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
 
-        {/* Quick-select checkbox — top-left, visible on hover in normal mode */}
+        {/* ── Overlay elements: one per corner ──────────────────────── */}
+
+        {/* TOP-LEFT: quick-select checkbox (normal mode, on hover) */}
         {!inSelectionMode && onQuickSelect && (
           <button
             onClick={(e) => { e.stopPropagation(); onQuickSelect(file.id) }}
             aria-label="Select"
-            className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+            className="absolute top-1.5 left-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-100"
           >
             <div className="w-[18px] h-[18px] rounded-sm border border-white/50 bg-black/50 flex items-center justify-center" />
           </button>
         )}
 
-        {/* Quality score badge — top-right */}
-        {file.quality_score != null && (
-          <div className="absolute top-2 right-2 z-10">
-            <ScorePill score={file.quality_score} />
+        {/* TOP-LEFT: selection checkmark (selection mode only) */}
+        {inSelectionMode && isSelected && (
+          <div className={clsx(
+            'absolute top-2 left-2 z-20 w-5 h-5 rounded-full flex items-center justify-center',
+            isRecommended ? 'bg-amber-400' : 'bg-white'
+          )}>
+            <Check size={11} className="text-black" strokeWidth={3} />
           </div>
         )}
 
-        {/* Star button — top-left (normal mode only) */}
+        {/* TOP-LEFT: hollow ring for recommended-but-deselected (selection mode only) */}
+        {inSelectionMode && !isSelected && isRecommended && (
+          <div className="absolute top-2 left-2 z-20 w-5 h-5 rounded-full border border-amber-400/50 flex items-center justify-center">
+            <span className="text-amber-400/60 text-[9px] leading-none">✦</span>
+          </div>
+        )}
+
+        {/* TOP-RIGHT: three-dot menu (normal mode, on hover) */}
+        {!inSelectionMode && onMenuTrigger && (
+          <button
+            className="absolute top-1.5 right-1.5 z-20 w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded text-white/80 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+            onClick={(e) => { e.stopPropagation(); onMenuTrigger(e.clientX, e.clientY, file) }}
+            aria-label="Options"
+          >
+            <MoreHorizontal size={12} />
+          </button>
+        )}
+
+        {/* BOTTOM-LEFT: favourite star (normal mode) */}
         {!inSelectionMode && stars && (
           <button
             onClick={(e) => { e.stopPropagation(); stars.onToggle(file.id) }}
             aria-label={isStarred ? 'Unstar' : 'Star'}
             className={clsx(
-              'absolute top-2 left-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 transition-all',
+              'absolute bottom-2 left-2 z-20 w-6 h-6 flex items-center justify-center rounded-full bg-black/30 transition-all',
               isStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
             )}
           >
@@ -755,33 +778,23 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
           </button>
         )}
 
-        {/* Selection checkmark — top-left (selection mode only) */}
-        {inSelectionMode && isSelected && (
-          <div className={clsx(
-            'absolute top-2 left-2 z-10 w-5 h-5 rounded-full flex items-center justify-center',
-            isRecommended ? 'bg-amber-400' : 'bg-white'
-          )}>
-            <Check size={11} className="text-black" strokeWidth={3} />
-          </div>
-        )}
-
-        {/* "AI Pick" label */}
+        {/* BOTTOM-LEFT: "AI Pick" label (selection mode, recommended + selected) */}
         {inSelectionMode && isSelected && isRecommended && (
-          <div className="absolute bottom-2 left-2 z-10">
+          <div className="absolute bottom-2 left-2 z-20">
             <Pill variant="label">AI PICK</Pill>
           </div>
         )}
 
-        {/* Hollow ring for recommended-but-deselected */}
-        {inSelectionMode && !isSelected && isRecommended && (
-          <div className="absolute top-2 left-2 z-10 w-5 h-5 rounded-full border border-amber-400/50 flex items-center justify-center">
-            <span className="text-amber-400/60 text-[9px] leading-none">✦</span>
+        {/* BOTTOM-RIGHT: AI quality score badge */}
+        {file.quality_score != null && (
+          <div className="absolute bottom-2 right-2 z-20">
+            <ScorePill score={file.quality_score} />
           </div>
         )}
 
-        {/* Review status pill — bottom-left (normal mode, non-pending only) */}
+        {/* Review status pill — sits above star at bottom-left (normal mode, non-pending) */}
         {!inSelectionMode && file.review_status && file.review_status !== 'pending' && (
-          <div className="absolute bottom-2 left-2 z-10">
+          <div className="absolute bottom-9 left-2 z-20">
             {file.review_status === 'approved' && <Pill variant="approved">approved</Pill>}
             {file.review_status === 'rejected' && <Pill variant="flagged">flagged</Pill>}
             {file.review_status === 'held'     && <Pill variant="ghost">held</Pill>}
@@ -801,7 +814,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
             src={file.signed_url ?? file.public_url} alt={file.filename} fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className={clsx(
-              'object-contain transition-opacity duration-300',
+              'object-cover transition-opacity duration-300',
               loaded ? 'opacity-100' : 'opacity-0'
             )}
             onLoad={() => setLoaded(true)}
@@ -809,17 +822,9 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
           />
         )}
 
-        {/* Hover overlay — only three-dot menu, no text */}
-        {!inSelectionMode && onMenuTrigger && (
-          <div className="absolute inset-0 z-20 pointer-events-none bg-black/0 group-hover:bg-black/40 transition-all flex items-start justify-end p-2 opacity-0 group-hover:opacity-100">
-            <button
-              className="pointer-events-auto w-6 h-6 flex items-center justify-center bg-black/50 hover:bg-black/70 rounded text-white/80 hover:text-white transition-colors"
-              onClick={(e) => { e.stopPropagation(); onMenuTrigger(e.clientX, e.clientY, file) }}
-              aria-label="Options"
-            >
-              <MoreHorizontal size={12} />
-            </button>
-          </div>
+        {/* Subtle hover-darken overlay */}
+        {!inSelectionMode && (
+          <div className="absolute inset-0 z-10 pointer-events-none bg-black/0 group-hover:bg-black/20 transition-all" />
         )}
 
         {/* Selection-mode hover: empty ring */}
