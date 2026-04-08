@@ -371,10 +371,10 @@ export default function SettingsClient({
 
       <Navbar profile={currentProfile} />
 
-      <div className="max-w-5xl mx-auto px-6 py-10 flex gap-10">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-10 flex flex-col md:flex-row gap-6 md:gap-10">
 
         {/* ── Sidebar ───────────────────────────────────────────────────── */}
-        <aside className="w-40 shrink-0">
+        <aside className="w-40 shrink-0 hidden md:block">
           <div className="sticky top-24 flex flex-col">
             {SECTIONS.map((s) => {
               const active = activeSection === s.id
@@ -407,6 +407,30 @@ export default function SettingsClient({
           </div>
         </aside>
 
+        {/* ── Mobile section nav ────────────────────────────────────────── */}
+        <div className="block md:hidden">
+          <select
+            value={activeSection}
+            onChange={(e) => scrollTo(e.target.value as SectionId)}
+            style={{
+              width:        '100%',
+              background:   'var(--surface-1)',
+              border:       'var(--border-rule)',
+              borderRadius: 4,
+              padding:      '10px 12px',
+              fontSize:     14,
+              color:        'var(--text-primary)',
+              fontFamily:   'inherit',
+              outline:      'none',
+              cursor:       'pointer',
+            }}
+          >
+            {SECTIONS.map((s) => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* ── Content ───────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-16">
 
@@ -422,9 +446,9 @@ export default function SettingsClient({
                 <div className="w-14 h-14 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white text-lg font-semibold select-none shrink-0">
                   {initials(currentProfile)}
                 </div>
-                <div>
-                  <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, margin: 0 }}>{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
-                  <p className="text-[#555] text-xs mt-0.5">{currentProfile.email}</p>
+                <div className="min-w-0">
+                  <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, margin: 0, overflowWrap: 'break-word', wordBreak: 'break-all' }}>{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
+                  <p className="text-[#555] text-xs mt-0.5" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }}>{currentProfile.email}</p>
                   <span className="inline-block mt-1.5">
                     <Pill variant="ghost">{currentProfile.role}</Pill>
                   </span>
