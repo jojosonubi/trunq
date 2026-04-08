@@ -110,6 +110,14 @@ hr {
   }
 }
 
+/* ─── Navigation sidebar visibility ─────────────────────────────────────── */
+@media (max-width: 767px) {
+  .sidebar-desktop { display: none; }
+}
+@media (min-width: 768px) {
+  .sidebar-mobile { display: none; }
+}
+
 /* ─── Typography: tracking utilities ────────────────────────────────────── */
 .track-heading { letter-spacing: -0.03em; }
 .track-label   { letter-spacing: 0.12em;  }
