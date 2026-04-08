@@ -183,8 +183,8 @@ export default function Navbar({ profile, stats }: Props) {
           ))}
         </nav>
 
-        {/* Centred search */}
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
+        {/* Centred search — desktop only */}
+        <div className="hidden md:block" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
           <GlobalSearch />
         </div>
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
 import { useEventMode } from '@/context/EventModeContext'
+import GlobalSearch from '@/components/GlobalSearch'
 
 // ─── Nav structure ────────────────────────────────────────────────────────────
 
@@ -172,6 +173,11 @@ export default function Sidebar() {
         </div>
       </nav>
 
+      {/* ── Mobile floating search bar ───────────────────────────────────── */}
+      <div className="sidebar-mobile-search">
+        <GlobalSearch upward />
+      </div>
+
       {/* ── Mobile bottom tab bar ────────────────────────────────────────── */}
       <nav aria-label="Main navigation" className="sidebar-mobile">
         {MOBILE_TABS.map((entry) => {
@@ -212,8 +218,9 @@ export default function Sidebar() {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(1.6); }
         }
-        .sidebar-desktop { display: flex; }
-        .sidebar-mobile  { display: none; }
+        .sidebar-desktop       { display: flex; }
+        .sidebar-mobile        { display: none; }
+        .sidebar-mobile-search { display: none; }
         @media (max-width: 767px) {
           .sidebar-desktop { display: none; }
           .sidebar-mobile {
@@ -226,6 +233,14 @@ export default function Sidebar() {
             background: var(--surface-1);
             border-top: var(--border-rule);
             z-index: 50;
+          }
+          .sidebar-mobile-search {
+            display: block;
+            position: fixed;
+            bottom: calc(48px + env(safe-area-inset-bottom) + 8px);
+            left: 16px;
+            right: 16px;
+            z-index: 51;
           }
         }
       `}</style>

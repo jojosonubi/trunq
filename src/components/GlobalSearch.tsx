@@ -105,7 +105,7 @@ function PerformerRow({ performer, onClick }: { performer: PerformerResult; onCl
 
 // ─── GlobalSearch ─────────────────────────────────────────────────────────────
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ upward = false }: { upward?: boolean }) {
   const router = useRouter()
 
   const [query, setQuery]     = useState('')
@@ -220,7 +220,7 @@ export default function GlobalSearch() {
 
       {/* ── Results panel ─────────────────────────────────────────────────── */}
       {showPanel && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-surface-0 border border-[#1f1f1f] rounded-xl shadow-2xl z-50 overflow-hidden max-h-[540px] overflow-y-auto">
+        <div className={`absolute left-0 right-0 bg-surface-0 border border-[#1f1f1f] rounded-xl shadow-2xl z-50 overflow-hidden overflow-y-auto ${upward ? 'bottom-full mb-2 max-h-[60vh]' : 'top-full mt-2 max-h-[540px]'}`}>
 
           {/* Loading skeleton */}
           {loading && !results && (
