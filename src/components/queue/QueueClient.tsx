@@ -674,29 +674,31 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
             <div style={{ borderBottom: 'var(--border-rule)', marginTop: 24, marginInline: 'auto', width: 48 }} />
           </div>
         ) : (
-          <div className="queue-photo-grid" style={{ display: 'grid', gap: 5 }}>
-            {filtered.map((photo, i) => (
-              <QueueCard
-                key={photo.id}
-                photo={photo}
-                selected={selected.has(photo.id)}
-                focused={i === focusedIndex}
-                exiting={exiting.has(photo.id)}
-                dupInfo={dupPhotoMap.get(photo.id) ?? null}
-                isRescoring={rescoring.has(photo.id)}
-                onSelect={() => { setFocusedIndex(i); toggleSelect(photo.id) }}
-                onApprove={(e) => { e.stopPropagation(); approve([photo.id]) }}
-                onReject={(e) => { e.stopPropagation(); reject([photo.id]) }}
-                onRescore={(e) => rescoreOne(photo.id, e)}
-              />
-            ))}
-          </div>
-          <style>{`
-            .queue-photo-grid { grid-template-columns: repeat(5, 1fr); }
-            @media (max-width: 767px) {
-              .queue-photo-grid { grid-template-columns: repeat(2, 1fr); }
-            }
-          `}</style>
+          <>
+            <div className="queue-photo-grid" style={{ display: 'grid', gap: 5 }}>
+              {filtered.map((photo, i) => (
+                <QueueCard
+                  key={photo.id}
+                  photo={photo}
+                  selected={selected.has(photo.id)}
+                  focused={i === focusedIndex}
+                  exiting={exiting.has(photo.id)}
+                  dupInfo={dupPhotoMap.get(photo.id) ?? null}
+                  isRescoring={rescoring.has(photo.id)}
+                  onSelect={() => { setFocusedIndex(i); toggleSelect(photo.id) }}
+                  onApprove={(e) => { e.stopPropagation(); approve([photo.id]) }}
+                  onReject={(e) => { e.stopPropagation(); reject([photo.id]) }}
+                  onRescore={(e) => rescoreOne(photo.id, e)}
+                />
+              ))}
+            </div>
+            <style>{`
+              .queue-photo-grid { grid-template-columns: repeat(5, 1fr); }
+              @media (max-width: 767px) {
+                .queue-photo-grid { grid-template-columns: repeat(2, 1fr); }
+              }
+            `}</style>
+          </>
         )}
       </main>
     </div>
