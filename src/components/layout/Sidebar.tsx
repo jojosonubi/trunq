@@ -42,7 +42,6 @@ const sidebar: CSSProperties = {
   position:      'sticky',
   top:           44,
   overflowY:     'auto',
-  display:       'flex',
   flexDirection: 'column',
 }
 
