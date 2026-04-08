@@ -674,7 +674,7 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
             <div style={{ borderBottom: 'var(--border-rule)', marginTop: 24, marginInline: 'auto', width: 48 }} />
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
+          <div className="queue-photo-grid" style={{ display: 'grid', gap: 5 }}>
             {filtered.map((photo, i) => (
               <QueueCard
                 key={photo.id}
@@ -691,6 +691,12 @@ export default function QueueClient({ initialPhotos, events, approvedCount: init
               />
             ))}
           </div>
+          <style>{`
+            .queue-photo-grid { grid-template-columns: repeat(5, 1fr); }
+            @media (max-width: 767px) {
+              .queue-photo-grid { grid-template-columns: repeat(2, 1fr); }
+            }
+          `}</style>
         )}
       </main>
     </div>

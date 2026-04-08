@@ -778,90 +778,136 @@ function ActiveLinksTab({ links }: { links: DeliveryLinkRow[] }) {
 
   return (
     <div style={{ padding: 16 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            {['Collection', 'Project', 'Created', 'Expires', 'Views', ''].map((h) => (
-              <th key={h} style={TH_STYLE}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {links.map((link) => {
-            const expired = isExpired(link.expires_at)
-            const dimStyle: React.CSSProperties = expired
-              ? { color: 'var(--text-dim)' }
-              : {}
-            return (
-              <tr
-                key={link.id}
-                style={{ transition: 'background 0.1s' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--surface-1)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '' }}
-              >
-                {/* Collection */}
-                <td style={{ ...TD_STYLE, fontWeight: 500, color: 'var(--text-primary)', ...dimStyle }}>
-                  {link.events?.name ?? '—'}
-                </td>
-                {/* Project */}
-                <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', ...dimStyle }}>
-                  {link.events?.name ?? '—'}
-                </td>
-                {/* Created */}
-                <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', whiteSpace: 'nowrap', ...dimStyle }}>
+      {/* ── Desktop table ── */}
+      <div className="delivery-table-wrap">
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {['Collection', 'Project', 'Created', 'Expires', 'Views', ''].map((h) => (
+                <th key={h} style={TH_STYLE}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {links.map((link) => {
+              const expired = isExpired(link.expires_at)
+              const dimStyle: React.CSSProperties = expired ? { color: 'var(--text-dim)' } : {}
+              return (
+                <tr
+                  key={link.id}
+                  style={{ transition: 'background 0.1s' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--surface-1)' }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '' }}
+                >
+                  <td style={{ ...TD_STYLE, fontWeight: 500, color: 'var(--text-primary)', ...dimStyle }}>{link.events?.name ?? '—'}</td>
+                  <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', ...dimStyle }}>{link.events?.name ?? '—'}</td>
+                  <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', whiteSpace: 'nowrap', ...dimStyle }}>{formatDate(link.created_at)}</td>
+                  <td style={{ ...TD_STYLE, ...dimStyle }}>
+                    {expired ? (
+                      <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 2, border: '0.5px solid var(--surface-3)', color: 'var(--text-dim)', background: 'transparent' }}>Expired</span>
+                    ) : link.expires_at ? (
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{formatDate(link.expires_at)}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', ...dimStyle }}>—</td>
+                  <td style={{ ...TD_STYLE }}>
+                    <button
+                      onClick={() => copy(link.token)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        fontSize: 9, padding: '3px 8px',
+                        border: '0.5px solid var(--surface-3)', borderRadius: 2,
+                        background: 'transparent',
+                        color: copied === link.token ? 'var(--accent)' : 'var(--text-secondary)',
+                        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {copied === link.token ? <><Check size={9} /> Copied ✓</> : <><Copy size={9} /> Copy link</>}
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Mobile card list ── */}
+      <div className="delivery-cards-wrap">
+        {links.map((link) => {
+          const expired = isExpired(link.expires_at)
+          return (
+            <div
+              key={link.id}
+              style={{
+                background:   'var(--surface-1)',
+                border:       'var(--border-rule)',
+                borderRadius: 3,
+                padding:      '14px 16px',
+                marginBottom: 10,
+                opacity:      expired ? 0.6 : 1,
+              }}
+            >
+              {/* Collection name */}
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>
+                {link.events?.name ?? '—'}
+              </p>
+
+              {/* Meta rows */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 12 }}>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Created </span>
                   {formatDate(link.created_at)}
-                </td>
-                {/* Expires */}
-                <td style={{ ...TD_STYLE, ...dimStyle }}>
-                  {expired ? (
-                    <span style={{
-                      fontSize:     8,
-                      padding:      '2px 6px',
-                      borderRadius: 2,
-                      border:       '0.5px solid var(--surface-3)',
-                      color:        'var(--text-dim)',
-                      background:   'transparent',
-                    }}>
-                      Expired
-                    </span>
-                  ) : link.expires_at ? (
-                    <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>{formatDate(link.expires_at)}</span>
-                  ) : (
-                    <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>—</span>
-                  )}
-                </td>
-                {/* Views */}
-                <td style={{ ...TD_STYLE, color: 'var(--text-secondary)', ...dimStyle }}>—</td>
-                {/* Action */}
-                <td style={{ ...TD_STYLE }}>
-                  <button
-                    onClick={() => copy(link.token)}
-                    style={{
-                      display:      'inline-flex',
-                      alignItems:   'center',
-                      gap:          4,
-                      fontSize:     9,
-                      padding:      '3px 8px',
-                      border:       '0.5px solid var(--surface-3)',
-                      borderRadius: 2,
-                      background:   'transparent',
-                      color:        copied === link.token ? 'var(--accent)' : 'var(--text-secondary)',
-                      cursor:       'pointer',
-                      fontFamily:   'inherit',
-                      whiteSpace:   'nowrap',
-                    }}
-                  >
-                    {copied === link.token
-                      ? <><Check size={9} /> Copied ✓</>
-                      : <><Copy size={9} /> Copy link</>
-                    }
-                  </button>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Expires </span>
+                  {expired
+                    ? <span style={{ color: 'var(--text-dim)' }}>Expired</span>
+                    : link.expires_at
+                    ? formatDate(link.expires_at)
+                    : '—'}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Views </span>—
+                </p>
+              </div>
+
+              {/* Copy button */}
+              <button
+                onClick={() => copy(link.token)}
+                style={{
+                  display:      'inline-flex',
+                  alignItems:   'center',
+                  gap:          6,
+                  fontSize:     12,
+                  padding:      '10px 16px',
+                  border:       '0.5px solid var(--surface-3)',
+                  borderRadius: 2,
+                  background:   'transparent',
+                  color:        copied === link.token ? 'var(--accent)' : 'var(--text-secondary)',
+                  cursor:       'pointer',
+                  fontFamily:   'inherit',
+                  width:        '100%',
+                  justifyContent: 'center',
+                }}
+              >
+                {copied === link.token ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy link</>}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      <style>{`
+        .delivery-table-wrap { display: block; }
+        .delivery-cards-wrap { display: none; }
+        @media (max-width: 767px) {
+          .delivery-table-wrap { display: none; }
+          .delivery-cards-wrap { display: block; }
+        }
+      `}</style>
     </div>
   )
 }
