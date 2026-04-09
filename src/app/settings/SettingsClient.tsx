@@ -50,7 +50,7 @@ interface Props {
   unlicensedPhotos?: MediaFile[]
 }
 
-type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'rights' | 'audit' | 'danger'
+type SectionId = 'account' | 'team' | 'storage' | 'trash' | 'rights' | 'audit' | 'ai' | 'danger'
 
 const ACTION_LABELS: Record<string, string> = {
   photo_uploaded:              'Photo uploaded',
@@ -157,6 +157,7 @@ export default function SettingsClient({
       { id: 'trash'   as SectionId, label: 'Trash',          icon: Trash2       },
       { id: 'rights'  as SectionId, label: 'Rights',         icon: ShieldCheck  },
       { id: 'audit'   as SectionId, label: 'Audit log',      icon: History      },
+      { id: 'ai'      as SectionId, label: 'AI & Tagging',   icon: RefreshCw    },
       { id: 'danger'  as SectionId, label: 'Danger zone',    icon: AlertTriangle},
     ] : []),
   ]
@@ -328,6 +329,27 @@ export default function SettingsClient({
       else                  setTPhotos((p) => p.filter((f) => f.id !== id))
     } finally {
       setTrashBusy(null)
+    }
+  }
+
+  // ── AI: Tag all untagged (cross-project) ─────────────────────────────────
+  const [tagAllState, setTagAllState] = useState<'idle' | 'queuing' | 'queued'>('idle')
+  const [tagAllCount, setTagAllCount] = useState<number | null>(null)
+
+  async function tagAllUntagged() {
+    setTagAllState('queuing')
+    try {
+      const res  = await fetch('/api/tag/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+      const json = await res.json() as { queued?: number }
+      const count = json.queued ?? 0
+      setTagAllCount(count)
+      if (count > 0) {
+        const { saveTaggingJob } = await import('@/components/TaggingProgress')
+        saveTaggingJob({ total: count, startedAt: Date.now(), eventId: null })
+      }
+      setTagAllState('queued')
+    } catch {
+      setTagAllState('idle')
     }
   }
 
@@ -1176,6 +1198,39 @@ export default function SettingsClient({
                     )}
                   </Card>
                 )}
+              </section>
+
+              {/* ╔══════════════════════════════════════════════════╗ */}
+              {/* ║  AI & TAGGING                                    ║ */}
+              {/* ╚══════════════════════════════════════════════════╝ */}
+              <section className="pb-12">
+                <SectionHead id="ai" icon={RefreshCw} title="AI & Tagging" subtitle="Batch-tag all unprocessed images across every project" />
+                <Card>
+                  <div className="flex items-center justify-between px-5 py-4">
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Tag all untagged images</p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        Queues every untagged image across all projects for AI tagging &amp; scoring. Runs server-side — you can close this page.
+                      </p>
+                      {tagAllState === 'queued' && (
+                        <p className="text-xs mt-1.5 text-purple-400">
+                          {tagAllCount && tagAllCount > 0
+                            ? `${tagAllCount} image${tagAllCount !== 1 ? 's' : ''} queued — progress shown bottom-right`
+                            : 'Nothing to tag — all images are already processed.'}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={tagAllUntagged}
+                      disabled={tagAllState !== 'idle'}
+                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit', cursor: tagAllState !== 'idle' ? 'not-allowed' : 'pointer' }}
+                    >
+                      <RefreshCw size={11} className={tagAllState === 'queuing' ? 'animate-spin' : ''} />
+                      {tagAllState === 'queuing' ? 'Queuing…' : tagAllState === 'queued' ? 'Queued' : 'Tag all untagged'}
+                    </button>
+                  </div>
+                </Card>
               </section>
 
               {/* ╔══════════════════════════════════════════════════╗ */}

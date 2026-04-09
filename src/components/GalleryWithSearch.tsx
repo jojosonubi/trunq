@@ -86,9 +86,6 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
     return () => document.removeEventListener('mousedown', onDown)
   }, [filterOpen])
 
-  // ── AI-processing state (fed from BulkRetag) ─────────────────────────────
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
-
   // ── Download state ────────────────────────────────────────────────────────
   const [downloadState, setDownloadState] = useState<{ done: number; total: number } | null>(null)
   const downloadingRef = useRef(false)
@@ -739,7 +736,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
             : `${files.length} file${files.length !== 1 ? 's' : ''}`}
         </span>
 
-        <BulkRetag untaggedImages={untaggedImages} onProcessingChange={setProcessingIds} />
+        <BulkRetag untaggedImages={untaggedImages} eventId={event.id} />
       </div>
 
       {/* ── Row 3: photographer filter ────────────────────────────────────── */}
@@ -885,7 +882,6 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           event={event}
           onTrash={role === 'admin' ? handleTrashPhoto : undefined}
           onQuickSelect={enterFolderSelectModeWith}
-          processingIds={processingIds}
         />
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">

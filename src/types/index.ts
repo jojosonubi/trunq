@@ -106,8 +106,8 @@ export interface MediaFile {
   exif_shutter_speed: string | null
   exif_focal_length: number | null
   quality_score: number | null
-  tagging_status: 'untagged' | 'processing' | 'complete' | 'failed'
-  score_status: 'unscored' | 'processing' | 'complete' | 'failed'
+  tagging_status: 'untagged' | 'queued' | 'processing' | 'complete' | 'failed'
+  score_status: 'unscored' | 'queued' | 'processing' | 'complete' | 'failed'
   description: string | null
   photographer: string | null
   usage_type: 'all_rights' | 'editorial_only' | 'client_use' | 'restricted' | null

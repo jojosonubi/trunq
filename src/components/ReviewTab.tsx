@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Check, Pause, X, Zap, CheckCircle2, RotateCcw } from 'lucide-react'
+import { Check, Pause, X, Zap, CheckCircle2, RotateCcw, SlidersHorizontal, ArrowUpDown } from 'lucide-react'
 import clsx from 'clsx'
 import type { MediaFileWithTags } from '@/types'
 import Pill, { ScorePill } from '@/components/ui/Pill'
@@ -47,6 +47,10 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
   const [toast, setToast]                 = useState<ToastState | null>(null)
   const [rescoring, setRescoring]         = useState<Set<string>>(new Set())
   const [scoreOverrides, setScoreOverrides] = useState<Record<string, number>>({})
+  const [reviewFilter, setReviewFilter]   = useState<null | 'pending' | 'low_score' | 'failed' | 'held'>('pending')
+  const [sortByScore, setSortByScore]     = useState(true)  // ascending = worst first
+
+  const LOW_SCORE_THRESHOLD = 50
 
   const imageFiles = useMemo(() => files.filter((f) => f.file_type === 'image'), [files])
 
@@ -208,6 +212,16 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
     setBulkWorking(false)
   }
 
+  async function bulkApproveVisible() {
+    const ids = filteredFiles
+      .filter((f) => effectiveStatus(f.id, f.review_status) === 'pending')
+      .map((f) => f.id)
+    if (!ids.length) return
+    setBulkWorking(true)
+    await setStatus(ids, 'approved')
+    setBulkWorking(false)
+  }
+
   // Preview counts for bulk actions
   const approvePreviewCount = useMemo(
     () => imageFiles.filter((f) => effectiveStatus(f.id, f.review_status) === 'pending' && (f.quality_score ?? 0) >= approveThreshold).length,
@@ -220,10 +234,30 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
     [imageFiles, overrides, rejectThreshold]
   )
 
+  // ── Filtering + sorting ───────────────────────────────────────────────────
+  const filteredFiles = useMemo(() => {
+    let files = imageFiles
+    if (reviewFilter === 'pending')    files = files.filter((f) => effectiveStatus(f.id, f.review_status) === 'pending')
+    if (reviewFilter === 'held')       files = files.filter((f) => effectiveStatus(f.id, f.review_status) === 'held')
+    if (reviewFilter === 'low_score')  files = files.filter((f) => (f.quality_score ?? 101) < LOW_SCORE_THRESHOLD)
+    if (reviewFilter === 'failed')     files = files.filter((f) => f.tagging_status === 'failed' || f.score_status === 'failed')
+    if (sortByScore) {
+      files = [...files].sort((a, b) => (a.quality_score ?? 0) - (b.quality_score ?? 0))
+    }
+    return files
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageFiles, overrides, reviewFilter, sortByScore])
+
   // ── Grouping ─────────────────────────────────────────────────────────────
   const groups = useMemo(() => {
+    if (sortByScore) {
+      // Flat list when sorting by score — grouping by photographer is meaningless
+      return filteredFiles.length > 0
+        ? [{ name: 'All', files: filteredFiles }]
+        : []
+    }
     const map: Record<string, MediaFileWithTags[]> = {}
-    imageFiles.forEach((f) => {
+    filteredFiles.forEach((f) => {
       const key = f.photographer ?? 'Unassigned'
       if (!map[key]) map[key] = []
       map[key].push(f)
@@ -234,9 +268,9 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
       return a.localeCompare(b)
     })
     return keys.map((name) => ({ name, files: map[name] }))
-  }, [imageFiles])
+  }, [filteredFiles, sortByScore])
 
-  const showHeaders = groups.length > 1 || (groups[0]?.name !== 'Unassigned')
+  const showHeaders = !sortByScore && (groups.length > 1 || (groups[0]?.name !== 'Unassigned'))
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (imageFiles.length === 0) {
@@ -392,6 +426,60 @@ export default function ReviewTab({ files, eventId: _eventId }: Props) {
           style={{ width: `${Math.round((reviewedCount / imageFiles.length) * 100)}%` }}
         />
       </div>
+
+      {/* ── Filter / sort / bulk-approve bar ────────────────────────────── */}
+      <div className="flex items-center gap-2 mb-5 flex-wrap">
+        <SlidersHorizontal size={12} className="text-[#444] shrink-0" />
+        {([
+          { id: 'pending',   label: 'Pending'   },
+          { id: 'low_score', label: `Score < ${LOW_SCORE_THRESHOLD}` },
+          { id: 'failed',    label: 'Tag failed' },
+          { id: 'held',      label: 'Held'       },
+        ] as { id: typeof reviewFilter; label: string }[]).map(({ id, label }) => (
+          <button
+            key={String(id)}
+            onClick={() => setReviewFilter((prev) => prev === id ? null : id)}
+            className={clsx(
+              'text-xs px-2.5 py-1 rounded-full border transition-all',
+              reviewFilter === id
+                ? 'bg-white/10 border-white/20 text-white'
+                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setSortByScore((v) => !v)}
+            className={clsx(
+              'inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-all',
+              sortByScore
+                ? 'bg-white/10 border-white/20 text-white'
+                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
+            )}
+          >
+            <ArrowUpDown size={10} />
+            Worst first
+          </button>
+          {filteredFiles.some((f) => effectiveStatus(f.id, f.review_status) === 'pending') && (
+            <button
+              onClick={bulkApproveVisible}
+              disabled={bulkWorking}
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 rounded-lg transition-all disabled:opacity-40"
+            >
+              <Check size={11} />
+              Approve visible ({filteredFiles.filter((f) => effectiveStatus(f.id, f.review_status) === 'pending').length})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {filteredFiles.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 border border-dashed border-[#1f1f1f] rounded-lg">
+          <p className="text-[#555] text-sm">No images match this filter.</p>
+        </div>
+      )}
 
       {/* ── Photo groups ───────────────────────────────────────────────── */}
       <div className="space-y-8">

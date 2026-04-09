@@ -60,9 +60,10 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   const event = eventResult.data as Event
   const mediaFiles = await signMediaFiles((mediaResult.data ?? []) as MediaFileWithTags[])
   const untaggedImages = mediaFiles.filter(
-    (f) => f.file_type === 'image' && (
-      f.tagging_status !== 'complete' || f.score_status !== 'complete'
-    )
+    (f) => f.file_type === 'image' &&
+      f.tagging_status !== 'complete' &&
+      f.tagging_status !== 'queued' &&
+      f.tagging_status !== 'processing'
   )
   const photoCount    = mediaFiles.filter((f) => f.file_type === 'image').length
   const existingToken = deliveryResult.data?.token ?? null
