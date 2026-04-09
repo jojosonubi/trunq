@@ -106,6 +106,8 @@ export interface MediaFile {
   exif_shutter_speed: string | null
   exif_focal_length: number | null
   quality_score: number | null
+  tagging_status: 'untagged' | 'processing' | 'complete' | 'failed'
+  score_status: 'unscored' | 'processing' | 'complete' | 'failed'
   description: string | null
   photographer: string | null
   usage_type: 'all_rights' | 'editorial_only' | 'client_use' | 'restricted' | null
@@ -148,7 +150,7 @@ export interface Tag {
 export interface UploadProgress {
   file: File
   progress: number
-  status: 'pending' | 'uploading' | 'processing' | 'tagging' | 'done' | 'error'
+  status: 'pending' | 'uploading' | 'processing' | 'done' | 'error'
   error?: string
   mediaFile?: MediaFile
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
 import { scoreMediaFile } from '@/lib/scoring'
 
 export async function POST(request: NextRequest) {
@@ -14,7 +15,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing media_file_id' }, { status: 400 })
     }
 
-    const result = await scoreMediaFile(media_file_id)
+    const service = createServiceClient()
+
+    // Mark as processing so the UI can show a spinner
+    await service
+      .from('media_files')
+      .update({ tagging_status: 'processing', score_status: 'processing' })
+      .eq('id', media_file_id)
+
+    let result: Awaited<ReturnType<typeof scoreMediaFile>>
+    try {
+      result = await scoreMediaFile(media_file_id)
+    } catch (err) {
+      // Mark both as failed so the retry button appears
+      await service
+        .from('media_files')
+        .update({ tagging_status: 'failed', score_status: 'failed' })
+        .eq('id', media_file_id)
+      throw err
+    }
+
+    // Mark complete
+    await service
+      .from('media_files')
+      .update({ tagging_status: 'complete', score_status: 'complete' })
+      .eq('id', media_file_id)
 
     return NextResponse.json({
       quality_score:    result.quality_score,

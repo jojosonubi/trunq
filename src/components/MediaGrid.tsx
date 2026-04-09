@@ -49,6 +49,8 @@ interface Props {
   onTrash?: (id: string) => void
   /** When provided, shows a hover checkbox on each card in normal mode for quick selection */
   onQuickSelect?: (id: string) => void
+  /** IDs of images currently being AI-processed — shows a pulsing overlay */
+  processingIds?: Set<string>
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -656,9 +658,11 @@ interface CellProps {
   onMenuTrigger?: (x: number, y: number, file: MediaFileWithTags) => void
   /** When provided, shows a hover checkbox for quick multi-selection */
   onQuickSelect?: (id: string) => void
+  /** When true, shows a pulsing AI-processing overlay */
+  isProcessing?: boolean
 }
 
-function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuickSelect }: CellProps) {
+function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuickSelect, isProcessing }: CellProps) {
   const [loaded, setLoaded] = useState(false)
   const inSelectionMode = cellSelection !== undefined
   const isSelected      = cellSelection?.isSelected      ?? false
@@ -718,6 +722,18 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
       {/* ── Image area ────────────────────────────────────────────────── */}
       <div className="relative aspect-square overflow-hidden">
         {!loaded && <div className="absolute inset-0 bg-surface-0 animate-pulse" />}
+
+        {/* AI-processing pulse overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 animate-pulse">
+            <div className="flex items-center gap-1.5 bg-black/70 rounded-full px-3 py-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="animate-spin" stroke="#a855f7" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+              <span style={{ fontSize: 10, color: '#a855f7', fontFamily: 'inherit' }}>Tagging…</span>
+            </div>
+          </div>
+        )}
 
         {/* ── Overlay elements: one per corner ──────────────────────── */}
 
@@ -855,7 +871,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
 
 // ─── MediaGrid ───────────────────────────────────────────────────────────────
 
-export default function MediaGrid({ files, selection, compact, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect }: Props) {
+export default function MediaGrid({ files, selection, compact, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds }: Props) {
   const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
@@ -907,6 +923,7 @@ export default function MediaGrid({ files, selection, compact, stars, folderProp
             stars={stars}
             onMenuTrigger={folderProps ? handleMenuTrigger : undefined}
             onQuickSelect={onQuickSelect}
+            isProcessing={processingIds?.has(file.id)}
           />
         ))}
       </div>

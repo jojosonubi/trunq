@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { MediaFile, Folder } from '@/types'
 import {
   UploadCloud, CheckCircle2, XCircle, Loader2,
-  FileImage, Sparkles, User, AlertTriangle,
+  FileImage, User, AlertTriangle,
   Folder as FolderIcon, Plus, Check, X, ChevronUp, ChevronDown,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
@@ -26,14 +26,13 @@ interface QueueItem {
   id: string
   file: File
   progress: number
-  status: 'pending' | 'uploading' | 'processing' | 'tagging' | 'done' | 'error' | 'skipped'
+  status: 'pending' | 'uploading' | 'processing' | 'done' | 'error' | 'skipped'
   error?: string
   mediaFile?: MediaFile
   photographer: string | null
   folderId: string | null
   uploadedBytes: number
   retryCount: number
-  scoringFailed?: boolean
 }
 
 // ─── Format helpers ───────────────────────────────────────────────────────────
@@ -88,7 +87,6 @@ function StatusIcon({ status }: { status: QueueItem['status'] }) {
     case 'done':       return <CheckCircle2 size={13} className="shrink-0" style={{ color: '#1D9E75' }} />
     case 'error':      return <XCircle      size={13} className="shrink-0" style={{ color: 'var(--flagged-fg)' }} />
     case 'skipped':    return <AlertTriangle size={13} className="shrink-0" style={{ color: '#b8860b' }} />
-    case 'tagging':    return <Sparkles     size={13} className="text-purple-400 shrink-0 animate-pulse" />
     case 'uploading':
     case 'processing': return <Loader2      size={13} className="shrink-0 animate-spin" style={{ color: 'var(--accent)' }} />
     default:           return <FileImage    size={13} className="text-[#555] shrink-0" />
@@ -100,7 +98,6 @@ function statusLabel(status: QueueItem['status']): string {
     case 'pending':    return 'Waiting…'
     case 'uploading':  return 'Uploading…'
     case 'processing': return 'Saving…'
-    case 'tagging':    return 'Tagging…'
     case 'done':       return 'Done'
     case 'error':      return 'Failed'
     case 'skipped':    return 'Skipped'
@@ -235,7 +232,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [, setTick] = useState(0)
   const [footerExpanded, setFooterExpanded] = useState(true)
-  const [scoringToast, setScoringToast] = useState<string | null>(null)
 
   // ── Folder state ──────────────────────────────────────────────────────────
   const [localFolders, setLocalFolders]     = useState<Folder[]>(initialFolders)
@@ -432,35 +428,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
       }
 
       updateItem(id, { progress: 82, mediaFile: mediaFile ?? undefined })
-
-      // ── Step 4: Tagging (images only) ────────────────────────────────────────
-      if (mediaFile && mediaFile.file_type === 'image') {
-        updateItem(id, { status: 'tagging', progress: 87 })
-        const TAG_BACKOFF = [1000, 2000, 4000]
-        let scored = false
-        for (let a = 0; a <= 3; a++) {
-          if (a > 0) await new Promise((res) => setTimeout(res, TAG_BACKOFF[a - 1]))
-          try {
-            const tagRes = await fetch('/api/tag', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ media_file_id: mediaFile.id }),
-            })
-            if (tagRes.ok) { scored = true; break }
-            const tagJson = await tagRes.json().catch(() => ({}))
-            console.warn(`[Archive] Tagging attempt ${a + 1} failed:`, tagJson)
-          } catch (err) {
-            console.warn(`[Archive] Tagging attempt ${a + 1} error:`, err)
-          }
-        }
-        if (!scored) {
-          updateItem(id, { scoringFailed: true })
-          setScoringToast(mediaFile.id)
-          setTimeout(() => setScoringToast(null), 8000)
-        }
-      } else {
-        updateItem(id, { status: 'processing', progress: 92 })
-      }
 
       updateItem(id, { status: 'done', progress: 100, uploadedBytes: file.size })
     },
@@ -672,7 +639,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   const totalBatchBytes = queue.reduce((s, i) => s + i.file.size, 0)
 
   const uploadedBatchBytes = queue.reduce((s, i) => {
-    if (['processing', 'tagging', 'done', 'error'].includes(i.status)) return s + i.file.size
+    if (['processing', 'done', 'error'].includes(i.status)) return s + i.file.size
     if (i.status === 'uploading') return s + i.uploadedBytes
     return s
   }, 0)
@@ -800,7 +767,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
             const rightText =
               item.status === 'skipped'                            ? (item.error ?? 'Duplicate — skipped') :
               item.status === 'error'                              ? (item.error ?? 'Upload failed') :
-              item.status === 'done' && item.scoringFailed         ? 'Score failed' :
               item.status === 'done'                               ? 'Done' :
               item.retryCount > 0 && item.status === 'uploading'  ? `Retry ${item.retryCount}/3…` :
               itemSpeed !== null                                   ? fmtSpeed(itemSpeed) :
@@ -809,8 +775,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
             const rightColor =
               item.status === 'skipped'                            ? '#b8860b' :
               item.status === 'error'                              ? 'var(--flagged-fg)' :
-              item.status === 'done' && item.scoringFailed         ? 'var(--flagged-fg)' :
-              item.status === 'tagging'                            ? '#a855f7' :
               item.status === 'done'                               ? '#1D9E75' :
               item.retryCount > 0 && item.status === 'uploading'  ? '#b8860b' :
               itemSpeed !== null                                   ? 'var(--accent)' :
@@ -823,20 +787,9 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                   <span className="text-xs font-medium truncate flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
                     {item.file.name}
                   </span>
-                  {item.scoringFailed && item.status === 'done' ? (
-                    <span style={{
-                      fontSize: 9, padding: '1px 5px', borderRadius: 2,
-                      background: 'var(--flagged-bg)', color: 'var(--flagged-fg)',
-                      border: '0.5px solid var(--flagged-border)', flexShrink: 0,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      Score failed
-                    </span>
-                  ) : (
-                    <span className="text-[10px] tabular-nums shrink-0" style={{ color: rightColor }}>
-                      {rightText}
-                    </span>
-                  )}
+                  <span className="text-[10px] tabular-nums shrink-0" style={{ color: rightColor }}>
+                    {rightText}
+                  </span>
                   {item.status === 'error' && (
                     <button
                       onClick={() => retryItem(item.id)}
@@ -854,7 +807,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                       background: item.status === 'done'    ? '#1D9E75' :
                                   item.status === 'error'   ? 'var(--flagged-fg)' :
                                   item.status === 'skipped' ? '#b8860b' :
-                                  item.status === 'tagging' ? '#a855f7' :
                                   'var(--accent)',
                     }}
                   />
@@ -1033,28 +985,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
         document.body,
       )}
 
-      {/* ── Scoring failure toast ─────────────────────────────────────── */}
-      {scoringToast && typeof window !== 'undefined' && createPortal(
-        <div style={{
-          position:     'fixed',
-          bottom:       24,
-          right:        24,
-          zIndex:       9999,
-          background:   'var(--flagged-bg)',
-          color:        'var(--flagged-fg)',
-          border:       '0.5px solid var(--flagged-border)',
-          borderRadius: 2,
-          padding:      '10px 14px',
-          fontSize:     11,
-          fontFamily:   'inherit',
-          maxWidth:     320,
-          lineHeight:   1.5,
-          boxShadow:    '0 4px 16px rgba(0,0,0,0.15)',
-        }}>
-          Photo uploaded but scoring failed — you can re-score from the queue.
-        </div>,
-        document.body
-      )}
     </>
   )
 }
