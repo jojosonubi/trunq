@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { EventModeProvider } from '@/context/EventModeContext'
 import TaggingProgress from '@/components/TaggingProgress'
+import NavigationProgress from '@/components/NavigationProgress'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} min-h-screen`} style={{ background: 'var(--surface-0)', color: 'var(--text-primary)' }}>
         <EventModeProvider>
+          <NavigationProgress />
           {children}
           <TaggingProgress />
         </EventModeProvider>

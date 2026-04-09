@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Plus, X, User } from 'lucide-react'
-import clsx from 'clsx'
 import type { Photographer } from '@/types'
 
 interface Props {
@@ -103,14 +102,18 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
           {photographers.map((name) => (
             <span
               key={name}
-              className="inline-flex items-center gap-1.5 bg-surface-0 border border-[#2a2a2a] text-white text-xs px-2.5 py-1 rounded-full"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'var(--surface-2)', border: 'var(--border-rule)',
+                color: 'var(--text-primary)', fontSize: 11, padding: '3px 8px', borderRadius: 99,
+              }}
             >
-              <User size={10} className="text-[#555]" />
+              <User size={10} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               {name}
               <button
                 type="button"
                 onClick={() => remove(name)}
-                className="text-[#555] hover:text-white transition-colors"
+                style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}
                 aria-label={`Remove ${name}`}
               >
                 <X size={11} />
@@ -121,8 +124,8 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
       )}
 
       {/* Input + dropdown */}
-      <div className="relative flex gap-2">
-        <div className="relative flex-1">
+      <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+        <div style={{ position: 'relative', flex: 1 }}>
           <input
             ref={inputRef}
             type="text"
@@ -132,28 +135,34 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
             onFocus={() => { if (suggestions.length > 0) setOpen(true) }}
             placeholder="Add photographer name…"
             autoComplete="off"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+            className="form-input"
           />
 
           {/* Autocomplete dropdown */}
           {open && suggestions.length > 0 && (
             <div
               ref={panelRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-surface-0 border border-[#2a2a2a] rounded-lg overflow-hidden z-20 shadow-2xl"
+              style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+                background: 'var(--surface-0)', border: 'var(--border-rule)', borderRadius: 4,
+                overflow: 'hidden', zIndex: 30, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              }}
             >
               {suggestions.map((p, i) => (
                 <button
                   key={p.id}
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); commit(p.name) }}
-                  className={clsx(
-                    'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors',
-                    i === highlighted
-                      ? 'bg-white/8 text-white'
-                      : 'text-[#888] hover:bg-white/5 hover:text-white'
-                  )}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '7px 10px', fontSize: 13, textAlign: 'left',
+                    background: i === highlighted ? 'var(--surface-2)' : 'transparent',
+                    color: 'var(--text-primary)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={() => setHighlighted(i)}
+                  onMouseLeave={() => setHighlighted(-1)}
                 >
-                  <User size={12} className="text-[#555] shrink-0" />
+                  <User size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                   {p.name}
                 </button>
               ))}
@@ -165,13 +174,19 @@ export default function PhotographerInput({ value: photographers, onChange, onAd
           type="button"
           onClick={() => commit(input)}
           disabled={!input.trim()}
-          className="px-3 py-2.5 bg-surface-0 border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] rounded text-sm transition-colors disabled:opacity-30"
+          style={{
+            padding: '0 12px', background: 'var(--surface-1)', border: 'var(--border-rule)',
+            color: 'var(--text-muted)', borderRadius: 2, cursor: 'pointer', display: 'flex',
+            alignItems: 'center', opacity: input.trim() ? 1 : 0.3, fontFamily: 'inherit',
+          }}
           aria-label="Add photographer"
         >
           <Plus size={15} />
         </button>
       </div>
-      <p className="text-[#444] text-xs mt-1.5">Press Enter or + to add. Existing names autocomplete.</p>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, marginBottom: 0 }}>
+        Press Enter or + to add. Existing names autocomplete.
+      </p>
     </div>
   )
 }

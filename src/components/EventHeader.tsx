@@ -192,6 +192,16 @@ export default function EventHeader({ event, photoCount, role, existingToken, ev
 
   return (
     <div style={{ marginBottom: 20 }}>
+      {/* Back link */}
+      <a
+        href="/projects"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'none', marginBottom: 10, opacity: 0.7 }}
+        onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
+      >
+        ← Projects
+      </a>
+
       {/* Title */}
       <h1 style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-primary)', margin: '0 0 6px' }}>
         {event.name}

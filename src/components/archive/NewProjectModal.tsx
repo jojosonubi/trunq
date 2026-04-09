@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, CalendarDays } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import PhotographerInput from '@/components/PhotographerInput'
+import TextAutocomplete from '@/components/TextAutocomplete'
 
 interface Props {
   isOpen:  boolean
@@ -106,6 +107,16 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
         )
       )
     }
+
+    // Upsert venue and location for autocomplete history
+    const upserts: Promise<unknown>[] = []
+    if (form.venue.trim()) {
+      upserts.push(fetch('/api/venues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.venue.trim() }) }))
+    }
+    if (form.location.trim()) {
+      upserts.push(fetch('/api/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.location.trim() }) }))
+    }
+    if (upserts.length) await Promise.all(upserts)
 
     // Create folder structure
     if (multiDay && dayCount >= 2) {
@@ -232,11 +243,12 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
             <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
               Location
             </label>
-            <input
-              name="location" type="text"
-              value={form.location} onChange={handleChange}
+            <TextAutocomplete
+              value={form.location}
+              onChange={(v) => setForm((p) => ({ ...p, location: v }))}
               placeholder="e.g. Hackney, London"
-              className="form-input"
+              apiPath="/api/locations"
+              responseKey="locations"
             />
           </div>
 
@@ -245,11 +257,12 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
             <label style={{ display: 'block', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
               Venue
             </label>
-            <input
-              name="venue" type="text"
-              value={form.venue} onChange={handleChange}
+            <TextAutocomplete
+              value={form.venue}
+              onChange={(v) => setForm((p) => ({ ...p, venue: v }))}
               placeholder="e.g. Fabric, Egg London, Fold"
-              className="form-input"
+              apiPath="/api/venues"
+              responseKey="venues"
             />
           </div>
 

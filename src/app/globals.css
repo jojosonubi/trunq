@@ -60,6 +60,13 @@ html {
 .form-input::placeholder {
   color: var(--text-dim);
 }
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface-1) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
 
 /* ─── Theme-aware button variants ───────────────────────────────────────────  */
 .btn-new-project {
@@ -170,3 +177,28 @@ hr {
 .m-11, .mt-11, .mb-11 { margin:  48px; }
 .mt-11 { margin-top:   48px; }  .mb-11 { margin-bottom: 48px; }
 .p-11, .py-11, .px-11 { padding: 48px; }
+
+
+/* ─── NProgress ──────────────────────────────────────────────────────────────  */
+#nprogress {
+  pointer-events: none;
+}
+#nprogress .bar {
+  background: #ff2d00;
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+}
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px #ff2d00, 0 0 5px #ff2d00;
+  opacity: 1;
+  transform: rotate(3deg) translate(0px, -4px);
+}
