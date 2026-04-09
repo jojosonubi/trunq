@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Pencil, ImagePlus, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, ImagePlus, Trash2, Camera } from 'lucide-react'
 import Pill from '@/components/ui/Pill'
 import EventCoverPicker from '@/components/EventCoverPicker'
 
@@ -154,7 +154,12 @@ function ProjectCard({ project }: { project: Project }) {
             unoptimized
           />
         ) : (
-          <div style={{ width: '100%', height: '100%', background: 'var(--surface-2)' }} />
+          <div style={{
+            width: '100%', height: '100%', background: 'var(--surface-2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Camera size={20} style={{ color: 'var(--text-dim)' }} />
+          </div>
         )}
 
         {/* Three-dot menu button */}
