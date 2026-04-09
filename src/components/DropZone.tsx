@@ -8,11 +8,12 @@ import { createClient } from '@/lib/supabase/client'
 import type { MediaFile, Folder } from '@/types'
 import {
   UploadCloud, CheckCircle2, XCircle, Loader2,
-  FileImage, User, AlertTriangle,
+  FileImage, AlertTriangle,
   Folder as FolderIcon, Plus, Check, X, ChevronUp, ChevronDown,
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
+import UploadModal from '@/components/UploadModal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -235,7 +236,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   // ── Folder state ──────────────────────────────────────────────────────────
   const [localFolders, setLocalFolders]     = useState<Folder[]>(initialFolders)
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
 
   const uploadStartRef = useRef<Record<string, number>>({})
   const batchStartRef  = useRef<number | null>(null)
@@ -553,28 +553,30 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
       if (uploadFiles.length === 0) return
 
-      if (photographers.length >= 1) {
-        setPendingFiles(uploadFiles)
-      } else {
-        startUploads(uploadFiles, null, selectedFolderId)
-      }
+      setPendingFiles(uploadFiles)
     },
-    [photographers, startUploads, selectedFolderId, checkDuplicates],
+    [checkDuplicates],
   )
 
   function resetForMore() {
     setQueue([])
     setSubmittedCount(null)
     setPendingFiles(null)
-    setSelectedFolderId(null)
     startedRef.current    = new Set()
     uploadStartRef.current = {}
     batchStartRef.current  = null
   }
 
-  function confirmPhotographer(name: string | null) {
+  function confirmPhotographer(name: string | null, folderIdFromModal: string | null) {
     if (pendingFiles) {
-      startUploads(pendingFiles, name, selectedFolderId)
+      startUploads(pendingFiles, name, folderIdFromModal)
+      setPendingFiles(null)
+    }
+  }
+
+  function skipUpload() {
+    if (pendingFiles) {
+      startUploads(pendingFiles, null, null)
       setPendingFiles(null)
     }
   }
@@ -827,55 +829,20 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
     <>
       <div className="space-y-3">
 
-        {/* ── Photographer picker ───────────────────────────────────── */}
+        {/* ── Upload modal ─────────────────────────────────────────── */}
         {pendingFiles && (
-          <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 space-y-4">
-            <div>
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <User size={14} className="text-[#888]" />
-                  <p className="text-white text-sm font-medium">
-                    Who took{' '}
-                    {pendingFiles.length === 1 ? 'this photo' : `these ${pendingFiles.length} photos`}?
-                  </p>
-                </div>
-                <span className="text-[#555] text-xs shrink-0 tabular-nums">
-                  {pendingFiles.length} file{pendingFiles.length !== 1 ? 's' : ''}{' '}
-                  · {fmt(pendingFiles.reduce((s, f) => s + f.size, 0))}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {photographers.map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => confirmPhotographer(name)}
-                    className="px-3 py-1.5 bg-surface-0 hover:bg-white hover:text-black border border-[#2a2a2a] hover:border-white text-white text-sm rounded-lg transition-all"
-                  >
-                    {name}
-                  </button>
-                ))}
-                <button
-                  onClick={() => confirmPhotographer(null)}
-                  className="px-3 py-1.5 text-[#555] hover:text-white border border-[#1f1f1f] hover:border-[#444] text-sm rounded-lg transition-all"
-                >
-                  Unassigned
-                </button>
-              </div>
-            </div>
-            <div className="pt-3 border-t border-[#1a1a1a]">
-              <FolderPicker
-                folders={localFolders}
-                selectedId={selectedFolderId}
-                onSelect={setSelectedFolderId}
-                onCreate={createFolder}
-              />
-            </div>
-          </div>
+          <UploadModal
+            files={pendingFiles}
+            photographers={photographers}
+            folders={localFolders}
+            onStart={confirmPhotographer}
+            onSkip={skipUpload}
+            onCreateFolder={createFolder}
+          />
         )}
 
         {/* ── Drop area ─────────────────────────────────────────────── */}
-        {!pendingFiles && (
-          showFullDrop ? (
+        {showFullDrop ? (
             <div
               {...rootProps}
               className={clsx(
@@ -937,7 +904,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
               </span>
             </div>
           )
-        )}
+        }
       </div>
 
       {/* ── Sticky footer upload widget ───────────────────────────── */}
