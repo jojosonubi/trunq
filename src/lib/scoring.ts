@@ -75,7 +75,7 @@ export async function scoreMediaFile(mediaFileId: string): Promise<ScoringResult
             },
             quality_score: {
               type: 'number',
-              description: 'Overall image quality 0–100. Consider sharpness, exposure, composition, framing. 90+ = excellent; 75–89 = strong; 50–74 = average; below 50 = blurry/poorly framed.',
+              description: `Score 1–10 for nightlife/event photography. HIGH (7–10): clear subject/moment, energy and action (dancing/posing/movement), social cohesion (group sharing a moment, eye contact), expressive faces, good framing, intentional motion blur with energy. LOW (1–4): no focal point, disconnected subjects not interacting, poor framing (important content cut off, purposeless empty space), technically poor AND lacking energy/story. NUANCES: do NOT penalise motion blur if the image has energy and story; do NOT penalise low light if faces/subjects are readable; do NOT apply standard photography rules (sharpness, rule of thirds) as primary criteria — a technically imperfect image with clear energy beats a technically perfect but lifeless one.`,
             },
             description: {
               type: 'string',
@@ -97,7 +97,7 @@ export async function scoreMediaFile(mediaFileId: string): Promise<ScoringResult
         role: 'user',
         content: [
           { type: 'image', source: { type: 'url', url: imageUrl } },
-          { type: 'text',  text: 'Analyse this event photo. Be honest with quality scores — most photos score 50–80; only truly exceptional shots exceed 90.' },
+          { type: 'text',  text: 'Analyse this nightlife/event photo. Score on energy, story, and moment — not technical perfection. Most photos score 4–7; reserve 8–10 for shots with genuine energy and a clear moment, and 1–3 for shots with no focal point or story.' },
         ],
       },
     ],
@@ -109,7 +109,8 @@ export async function scoreMediaFile(mediaFileId: string): Promise<ScoringResult
   }
 
   const result         = toolBlock.input as TagResult
-  const qualityScore   = Math.min(100, Math.max(0, Math.round(result.quality_score)))
+  // Claude returns 1–10; scale to 0–100 for DB storage
+  const qualityScore   = Math.min(100, Math.max(0, Math.round(Math.min(10, Math.max(1, result.quality_score)) * 10)))
   const dominantColours = (result.dominant_colours ?? [])
     .filter((c) => (COLOUR_PALETTE as readonly string[]).includes(c))
     .slice(0, 3)

@@ -37,6 +37,8 @@ interface Props {
   selection?: SelectionProps
   /** Use 3-col max (for when a sidebar is open alongside the grid) */
   compact?: boolean
+  /** Override column count (2-6). When set, overrides responsive Tailwind classes */
+  columns?: number
   /** Pass to show star buttons and allow toggling from the gallery */
   stars?: StarProps
   /** Pass to enable hover-button folder assignment */
@@ -871,7 +873,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
 
 // ─── MediaGrid ───────────────────────────────────────────────────────────────
 
-export default function MediaGrid({ files, selection, compact, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds }: Props) {
+export default function MediaGrid({ files, selection, compact, columns, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds }: Props) {
   const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
@@ -897,12 +899,10 @@ export default function MediaGrid({ files, selection, compact, stars, folderProp
 
   return (
     <>
-      <div className={clsx(
-        'grid gap-2',
-        compact
-          ? 'grid-cols-2 sm:grid-cols-3'
-          : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
-      )}>
+      <div
+        className={columns ? undefined : clsx('grid gap-2', compact ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4')}
+        style={columns ? { display: 'grid', gap: 8, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+      >
         {files.map((file, i) => (
           <MediaCell
             key={file.id}

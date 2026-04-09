@@ -44,6 +44,7 @@ const sidebar: CSSProperties = {
   top:           44,
   overflowY:     'auto',
   flexDirection: 'column',
+  alignSelf:     'flex-start',
 }
 
 function linkStyle(active: boolean): CSSProperties {

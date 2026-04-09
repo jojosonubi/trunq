@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare } from 'lucide-react'
+import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare, LayoutGrid } from 'lucide-react'
 import type { UserRole } from '@/lib/auth'
 import clsx from 'clsx'
 import MediaGrid from '@/components/MediaGrid'
@@ -46,6 +46,17 @@ interface Props {
 
 export default function GalleryWithSearch({ files, untaggedImages, event, folders, onAssignFolder, performers, brands, initialOpenPhotoId, role }: Props) {
   const router = useRouter()
+
+  // ── Column count (persisted to localStorage) ─────────────────────────────
+  const [columns, setColumns] = useState(4)
+  useEffect(() => {
+    const v = localStorage.getItem('trunq-grid-cols')
+    if (v) setColumns(Math.min(6, Math.max(2, parseInt(v))))
+  }, [])
+  function updateColumns(n: number) {
+    setColumns(n)
+    localStorage.setItem('trunq-grid-cols', String(n))
+  }
 
   // ── Search state ─────────────────────────────────────────────────────────
   const [query, setQuery]             = useState('')
@@ -674,6 +685,18 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
             Select all
           </button>
         )}
+
+        {/* Column slider */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
+          <LayoutGrid size={13} className="text-[#444] shrink-0" />
+          <input
+            type="range"
+            min={2} max={6} step={1}
+            value={columns}
+            onChange={(e) => updateColumns(parseInt(e.target.value))}
+            style={{ width: 60, accentColor: 'var(--accent)', cursor: 'pointer' }}
+          />
+        </div>
       </div>
 
       {/* ── Download progress bar ─────────────────────────────────────────── */}
@@ -870,6 +893,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
       {filtered.length > 0 ? (
         <MediaGrid
           files={filtered}
+          columns={columns}
           stars={starsProps}
           folderProps={folders && onAssignFolder
             ? (file) => ({

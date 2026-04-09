@@ -230,8 +230,8 @@ export default function EventTabs({
       {/* ── Tab content ─────────────────────────────────────────────────── */}
       {tab === 'gallery' ? (
         <div className="flex gap-6 items-start">
-          {/* Folder sidebar — hidden on mobile */}
-          <div className="hidden sm:block">
+          {/* Folder sidebar — hidden on mobile, sticky */}
+          <div className="hidden sm:block" style={{ position: 'sticky', top: 44, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 60px)', overflowY: 'auto' }}>
           <FolderSidebar
             folders={folders}
             folderCounts={folderCounts}
