@@ -325,7 +325,7 @@ export default function UploadModal({ files, photographers, folders, onStart, on
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s',
                     }}
                   >
-                    {folder.name}
+                    {folder.name.replace(/\s*·.*$/, '')}
                   </button>
                 )
               })}
