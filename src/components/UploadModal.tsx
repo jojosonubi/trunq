@@ -299,18 +299,6 @@ export default function UploadModal({ files, photographers, folders, onStart, on
               Uploading to
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <button
-                type="button"
-                onClick={() => setFolderId(null)}
-                style={{
-                  padding: '6px 12px', fontSize: 12, borderRadius: 99, border: 'var(--border-rule)',
-                  background: folderId === null ? 'var(--surface-3)' : 'transparent',
-                  color: folderId === null ? 'var(--text-primary)' : 'var(--text-muted)',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                No folder
-              </button>
               {localFolders.map((folder) => {
                 const active = folderId === folder.id
                 return (

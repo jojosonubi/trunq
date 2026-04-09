@@ -35,7 +35,7 @@ function getServiceClient() {
  * Runs Claude vision scoring on a single image file, writes tags + score to DB.
  * Throws on failure — callers are responsible for retry/error handling.
  */
-export async function scoreMediaFile(mediaFileId: string): Promise<ScoringResult> {
+export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: boolean }): Promise<ScoringResult> {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
   const supabase  = getServiceClient()
 
@@ -115,26 +115,26 @@ export async function scoreMediaFile(mediaFileId: string): Promise<ScoringResult
     .filter((c) => (COLOUR_PALETTE as readonly string[]).includes(c))
     .slice(0, 3)
 
-  // ── Write tags ──────────────────────────────────────────────────────────────
-  const tagRows = [
-    ...result.scene_tags.slice(0, 4).map((v) => ({
-      media_file_id: mediaFileId, tag_type: 'scene',   value: v.toLowerCase(), confidence: 0.9,
-    })),
-    ...result.mood_tags.slice(0, 3).map((v) => ({
-      media_file_id: mediaFileId, tag_type: 'mood',    value: v.toLowerCase(), confidence: 0.85,
-    })),
-    ...result.subject_tags.slice(0, 4).map((v) => ({
-      media_file_id: mediaFileId, tag_type: 'subject', value: v.toLowerCase(), confidence: 0.9,
-    })),
-  ]
-
-  await supabase.from('tags').delete().eq('media_file_id', mediaFileId)
-
+  // ── Write tags (skip when opts.skipTags is true) ────────────────────────────
   let tagsWritten = 0
-  if (tagRows.length > 0) {
-    const { data, error: tagError } = await supabase.from('tags').insert(tagRows).select()
-    if (tagError) throw new Error(`Tag insert failed: ${tagError.message}`)
-    tagsWritten = data?.length ?? 0
+  if (!opts?.skipTags) {
+    const tagRows = [
+      ...result.scene_tags.slice(0, 4).map((v) => ({
+        media_file_id: mediaFileId, tag_type: 'scene',   value: v.toLowerCase(), confidence: 0.9,
+      })),
+      ...result.mood_tags.slice(0, 3).map((v) => ({
+        media_file_id: mediaFileId, tag_type: 'mood',    value: v.toLowerCase(), confidence: 0.85,
+      })),
+      ...result.subject_tags.slice(0, 4).map((v) => ({
+        media_file_id: mediaFileId, tag_type: 'subject', value: v.toLowerCase(), confidence: 0.9,
+      })),
+    ]
+    await supabase.from('tags').delete().eq('media_file_id', mediaFileId)
+    if (tagRows.length > 0) {
+      const { data, error: tagError } = await supabase.from('tags').insert(tagRows).select()
+      if (tagError) throw new Error(`Tag insert failed: ${tagError.message}`)
+      tagsWritten = data?.length ?? 0
+    }
   }
 
   // ── Write score + description to media_files ────────────────────────────────

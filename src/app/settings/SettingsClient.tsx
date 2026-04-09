@@ -336,6 +336,27 @@ export default function SettingsClient({
   const [tagAllState, setTagAllState] = useState<'idle' | 'queuing' | 'queued'>('idle')
   const [tagAllCount, setTagAllCount] = useState<number | null>(null)
 
+  // ── AI: Re-score all ──────────────────────────────────────────────────────
+  const [rescoreState, setRescoreState] = useState<'idle' | 'confirming' | 'queuing' | 'queued'>('idle')
+  const [rescoreCount, setRescoreCount] = useState<number | null>(null)
+
+  async function rescoreAll() {
+    setRescoreState('queuing')
+    try {
+      const res  = await fetch('/api/rescore/batch', { method: 'POST' })
+      const json = await res.json() as { queued?: number }
+      const count = json.queued ?? 0
+      setRescoreCount(count)
+      if (count > 0) {
+        const { saveTaggingJob } = await import('@/components/TaggingProgress')
+        saveTaggingJob({ total: count, startedAt: Date.now(), eventId: null, mode: 'rescore' })
+      }
+      setRescoreState('queued')
+    } catch {
+      setRescoreState('idle')
+    }
+  }
+
   async function tagAllUntagged() {
     setTagAllState('queuing')
     try {
@@ -1229,6 +1250,60 @@ export default function SettingsClient({
                       <RefreshCw size={11} className={tagAllState === 'queuing' ? 'animate-spin' : ''} />
                       {tagAllState === 'queuing' ? 'Queuing…' : tagAllState === 'queued' ? 'Queued' : 'Tag all untagged'}
                     </button>
+                  </div>
+                </Card>
+
+                <Card>
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Re-score all media</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          Re-runs AI scoring on every image using the current criteria. Tags are preserved.
+                        </p>
+                        {rescoreState === 'queued' && (
+                          <p className="text-xs mt-1.5 text-purple-400">
+                            {rescoreCount && rescoreCount > 0
+                              ? `${rescoreCount} image${rescoreCount !== 1 ? 's' : ''} queued — progress shown bottom-right`
+                              : 'Nothing to rescore.'}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => rescoreState === 'idle' ? setRescoreState('confirming') : undefined}
+                        disabled={rescoreState === 'queuing' || rescoreState === 'queued'}
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit', cursor: (rescoreState === 'queuing' || rescoreState === 'queued') ? 'not-allowed' : 'pointer' }}
+                      >
+                        <RefreshCw size={11} className={rescoreState === 'queuing' ? 'animate-spin' : ''} />
+                        {rescoreState === 'queuing' ? 'Queuing…' : rescoreState === 'queued' ? 'Queued' : 'Re-score all'}
+                      </button>
+                    </div>
+
+                    {/* Inline confirm */}
+                    {rescoreState === 'confirming' && (
+                      <div className="mt-3 pt-3 border-t flex items-center justify-between gap-3" style={{ borderColor: 'var(--border-rule)' }}>
+                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          This will re-score every image in your archive. Tags will not change.
+                        </p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => setRescoreState('idle')}
+                            className="text-xs px-3 py-1.5 rounded"
+                            style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-muted)', fontFamily: 'inherit', cursor: 'pointer' }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={rescoreAll}
+                            className="text-xs px-3 py-1.5 rounded"
+                            style={{ background: 'var(--accent)', color: '#fff', border: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                          >
+                            Re-score all
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               </section>

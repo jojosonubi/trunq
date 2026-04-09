@@ -16,12 +16,14 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const eventId = searchParams.get('event_id')
+  const mode    = searchParams.get('mode') // 'rescore' counts by score_status
 
   const service = createServiceClient()
+  const statusCol = mode === 'rescore' ? 'score_status' : 'tagging_status'
 
   let query = service
     .from('media_files')
-    .select('tagging_status')
+    .select(statusCol)
     .eq('file_type', 'image')
     .is('deleted_at', null)
 
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const counts = { untagged: 0, queued: 0, processing: 0, complete: 0, failed: 0 }
   for (const row of (data ?? [])) {
-    const s = row.tagging_status as keyof typeof counts
+    const s = (row as Record<string, string>)[statusCol] as keyof typeof counts
     if (s in counts) counts[s]++
   }
 

@@ -94,8 +94,6 @@ export default function FolderSidebar({
     setRenameValue(folder.name)
   }
 
-  const unfiledCount = totalCount - Object.values(folderCounts).reduce((s, n) => s + n, 0)
-
   const inputStyle: React.CSSProperties = {
     flex: 1, minWidth: 0,
     background: 'var(--surface-1)', border: 'var(--border-rule)',
@@ -192,15 +190,6 @@ export default function FolderSidebar({
           </div>
         )
       })}
-
-      {/* Unfiled */}
-      {unfiledCount > 0 && (
-        <button onClick={() => onSelect('__unfiled__')} style={itemStyle(activeFolderId === '__unfiled__')}>
-          <FolderIcon size={12} style={{ flexShrink: 0, color: 'var(--text-dim)' }} />
-          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic' }}>Unfiled</span>
-          <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{unfiledCount}</span>
-        </button>
-      )}
 
       {/* Divider */}
       <div style={{ borderTop: 'var(--border-rule)', margin: '4px 0' }} />

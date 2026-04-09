@@ -10,6 +10,7 @@ export interface TaggingJob {
   total:     number
   startedAt: number  // Date.now() when job was queued
   eventId:   string | null
+  mode?:     'rescore'  // when set: polls score_status, shows rescore labels
 }
 
 const JOB_KEY = 'trunq-tagging-job'
@@ -73,8 +74,8 @@ export default function TaggingProgress() {
     async function poll() {
       try {
         const url = j.eventId
-          ? `/api/tag/status?event_id=${j.eventId}`
-          : '/api/tag/status'
+          ? `/api/tag/status?event_id=${j.eventId}${j.mode === 'rescore' ? '&mode=rescore' : ''}`
+          : `/api/tag/status${j.mode === 'rescore' ? '?mode=rescore' : ''}`
         const res = await fetch(url)
         if (!res.ok) return
         const c = await res.json() as Counts
@@ -158,12 +159,14 @@ export default function TaggingProgress() {
           {done ? (
             <p className="text-xs font-medium text-left flex items-center gap-1.5 text-emerald-400">
               <CheckCircle2 size={12} />
-              {processed} image{processed !== 1 ? 's' : ''} tagged &amp; scored
+              {job.mode === 'rescore'
+                ? `${processed} image${processed !== 1 ? 's' : ''} re-scored`
+                : `${processed} image${processed !== 1 ? 's' : ''} tagged & scored`}
             </p>
           ) : (
             <>
               <p className="text-xs font-medium text-left" style={{ color: 'var(--text-primary)' }}>
-                Tagging in progress
+                {job.mode === 'rescore' ? 'Re-scoring' : 'Tagging'} in progress
                 {counts && ` — ${processed} / ${job.total} complete`}
               </p>
               <div className="h-1 bg-[#1f1f1f] rounded-full overflow-hidden mt-1.5">
