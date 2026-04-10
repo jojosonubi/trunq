@@ -9,12 +9,13 @@ import ReviewTab from '@/components/ReviewTab'
 import FolderSidebar from '@/components/FolderSidebar'
 import PerformersTab from '@/components/PerformersTab'
 import BrandsTab from '@/components/BrandsTab'
+import SharesTab from '@/components/SharesTab'
 import type { MediaFileWithTags, Event, Folder, Performer, Brand } from '@/types'
 import type { UserRole } from '@/lib/auth'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'gallery' | 'review' | 'performers' | 'brands'
+type Tab = 'gallery' | 'review' | 'performers' | 'brands' | 'shares'
 
 interface Props {
   files: MediaFileWithTags[]
@@ -47,9 +48,9 @@ export default function EventTabs({
 
   // Role-gated tabs
   const allowedTabs: Tab[] = role === 'admin'
-    ? ['gallery', 'review', 'performers', 'brands']
+    ? ['gallery', 'review', 'performers', 'brands', 'shares']
     : role === 'producer'
-    ? ['gallery', 'review']
+    ? ['gallery', 'review', 'shares']
     : ['gallery']
 
   const [tab, setTab] = useState<Tab>(
@@ -174,6 +175,7 @@ export default function EventTabs({
     review:     'Review',
     performers: 'Performers',
     brands:     'Brands',
+    shares:     'Shares',
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -268,12 +270,14 @@ export default function EventTabs({
           initialPerformers={initialPerformers}
           mediaFiles={files}
         />
-      ) : (
+      ) : tab === 'brands' ? (
         <BrandsTab
           eventId={eventId}
           initialBrands={initialBrands}
           mediaFiles={files}
         />
+      ) : (
+        <SharesTab projectId={eventId} />
       )}
     </div>
   )

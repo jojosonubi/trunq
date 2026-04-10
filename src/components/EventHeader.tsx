@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, Check, X, Loader2, Copy, Link2 } from 'lucide-react'
-import type { Event } from '@/types'
+import { Pencil, Check, X, Loader2, Copy, Link2, Share2 } from 'lucide-react'
+import type { Event, Folder } from '@/types'
 import type { UserRole } from '@/lib/auth'
+import ShareModal from '@/components/ShareModal'
 
 interface Props {
   event:          Event
@@ -12,6 +13,7 @@ interface Props {
   role:           UserRole
   existingToken?: string | null
   eventId?:       string
+  folders?:       Folder[]
 }
 
 function formatDate(dateStr: string): string {
@@ -135,12 +137,13 @@ function InlineField({
 
 const SEP = <span style={{ color: 'var(--text-dim)', margin: '0 2px' }}>·</span>
 
-export default function EventHeader({ event, photoCount, role, existingToken, eventId }: Props) {
+export default function EventHeader({ event, photoCount, role, existingToken, eventId, folders = [] }: Props) {
   const router = useRouter()
 
   const [token, setToken]         = useState<string | null>(existingToken ?? null)
   const [generating, setGenerating] = useState(false)
   const [copied, setCopied]       = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   async function patchField(field: string, value: string | null) {
     await fetch(`/api/projects/${event.id}`, {
@@ -245,17 +248,23 @@ export default function EventHeader({ event, photoCount, role, existingToken, ev
         </div>
 
         {role !== 'photographer' && (
-          token ? (
-            <button onClick={copyLink} style={{ ...ghostBtn, flexShrink: 0 }}>
-              {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
-              {copied ? 'Copied' : 'Copy link'}
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button onClick={() => setShowShareModal(true)} style={ghostBtn}>
+              <Share2 size={10} />
+              Share
             </button>
-          ) : (
-            <button onClick={generateLink} disabled={generating} style={{ ...ghostBtn, flexShrink: 0, opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}>
-              <Link2 size={10} />
-              {generating ? 'Generating…' : 'Deliver'}
-            </button>
-          )
+            {token ? (
+              <button onClick={copyLink} style={ghostBtn}>
+                {copied ? <Check size={10} style={{ color: 'var(--approved-fg)' }} /> : <Copy size={10} />}
+                {copied ? 'Copied' : 'Copy link'}
+              </button>
+            ) : (
+              <button onClick={generateLink} disabled={generating} style={{ ...ghostBtn, opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}>
+                <Link2 size={10} />
+                {generating ? 'Generating…' : 'Deliver'}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -263,6 +272,14 @@ export default function EventHeader({ event, photoCount, role, existingToken, ev
         <p style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 8, maxWidth: '42rem', margin: '8px 0 0' }}>
           {event.description}
         </p>
+      )}
+
+      {showShareModal && (
+        <ShareModal
+          projectId={event.id}
+          folders={folders}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   )

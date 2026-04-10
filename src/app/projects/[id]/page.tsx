@@ -86,7 +86,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
 
         <main className="main-content" style={{ flex: 1, minWidth: 0, padding: '20px 24px', minHeight: 'calc(100vh - 44px)' }}>
           {/* Project header */}
-          <EventHeader event={event} photoCount={photoCount} role={profile.role} existingToken={existingToken} eventId={event.id} />
+          <EventHeader event={event} photoCount={photoCount} role={profile.role} existingToken={existingToken} eventId={event.id} folders={folders} />
 
           {/* Upload zone */}
           <div style={{ marginBottom: 24 }}>
