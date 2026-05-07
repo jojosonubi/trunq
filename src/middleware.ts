@@ -2,7 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes that don't require authentication
-const PUBLIC_PREFIXES = ['/login', '/signup', '/delivery']
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/signup',
+  '/delivery',
+  '/api/tag/process',
+  '/api/tag/batch',
+  '/api/rescore/process',
+  '/api/rescore/batch',
+  '/api/share/',          // share link auth/media/review (unauthenticated viewers)
+  '/api/webhooks/',
+]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
