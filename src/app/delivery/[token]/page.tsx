@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signMediaFiles } from '@/lib/supabase/storage'
 import { writeAudit } from '@/lib/audit'
@@ -13,7 +12,7 @@ interface Props {
 }
 
 export default async function DeliveryPage({ params }: Props) {
-  const supabase = createClient()
+  const supabase = createServiceClient()
 
   // Resolve token → event_id
   const { data: link } = await supabase
@@ -44,8 +43,7 @@ export default async function DeliveryPage({ params }: Props) {
   )
 
   // Audit: log portal access (no user_id — public access via token)
-  const service = createServiceClient()
-  writeAudit(service, {
+  writeAudit(supabase, {
     userId:     null,
     action:     'delivery_portal_accessed',
     entityType: 'event',
