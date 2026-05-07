@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as React from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 import { sendEmail } from '@/lib/email'
 import PortalAccessEmail from '../../../../emails/PortalAccessEmail'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
 
 function portalUrl(token: string): string {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'https://trunq.so'
@@ -39,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing event_id' }, { status: 400 })
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
 
     const { data: existing } = await supabase
       .from('delivery_links')
@@ -65,16 +56,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ token: existing.token })
     }
 
-    // Fetch event name for the email
+    // Fetch event name + org_id for the email and tenancy
     const { data: event } = await supabase
       .from('events')
-      .select('name')
+      .select('name, organisation_id')
       .eq('id', event_id)
       .single()
 
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
     const { data, error } = await supabase
       .from('delivery_links')
-      .insert({ event_id })
+      .insert({ event_id, organisation_id: event.organisation_id })
       .select('token')
       .single()
 

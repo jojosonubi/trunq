@@ -48,16 +48,29 @@ export async function POST(req: NextRequest) {
   const hash = await bcrypt.hash(body.password, 10)
 
   const supabase = createServiceClient()
+
+  // Resolve organisation_id from the parent event (project)
+  const { data: event, error: eventErr } = await supabase
+    .from('events')
+    .select('organisation_id')
+    .eq('id', body.projectId)
+    .single()
+
+  if (eventErr || !event) {
+    return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+  }
+
   const { data: link, error } = await supabase
     .from('share_links')
     .insert({
-      project_id:     body.projectId,
-      folder_id:      body.folderId ?? null,
-      password_hash:  hash,
-      expires_at:     body.expiresAt ?? null,
-      created_by:     user.id,
-      show_watermark: body.showWatermark ?? false,
-      label:          body.label ?? null,
+      project_id:      body.projectId,
+      folder_id:       body.folderId ?? null,
+      password_hash:   hash,
+      expires_at:      body.expiresAt ?? null,
+      created_by:      user.id,
+      show_watermark:  body.showWatermark ?? false,
+      label:           body.label ?? null,
+      organisation_id: event.organisation_id,
     })
     .select('id')
     .single()

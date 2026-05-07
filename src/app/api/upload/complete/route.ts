@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireApiUser } from '@/lib/api-auth'
+import { requireApiUserWithOrg } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 import { getFileType } from '../_lib'
 import type { ExifData } from '@/lib/exif'
 
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser()
+  const auth = await requireApiUserWithOrg()
   if (auth.response) return auth.response
 
   try {
@@ -51,6 +51,46 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
+    // Verify event belongs to caller's org
+    const { data: event, error: eventErr } = await supabase
+      .from('events')
+      .select('organisation_id')
+      .eq('id', event_id)
+      .single()
+
+    if (eventErr || !event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    if (event.organisation_id !== auth.organisationId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Resolve photographer_id if a photographer name was provided
+    let photographer_id: string | null = null
+    if (photographer) {
+      const { data: existing } = await supabase
+        .from('photographers')
+        .select('id')
+        .eq('organisation_id', event.organisation_id)
+        .ilike('name', photographer)
+        .maybeSingle()
+
+      if (existing) {
+        photographer_id = existing.id
+      } else {
+        const { data: inserted } = await supabase
+          .from('photographers')
+          .insert({
+            organisation_id: event.organisation_id,
+            name:            photographer,
+          })
+          .select('id')
+          .single()
+        photographer_id = inserted?.id ?? null
+      }
+    }
+
     const { data: mediaFile, error: dbError } = await supabase
       .from('media_files')
       .insert({
@@ -75,6 +115,7 @@ export async function POST(request: NextRequest) {
         exif_focal_length:  exif.focalLength,
         quality_score:      null,
         photographer,
+        photographer_id,
         folder_id,
       })
       .select()

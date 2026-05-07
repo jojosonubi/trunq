@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
+import { createServiceClient } from '@/lib/supabase/service'
 
 export async function GET(request: NextRequest) {
   const auth = await requireApiUser()
@@ -17,7 +9,7 @@ export async function GET(request: NextRequest) {
   const eventId = request.nextUrl.searchParams.get('event_id')
   if (!eventId) return NextResponse.json({ error: 'Missing event_id' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('brands')
     .select('*')
@@ -40,10 +32,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing event_id or name' }, { status: 400 })
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
+
+    // Resolve organisation_id from the parent event
+    const { data: event, error: eventErr } = await supabase
+      .from('events')
+      .select('organisation_id')
+      .eq('id', event_id)
+      .single()
+
+    if (eventErr || !event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
     const { data, error } = await supabase
       .from('brands')
-      .insert({ event_id, name: name.trim() })
+      .insert({ event_id, organisation_id: event.organisation_id, name: name.trim() })
       .select()
       .single()
 

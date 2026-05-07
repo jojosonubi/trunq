@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Loader2, CalendarDays } from 'lucide-react'
 import PhotographerInput from '@/components/PhotographerInput'
 
@@ -39,40 +38,29 @@ export default function NewEventPage() {
 
     setLoading(true)
 
-    const supabase = createClient()
-    const { data, error: dbError } = await supabase
-      .from('events')
-      .insert({
+    const res = await fetch('/api/events', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
         name:          form.name.trim(),
         date:          form.date,
         location:      form.location.trim() || null,
         venue:         form.venue.trim() || null,
         description:   form.description.trim() || null,
         photographers: photographers,
-      })
-      .select()
-      .single()
+      }),
+    })
 
     setLoading(false)
 
-    if (dbError) {
-      setError(dbError.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setError(err.error || 'Failed to create event')
       return
     }
 
-    const eventId = data.id
-
-    // Audit log (fire-and-forget)
-    fetch('/api/audit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'event_created',
-        entityType: 'event',
-        entityId: eventId,
-        metadata: { name: form.name.trim(), date: form.date },
-      }),
-    }).catch(() => {})
+    const { event } = await res.json()
+    const eventId = event.id
 
     // Upsert each photographer record in DB
     if (photographers.length > 0) {

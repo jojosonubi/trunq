@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { Loader2, CalendarDays } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import PhotographerInput from '@/components/PhotographerInput'
 import TextAutocomplete from '@/components/TextAutocomplete'
 
@@ -60,40 +59,29 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
 
     setLoading(true)
 
-    const supabase = createClient()
-    const { data, error: dbError } = await supabase
-      .from('events')
-      .insert({
+    const res = await fetch('/api/events', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
         name:          form.name.trim(),
         date:          form.date,
         location:      form.location.trim() || null,
         venue:         form.venue.trim() || null,
         description:   form.description.trim() || null,
         photographers: photographers,
-      })
-      .select()
-      .single()
+      }),
+    })
 
     setLoading(false)
 
-    if (dbError) {
-      setError(dbError.message)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setError(err.error || 'Failed to create project')
       return
     }
 
-    const eventId = data.id
-
-    // Audit log — fire and forget
-    fetch('/api/audit', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        action:     'project_created',
-        entityType: 'project',
-        entityId:   eventId,
-        metadata:   { name: form.name.trim(), date: form.date },
-      }),
-    }).catch(() => {})
+    const { event } = await res.json()
+    const eventId = event.id
 
     // Upsert photographer records
     if (photographers.length > 0) {

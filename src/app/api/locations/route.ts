@@ -1,26 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
+import { requireApiUserWithOrg } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // GET /api/locations?q=search
 export async function GET(request: NextRequest) {
-  const auth = await requireApiUser()
+  const auth = await requireApiUserWithOrg()
   if (auth.response) return auth.response
 
   const q = request.nextUrl.searchParams.get('q')?.trim() ?? ''
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   let query = supabase
     .from('locations')
     .select('id, name')
+    .eq('organisation_id', auth.organisationId)
     .order('name')
     .limit(5)
 
@@ -33,18 +26,19 @@ export async function GET(request: NextRequest) {
 
 // POST /api/locations  — upsert by name
 export async function POST(request: NextRequest) {
-  const auth = await requireApiUser()
+  const auth = await requireApiUserWithOrg()
   if (auth.response) return auth.response
 
   const body = await request.json() as { name?: string }
   const name = body.name?.trim()
   if (!name) return NextResponse.json({ error: 'name is required' }, { status: 400 })
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   const { data: existing } = await supabase
     .from('locations')
     .select()
+    .eq('organisation_id', auth.organisationId)
     .ilike('name', name)
     .maybeSingle()
 
@@ -52,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('locations')
-    .insert({ name })
+    .insert({ name, organisation_id: auth.organisationId })
     .select()
     .single()
 
