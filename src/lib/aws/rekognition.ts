@@ -7,6 +7,7 @@ import {
   InvalidParameterException,
   ResourceNotFoundException,
 } from '@aws-sdk/client-rekognition'
+import sharp from 'sharp'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signStoragePath } from '@/lib/supabase/storage'
 
@@ -59,7 +60,21 @@ export async function indexFaceForMediaFile(mediaFileId: string): Promise<{ face
   if (!imageRes.ok) {
     throw new Error(`[rekognition] Image download failed (${imageRes.status}) for: ${mediaFileId}`)
   }
-  const imageBytes = new Uint8Array(await imageRes.arrayBuffer())
+  let imageBytes = new Uint8Array(await imageRes.arrayBuffer())
+
+  const RESIZE_THRESHOLD = 4 * 1024 * 1024 // 4MB
+  if (imageBytes.length > RESIZE_THRESHOLD) {
+    console.log(`[rekognition] Resizing ${mediaFileId} (${(imageBytes.length / 1024 / 1024).toFixed(1)}MB > 4MB threshold)`)
+    try {
+      const resized = await sharp(imageBytes)
+        .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer()
+      imageBytes = new Uint8Array(resized)
+    } catch (resizeErr) {
+      throw new Error(`[rekognition] Image resize failed for: ${mediaFileId}`)
+    }
+  }
 
   try {
     const cmd = new IndexFacesCommand({
