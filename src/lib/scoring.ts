@@ -52,7 +52,7 @@ export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: bo
   const imageUrl = await signStoragePath(mediaFile.storage_path, 3600)
 
   const response = await anthropic.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-sonnet-4-6',
     max_tokens: 1024,
     tools: [
       {

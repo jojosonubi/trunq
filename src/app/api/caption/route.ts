@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     if (tags.length) contextLines.push(`Tags: ${tags.join(', ')}`)
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-4-6',
       max_tokens: 300,
       messages: [
         {
