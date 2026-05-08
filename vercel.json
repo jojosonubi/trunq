@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/tag/process",    "schedule": "* * * * *" },
+    { "path": "/api/rescore/process","schedule": "* * * * *" }
+  ]
+}

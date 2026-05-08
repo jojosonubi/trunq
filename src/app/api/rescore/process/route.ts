@@ -1,30 +1,30 @@
 /**
- * POST /api/rescore/process  (internal — protected by x-task-secret)
+ * GET|POST /api/rescore/process  (internal — protected by x-task-secret or CRON_SECRET)
  *
  * Claims the next batch of images with score_status = 'queued' and re-scores
- * them without touching their tags. Self-chains until the queue is empty.
+ * them without touching their tags.
+ * Invoked every minute by Vercel Cron (GET) or manually via curl (POST).
+ *
+ * Auth: x-task-secret header (manual) OR Authorization: Bearer <CRON_SECRET> (cron).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scoreMediaFile } from '@/lib/scoring'
 
 const BATCH_SIZE = 3
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return 'http://localhost:3000'
+function isAuthorized(request: NextRequest): boolean {
+  const taskSecret = process.env.TASK_SECRET
+  const cronSecret = process.env.CRON_SECRET
+
+  if (taskSecret && request.headers.get('x-task-secret') === taskSecret) return true
+  if (cronSecret && request.headers.get('authorization') === `Bearer ${cronSecret}`) return true
+  if (!taskSecret && !cronSecret) return true
+  return false
 }
 
-export async function POST(request: NextRequest) {
-  const secret   = process.env.TASK_SECRET
-  const provided = request.headers.get('x-task-secret')
-  if (secret && provided !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+async function handle(_request: NextRequest): Promise<NextResponse> {
   const service = createServiceClient()
 
   // Claim next batch
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
   }))
 
-  // Check remaining and self-chain
+  // Check remaining
   const { count: remaining } = await service
     .from('media_files')
     .select('id', { count: 'exact', head: true })
@@ -76,17 +76,15 @@ export async function POST(request: NextRequest) {
     .eq('file_type', 'image')
     .is('deleted_at', null)
 
-  if ((remaining ?? 0) > 0) {
-    waitUntil(
-      fetch(`${getBaseUrl()}/api/rescore/process`, {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'x-task-secret': process.env.TASK_SECRET ?? '',
-        },
-      }).catch(() => {})
-    )
-  }
-
   return NextResponse.json({ processed, remaining: remaining ?? 0 })
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return handle(request)
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return handle(request)
 }

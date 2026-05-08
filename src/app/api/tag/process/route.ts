@@ -1,41 +1,33 @@
 /**
- * POST /api/tag/process  (internal — do not call from client directly)
+ * GET|POST /api/tag/process  (internal — do not call from client directly)
  *
- * Claims the next batch of queued images, processes them, then self-chains
- * until the queue is empty. Each invocation handles BATCH_SIZE images so
- * individual function timeouts are never a concern.
+ * Claims the next batch of queued images and processes them.
+ * Invoked every minute by Vercel Cron (GET) or manually via curl (POST).
  *
- * Protected by x-task-secret header.
+ * Auth: x-task-secret header (manual) OR Authorization: Bearer <CRON_SECRET> (cron).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { waitUntil } from '@vercel/functions'
 import { createServiceClient } from '@/lib/supabase/service'
 import { scoreMediaFile } from '@/lib/scoring'
 
 const BATCH_SIZE = 3
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return 'http://localhost:3000'
+function isAuthorized(request: NextRequest): boolean {
+  const taskSecret = process.env.TASK_SECRET
+  const cronSecret = process.env.CRON_SECRET
+
+  if (taskSecret && request.headers.get('x-task-secret') === taskSecret) return true
+  if (cronSecret && request.headers.get('authorization') === `Bearer ${cronSecret}`) return true
+  // If neither secret is configured, allow through (dev/local)
+  if (!taskSecret && !cronSecret) return true
+  return false
 }
 
-export async function POST(request: NextRequest) {
-  // Internal auth — reject anything without the task secret
-  const secret = process.env.TASK_SECRET
-  if (secret) {
-    const provided = request.headers.get('x-task-secret')
-    if (provided !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-  }
-
+async function handle(_request: NextRequest): Promise<NextResponse> {
   const service = createServiceClient()
 
   // ── Claim next batch atomically ───────────────────────────────────────────
-  // Select candidates first, then update only rows still in 'queued' state.
-  // The WHERE on update prevents double-claiming if two invocations race.
   const { data: candidates } = await service
     .from('media_files')
     .select('id')
@@ -84,18 +76,15 @@ export async function POST(request: NextRequest) {
     .eq('file_type', 'image')
     .is('deleted_at', null)
 
-  if ((remaining ?? 0) > 0) {
-    // Self-chain: trigger next batch as a completely independent invocation
-    waitUntil(
-      fetch(`${getBaseUrl()}/api/tag/process`, {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'x-task-secret': process.env.TASK_SECRET ?? '',
-        },
-      }).catch(() => {})
-    )
-  }
-
   return NextResponse.json({ processed, remaining: remaining ?? 0 })
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return handle(request)
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  return handle(request)
 }
