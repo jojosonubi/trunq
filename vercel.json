@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/tag/process",    "schedule": "* * * * *" },
-    { "path": "/api/rescore/process","schedule": "* * * * *" }
+    { "path": "/api/rescore/process","schedule": "* * * * *" },
+    { "path": "/api/foto-lab/index", "schedule": "* * * * *" }
   ]
 }
