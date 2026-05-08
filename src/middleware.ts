@@ -10,6 +10,7 @@ const PUBLIC_PREFIXES = [
   '/api/tag/batch',
   '/api/rescore/process',
   '/api/rescore/batch',
+  '/api/foto-lab/',
   '/api/share/',          // share link auth/media/review (unauthenticated viewers)
   '/api/webhooks/',
 ]
