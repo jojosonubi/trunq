@@ -74,6 +74,68 @@ export async function signStoragePaths(
   return map
 }
 
+// ─── Thumbnail helpers (Supabase image transform) ─────────────────────────────
+
+interface ThumbnailOptions {
+  width?:   number  // default 600
+  height?:  number  // default 600
+  quality?: number  // default 75
+  resize?:  'cover' | 'contain' | 'fill'  // default 'cover'
+}
+
+/**
+ * Sign a single storage path via the Supabase render (image transform) endpoint.
+ * Returns null on failure rather than '' so callers can fall back to a full-res URL.
+ */
+export async function signStoragePathThumbnail(
+  path: string,
+  options: ThumbnailOptions = {},
+  expiresIn = DEFAULT_TTL,
+): Promise<string | null> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUrl(path, expiresIn, {
+      transform: {
+        width:   options.width   ?? 600,
+        height:  options.height  ?? 600,
+        quality: options.quality ?? 75,
+        resize:  options.resize  ?? 'cover',
+      },
+    })
+  if (error || !data?.signedUrl) {
+    console.error('[storage] signStoragePathThumbnail failed:', path, error?.message)
+    return null
+  }
+  return data.signedUrl
+}
+
+/**
+ * Batch sign storage paths via the Supabase render (image transform) endpoint.
+ * Falls back gracefully — paths that fail to sign are omitted from the map.
+ */
+export async function signStoragePathsThumbnail(
+  paths: string[],
+  options: ThumbnailOptions = {},
+  expiresIn = DEFAULT_TTL,
+): Promise<Map<string, string>> {
+  if (paths.length === 0) return new Map()
+
+  // Supabase's batch API doesn't support transform options, so we sign individually
+  // but in parallel to keep latency low.
+  const results = await Promise.all(
+    paths.map(async (path) => {
+      const url = await signStoragePathThumbnail(path, options, expiresIn)
+      return [path, url] as const
+    })
+  )
+  const map = new Map<string, string>()
+  for (const [path, url] of results) {
+    if (url) map.set(path, url)
+  }
+  return map
+}
+
 /**
  * Attach a signed `signed_url` field to every file.
  * Uses the batch createSignedUrls API.

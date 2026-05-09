@@ -8,6 +8,7 @@ import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, 
 import Pill, { ScorePill } from '@/components/ui/Pill'
 import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
+import { transformUrl } from '@/lib/supabase/storage'
 import clsx from 'clsx'
 
 // ─── Star props ──────────────────────────────────────────────────────────────
@@ -833,7 +834,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
           </div>
         ) : (
           <Image
-            src={file.signed_url ?? file.public_url} alt={file.filename} fill
+            src={transformUrl(file.signed_url ?? file.public_url, 600, 75)} alt={file.filename} fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className={clsx(
               'object-cover transition-opacity duration-300',

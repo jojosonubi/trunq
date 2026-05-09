@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
-import { signStoragePaths } from '@/lib/supabase/storage'
+import { signStoragePathsThumbnail } from '@/lib/supabase/storage'
 import Navbar from '@/components/layout/Navbar'
 import ProjectsPageClient from './ProjectsPageClient'
 import type { Event } from '@/types'
@@ -46,7 +46,7 @@ export default async function ProjectsPage() {
   }
 
   const coverPaths = Object.values(coverPathMap)
-  const coverSignedUrls = coverPaths.length > 0 ? await signStoragePaths(coverPaths) : new Map<string, string>()
+  const coverSignedUrls = coverPaths.length > 0 ? await signStoragePathsThumbnail(coverPaths, { width: 600 }) : new Map<string, string>()
   const coverMap: Record<string, string> = {}
   for (const [eventId, path] of Object.entries(coverPathMap)) {
     const signed = coverSignedUrls.get(path)
