@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { indexFaceForMediaFile } from '@/lib/aws/rekognition'
 
-const BATCH_SIZE = 3
+const BATCH_SIZE = 10
 
 // Default to test-mode ON so a missing env var never accidentally runs wide
 const TEST_MODE = process.env.NEXT_PUBLIC_FOTO_LAB_TEST_MODE !== 'false'
