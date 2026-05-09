@@ -81,8 +81,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
 
   // ── Filter panel ──────────────────────────────────────────────────────────
   const [filterOpen, setFilterOpen]             = useState(false)
-  const [activeStatus, setActiveStatus]         = useState<string | null>(null)
-  const [activeFileType, setActiveFileType]     = useState<string | null>(null)
+const [activeFileType, setActiveFileType]     = useState<string | null>(null)
   const filterRef = useRef<HTMLDivElement>(null)
 
   // ── Colour filter ─────────────────────────────────────────────────────────
@@ -115,7 +114,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
   }, [files])
 
   // ── Derived: filtered list ────────────────────────────────────────────────
-  const isFiltered = query.trim() !== '' || activePills.size > 0 || activePhotographer !== null || showStarredOnly || activePerformerId !== null || activeBrandId !== null || activeStatus !== null || activeFileType !== null || activeColour !== null
+  const isFiltered = query.trim() !== '' || activePills.size > 0 || activePhotographer !== null || showStarredOnly || activePerformerId !== null || activeBrandId !== null || activeFileType !== null || activeColour !== null
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -135,9 +134,6 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
         const hasBrand = (file.brand_tags ?? []).some((bt) => bt.brand_id === activeBrandId)
         if (!hasBrand) return false
       }
-
-      // Review status filter
-      if (activeStatus !== null && file.review_status !== activeStatus) return false
 
       // File type filter
       if (activeFileType !== null && file.file_type !== activeFileType) return false
@@ -159,7 +155,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
         !activePhotographer || file.photographer === activePhotographer
       return textMatch && pillMatch && photographerMatch
     })
-  }, [files, query, activePills, activePhotographer, showStarredOnly, starOverrides, activePerformerId, activeBrandId, activeStatus, activeFileType, activeColour])
+  }, [files, query, activePills, activePhotographer, showStarredOnly, starOverrides, activePerformerId, activeBrandId, activeFileType, activeColour])
 
   // Images in the filtered view — what gets downloaded / shown in download btn
   const downloadableFiles = useMemo(
@@ -354,22 +350,9 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
     setShowStarredOnly(false)
     setActivePerformerId(null)
     setActiveBrandId(null)
-    setActiveStatus(null)
     setActiveFileType(null)
     setActiveColour(null)
   }
-
-  // ── Review status counts ──────────────────────────────────────────────────
-  const statusCounts = useMemo(() => {
-    const c = { approved: 0, held: 0, rejected: 0, pending: 0 }
-    files.forEach((f) => {
-      const s = (f.review_status ?? 'pending') as keyof typeof c
-      c[s] = (c[s] ?? 0) + 1
-    })
-    return c
-  }, [files])
-
-  const hasReviews = statusCounts.approved + statusCounts.held + statusCounts.rejected > 0
 
   // ── Stars prop for MediaGrid ──────────────────────────────────────────────
   const starsProps = useMemo(() => ({
@@ -536,7 +519,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
         {/* Filter button + dropdown */}
         <div ref={filterRef} className="relative shrink-0">
           {(() => {
-            const activeFilterCount = (activeStatus !== null ? 1 : 0) + (activeFileType !== null ? 1 : 0) + activePills.size
+            const activeFilterCount = (activeFileType !== null ? 1 : 0) + activePills.size
             const hasActiveFilters  = activeFilterCount > 0
             return (
               <>
@@ -581,30 +564,6 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
                       </div>
                     </div>
 
-                    {/* Review status */}
-                    <div>
-                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Review status</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(['pending', 'approved', 'held', 'rejected'] as const).map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => setActiveStatus((prev) => prev === s ? null : s)}
-                            className={clsx(
-                              'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
-                              activeStatus === s
-                                ? s === 'approved' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                                : s === 'rejected' ? 'bg-red-500/20 border-red-500/40 text-red-300'
-                                : s === 'held'     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                                : 'bg-white/10 border-white/20 text-white'
-                                : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
-                            )}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     {/* File type */}
                     <div>
                       <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">File type</p>
@@ -628,7 +587,7 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
 
                     {hasActiveFilters && (
                       <button
-                        onClick={() => { setActiveStatus(null); setActiveFileType(null); setActivePills(new Set()) }}
+                        onClick={() => { setActiveFileType(null); setActivePills(new Set()) }}
                         className="text-xs text-[#555] hover:text-white transition-colors"
                       >
                         Clear all filters
@@ -873,19 +832,6 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
           {activeColour && (
             <span className="text-[#555] text-xs ml-1 capitalize">{activeColour}</span>
           )}
-        </div>
-      )}
-
-      {/* ── Review status summary ─────────────────────────────────────────── */}
-      {hasReviews && (
-        <div className="flex items-center gap-2 mb-4 text-xs flex-wrap">
-          <span className="text-emerald-400 tabular-nums">{statusCounts.approved} approved</span>
-          <span className="text-[#2a2a2a]">·</span>
-          <span className="text-amber-400 tabular-nums">{statusCounts.held} held</span>
-          <span className="text-[#2a2a2a]">·</span>
-          <span className="text-red-400 tabular-nums">{statusCounts.rejected} rejected</span>
-          <span className="text-[#2a2a2a]">·</span>
-          <span className="text-[#555] tabular-nums">{statusCounts.pending} pending</span>
         </div>
       )}
 

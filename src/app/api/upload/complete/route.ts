@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
         exif_shutter_speed: exif.shutterSpeed,
         exif_focal_length:  exif.focalLength,
         quality_score:      null,
+        review_status:      'approved',
         photographer,
         photographer_id,
         folder_id,

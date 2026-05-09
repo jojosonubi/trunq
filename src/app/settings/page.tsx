@@ -65,7 +65,6 @@ export default async function SettingsPage() {
       .select('id, filename, event_id, created_at')
       .is('deleted_at', null)
       .is('usage_type', null)
-      .eq('review_status', 'approved')
       .order('created_at', { ascending: false })
       .limit(200),
   ])

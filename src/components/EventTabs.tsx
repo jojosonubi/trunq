@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Pill from '@/components/ui/Pill'
 import clsx from 'clsx'
 import GalleryWithSearch from '@/components/GalleryWithSearch'
-import ReviewTab from '@/components/ReviewTab'
 import FolderSidebar from '@/components/FolderSidebar'
 import PerformersTab from '@/components/PerformersTab'
 import BrandsTab from '@/components/BrandsTab'
@@ -15,7 +14,7 @@ import type { UserRole } from '@/lib/auth'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'gallery' | 'review' | 'performers' | 'brands' | 'shares'
+type Tab = 'gallery' | 'performers' | 'brands' | 'shares'
 
 interface Props {
   files: MediaFileWithTags[]
@@ -48,23 +47,15 @@ export default function EventTabs({
 
   // Role-gated tabs
   const allowedTabs: Tab[] = role === 'admin'
-    ? ['gallery', 'review', 'performers', 'brands', 'shares']
+    ? ['gallery', 'performers', 'brands', 'shares']
     : role === 'producer'
-    ? ['gallery', 'review', 'shares']
+    ? ['gallery', 'shares']
     : ['gallery']
 
   const [tab, setTab] = useState<Tab>(
     initialTab && allowedTabs.includes(initialTab as Tab) ? (initialTab as Tab) : 'gallery'
   )
 
-  // Auto-switch to Review when uploads complete
-  useEffect(() => {
-    function onUploadsComplete() {
-      if (allowedTabs.includes('review')) setTab('review')
-    }
-    window.addEventListener('uploads-complete', onUploadsComplete)
-    return () => window.removeEventListener('uploads-complete', onUploadsComplete)
-  }, [allowedTabs])
   // ── Folder state ──────────────────────────────────────────────────────────
 
   const [folders, setFolders]                   = useState<Folder[]>(initialFolders)
@@ -165,14 +156,8 @@ export default function EventTabs({
     }
   }, [router])
 
-  const approvedCount  = files.filter((f) => f.review_status === 'approved').length
-  const pendingCount   = files.filter((f) => f.review_status === 'pending').length
-  const heldCount      = files.filter((f) => f.review_status === 'held').length
-  const rejectedCount  = files.filter((f) => f.review_status === 'rejected').length
-
   const TAB_LABELS: Record<Tab, string> = {
     gallery:    'Gallery',
-    review:     'Review',
     performers: 'Performers',
     brands:     'Brands',
     shares:     'Shares',
@@ -208,9 +193,6 @@ export default function EventTabs({
               }}
             >
               {TAB_LABELS[t]}
-              {t === 'review' && pendingCount > 0 && (
-                <Pill variant="ghost">{pendingCount}</Pill>
-              )}
               {t === 'performers' && initialPerformers.length > 0 && (
                 <Pill variant="ghost">{initialPerformers.length}</Pill>
               )}
@@ -221,12 +203,6 @@ export default function EventTabs({
           ))}
         </div>
 
-        {/* Right side: status pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 6 }}>
-          {approvedCount > 0 && <Pill variant="approved">{approvedCount} approved</Pill>}
-          {heldCount     > 0 && <Pill variant="ghost">{heldCount} held</Pill>}
-          {rejectedCount > 0 && <Pill variant="flagged">{rejectedCount} rejected</Pill>}
-        </div>
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
@@ -262,8 +238,6 @@ export default function EventTabs({
             />
           </div>
         </div>
-      ) : tab === 'review' ? (
-        <ReviewTab files={files} eventId={eventId} />
       ) : tab === 'performers' ? (
         <PerformersTab
           eventId={eventId}

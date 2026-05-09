@@ -815,16 +815,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
           </div>
         )}
 
-        {/* Review status pill — sits above star at bottom-left (normal mode, non-pending) */}
-        {!inSelectionMode && file.review_status && file.review_status !== 'pending' && (
-          <div className="absolute bottom-9 left-2 z-20">
-            {file.review_status === 'approved' && <Pill variant="approved">approved</Pill>}
-            {file.review_status === 'rejected' && <Pill variant="flagged">flagged</Pill>}
-            {file.review_status === 'held'     && <Pill variant="ghost">held</Pill>}
-          </div>
-        )}
-
-        {file.file_type === 'video' ? (
+{file.file_type === 'video' ? (
           <div className="absolute inset-0 flex items-center justify-center bg-surface-0">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="white">

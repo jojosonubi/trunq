@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
@@ -22,8 +22,7 @@ type NavEntry   = NavLink | NavDivider
 const NAV: NavEntry[] = [
   { kind: 'link',    label: 'Projects',  href: '/projects',       matchPrefix: '/projects'  },
   { kind: 'divider' },
-  { kind: 'link',    label: 'Queue',     href: '/queue',          matchPrefix: '/queue', badge: true },
-  { kind: 'link',    label: 'Delivery',  href: '/delivery/manage', matchPrefix: '/delivery' },
+{ kind: 'link',    label: 'Delivery',  href: '/delivery/manage', matchPrefix: '/delivery' },
   { kind: 'divider' },
   { kind: 'link',    label: 'Team',      href: '/settings#team',  matchPrefix: '__never__'  },
   { kind: 'link',    label: 'Settings',  href: '/settings',       matchPrefix: '/settings'  },
@@ -89,15 +88,7 @@ function isActive(entry: NavLink, pathname: string): boolean {
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const [pendingCount, setPendingCount] = useState(0)
   const { eventMode, toggleEventMode } = useEventMode()
-
-  useEffect(() => {
-    fetch('/api/queue/count')
-      .then((r) => r.json())
-      .then((d) => setPendingCount(d.count ?? 0))
-      .catch(() => {})
-  }, [pathname])
 
   return (
     <>
@@ -109,7 +100,6 @@ export default function Sidebar() {
               return <div key={`div-${i}`} style={dividerStyle} />
             }
             const active = isActive(entry, pathname)
-            const count  = entry.badge ? pendingCount : 0
             return (
               <Link key={entry.href} href={entry.href} style={linkStyle(active)}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -122,19 +112,6 @@ export default function Sidebar() {
                     }} />
                   )}
                 </span>
-                {count > 0 && (
-                  <span style={{
-                    fontSize:     9,
-                    fontWeight:   600,
-                    color:        active ? 'var(--accent)' : 'var(--text-muted)',
-                    background:   active ? 'var(--accent-bg)' : 'var(--surface-3)',
-                    borderRadius: 8,
-                    padding:      '1px 5px',
-                    letterSpacing: '0.02em',
-                  }}>
-                    {count}
-                  </span>
-                )}
               </Link>
             )
           })}

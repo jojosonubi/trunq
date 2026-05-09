@@ -131,12 +131,6 @@ export default function PhotoCard({ file, onClick }: Props) {
           </p>
 
           <div style={tags}>
-            {file.review_status === 'approved' && (
-              <Pill variant="approved">approved</Pill>
-            )}
-            {file.review_status === 'rejected' && (
-              <Pill variant="flagged">flagged</Pill>
-            )}
             {displayTags.map((tag) => (
               <Pill key={tag.id} variant="ghost">{tag.value}</Pill>
             ))}

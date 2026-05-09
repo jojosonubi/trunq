@@ -69,9 +69,9 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
   const brands     = (brandsResult.data     ?? []) as Brand[]
 
   const openPhotoId = searchParams?.photo ?? null
-  const initialTab  = (searchParams?.tab === 'performers' || searchParams?.tab === 'review')
-    ? (searchParams.tab as 'performers' | 'review')
-    : 'gallery'
+  const initialTab  = searchParams?.tab === 'performers'
+    ? 'performers' as const
+    : 'gallery' as const
 
   return (
     <div className="min-h-screen bg-surface-0">
