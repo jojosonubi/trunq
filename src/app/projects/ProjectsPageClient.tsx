@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, ImageIcon } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import FolderDrawer, { type FolderItem, type SortBy, type Project } from '@/components/archive/FolderDrawer'
@@ -136,16 +137,36 @@ export default function ProjectsPageClient({
   folderCountMap: _folderCountMap,
   role,
 }: Props) {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+
   const [sortBy, setSortBy]       = useState<SortBy>('year')
   const [modalOpen, setModalOpen] = useState(false)
 
   const folders = buildFolders(events, sortBy, photoCountMap)
-  const [activeFolder, setActiveFolder] = useState<string>(folders[0]?.id ?? '')
+
+  // Initialise active folder from ?year= param; fall back to first folder.
+  // Validate the param — if it doesn't match a real folder id, ignore it.
+  const yearParam = searchParams.get('year')
+  const initialFolder = (() => {
+    if (yearParam && folders.some((f) => f.id === yearParam)) return yearParam
+    return folders[0]?.id ?? ''
+  })()
+  const [activeFolder, setActiveFolder] = useState<string>(initialFolder)
+
+  function handleFolderChange(folderId: string) {
+    setActiveFolder(folderId)
+    if (sortBy === 'year') {
+      router.replace(`/projects?year=${folderId}`, { scroll: false })
+    }
+  }
 
   function handleSortChange(newSort: SortBy) {
     const newFolders = buildFolders(events, newSort, photoCountMap)
     setSortBy(newSort)
     setActiveFolder(newFolders[0]?.id ?? '')
+    // Clear the year param when switching away from year grouping
+    if (newSort !== 'year') router.replace('/projects', { scroll: false })
   }
 
   if (events.length === 0) {
@@ -250,7 +271,7 @@ export default function ProjectsPageClient({
         <FolderDrawer
           folders={folders}
           activeFolder={activeFolder}
-          onFolderChange={setActiveFolder}
+          onFolderChange={handleFolderChange}
           onNewProject={() => setModalOpen(true)}
           role={role}
         />
