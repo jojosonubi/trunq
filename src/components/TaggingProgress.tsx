@@ -97,9 +97,9 @@ export default function TaggingProgress() {
       } catch {}
     }
 
-    // Poll immediately, then every 5s
+    // Poll immediately, then every 3s
     poll()
-    pollRef.current = setInterval(poll, 5000)
+    pollRef.current = setInterval(poll, 3000)
   }, [])
 
   // Mount: read localStorage for any in-progress job
@@ -167,8 +167,24 @@ export default function TaggingProgress() {
             <>
               <p className="text-xs font-medium text-left" style={{ color: 'var(--text-primary)' }}>
                 {job.mode === 'rescore' ? 'Re-scoring' : 'Tagging'} in progress
-                {counts && ` — ${processed} / ${job.total} complete`}
               </p>
+              {counts && (
+                <p className="text-[11px] text-left mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                  <span>{counts.complete} of {job.total} complete</span>
+                  {counts.processing > 0 && (
+                    <>
+                      <span>·</span>
+                      <span className="animate-pulse text-purple-400">{counts.processing} processing</span>
+                    </>
+                  )}
+                  {counts.queued > 0 && (
+                    <>
+                      <span>·</span>
+                      <span>{counts.queued} queued</span>
+                    </>
+                  )}
+                </p>
+              )}
               <div className="h-1 bg-[#1f1f1f] rounded-full overflow-hidden mt-1.5">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -208,16 +224,6 @@ export default function TaggingProgress() {
       {/* Expanded detail */}
       {expanded && !done && counts && (
         <div className="border-t border-[#1a1a1a] px-4 py-3 space-y-1">
-          {counts.queued > 0 && (
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-              {counts.queued} waiting
-            </p>
-          )}
-          {counts.processing > 0 && (
-            <p className="text-[11px] text-purple-400">
-              {counts.processing} processing now
-            </p>
-          )}
           {counts.failed > 0 && (
             <p className="text-[11px]" style={{ color: 'var(--flagged-fg)' }}>
               {counts.failed} failed
