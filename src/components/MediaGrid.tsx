@@ -170,10 +170,32 @@ async function saveUsage() {
   const displayScore       = localScore       !== undefined ? localScore       : file.quality_score
   const displayDescription = localDescription !== undefined ? localDescription : file.description
 
-  const sceneTags   = displayTags.filter((t) => t.tag_type === 'scene')
-  const moodTags    = displayTags.filter((t) => t.tag_type === 'mood')
-  const subjectTags = displayTags.filter((t) => t.tag_type === 'subject')
-  const hasTags     = sceneTags.length + moodTags.length + subjectTags.length > 0
+  // Ordered tag types — known types first, then any unknowns alphabetically
+  const TAG_TYPE_ORDER: string[] = ['scene', 'subject', 'mood', 'gesture', 'hair', 'garment', 'cultural_dress', 'accessory']
+  const TAG_TYPE_LABELS: Record<string, string> = {
+    scene:          'Scene',
+    subject:        'Subject',
+    mood:           'Mood',
+    gesture:        'Gesture',
+    hair:           'Hair',
+    garment:        'Garment',
+    cultural_dress: 'Cultural Dress',
+    accessory:      'Accessory',
+  }
+
+  // Group all tags by type
+  const tagsByType = displayTags.reduce<Record<string, typeof displayTags>>((acc, t) => {
+    ;(acc[t.tag_type] ??= []).push(t)
+    return acc
+  }, {})
+
+  // Build ordered list: known types first, then unknowns alphabetically
+  const allTypes = Object.keys(tagsByType)
+  const knownTypes    = TAG_TYPE_ORDER.filter((type) => tagsByType[type]?.length)
+  const unknownTypes  = allTypes.filter((type) => !TAG_TYPE_ORDER.includes(type)).sort()
+  const orderedTypes  = [...knownTypes, ...unknownTypes]
+
+  const hasTags = orderedTypes.length > 0
 
   async function handleRetag() {
     setRetagging(true)
@@ -407,36 +429,18 @@ async function saveUsage() {
 
               {hasTags ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {sceneTags.length > 0 && (
-                    <div>
-                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Scene</p>
+                  {orderedTypes.map((type) => (
+                    <div key={type}>
+                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>
+                        {TAG_TYPE_LABELS[type] ?? type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {sceneTags.map((t) => (
+                        {tagsByType[type].map((t) => (
                           <Pill key={t.id} variant="ghost">{t.value}</Pill>
                         ))}
                       </div>
                     </div>
-                  )}
-                  {moodTags.length > 0 && (
-                    <div>
-                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Mood</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {moodTags.map((t) => (
-                          <Pill key={t.id} variant="ghost">{t.value}</Pill>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {subjectTags.length > 0 && (
-                    <div>
-                      <p style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 5, marginTop: 0 }}>Subject</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {subjectTags.map((t) => (
-                          <Pill key={t.id} variant="ghost">{t.value}</Pill>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  ))}
                 </div>
               ) : (
                 <p style={{ color: 'var(--text-muted)', fontSize: 10, margin: 0 }}>
