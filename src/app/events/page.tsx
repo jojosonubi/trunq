@@ -31,7 +31,8 @@ export default async function EventsPage() {
       .from('media_files')
       .select('event_id, file_size, storage_path')
       .is('deleted_at', null)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(20000),
     supabase.from('folders').select('event_id'),
     supabase
       .from('event_views')
