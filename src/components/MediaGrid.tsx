@@ -296,7 +296,7 @@ async function saveUsage() {
         ) : (
           <div className="absolute inset-0">
             <Image
-              src={file.signed_url ?? file.public_url} alt={file.filename} fill
+              src={transformUrl(file.signed_url ?? file.public_url, 2000, 85)} alt={file.filename} fill
               sizes="(max-width: 1280px) 70vw, 80vw" className="object-contain" priority
               style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
               unoptimized
