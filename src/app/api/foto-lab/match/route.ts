@@ -165,6 +165,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
     const result = await getClient().send(cmd)
     faceMatches = result.FaceMatches ?? []
+    console.log('[foto-lab/match] AWS returned face matches:', faceMatches.length)
+    console.log('[foto-lab/match] First 3 face IDs:', faceMatches.slice(0, 3).map(m => m.FaceId))
   } catch (err) {
     // InvalidParameterException = no face detected in the selfie
     if (err instanceof InvalidParameterException) {
@@ -218,12 +220,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const matchedFaceIds = [...faceSimMap.keys()]
 
   // ── 8. Query media_files ────────────────────────────────────────────────────
-  const { data: photos } = await service
+  console.log('[foto-lab/match] Querying media_files with', matchedFaceIds.length, 'face IDs')
+  console.log('[foto-lab/match] First 3 IDs being queried:', matchedFaceIds.slice(0, 3))
+  const { data: photos, error: photosErr } = await service
     .from('media_files')
     .select('id, storage_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
     .overlaps('rekognition_face_ids', matchedFaceIds)
     .is('deleted_at', null)
     .eq('file_type', 'image')
+  console.log('[foto-lab/match] media_files query result:', {
+    photoCount:   photos?.length ?? 0,
+    error:        photosErr?.message,
+    errorCode:    photosErr?.code,
+    errorDetails: photosErr?.details,
+  })
 
   if (!photos || photos.length === 0) {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
