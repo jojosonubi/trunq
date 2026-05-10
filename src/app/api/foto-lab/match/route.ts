@@ -94,7 +94,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     search_id_out?:   string
   }): Promise<string | null> {
     const duration = Date.now() - startMs
-    const { data } = await service
+    const { data, error } = await service
       .from('foto_lab_searches')
       .insert({
         org_id:           RECESS_ORG_ID,
@@ -107,6 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })
       .select('id')
       .single()
+    if (error) console.error('[foto-lab/match] log insert failed:', error)
     return data?.id ?? null
   }
 
