@@ -90,20 +90,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     no_face_detected: boolean
     match_count:      number
     top_similarity:   number | null
-    error_message:    string | null
-    search_id_out?:   string
+    error:            string | null
   }): Promise<string | null> {
     const duration = Date.now() - startMs
     const { data, error } = await service
       .from('foto_lab_searches')
       .insert({
-        org_id:           RECESS_ORG_ID,
-        ip_hash:          ipHash,
+        organisation_id:  RECESS_ORG_ID,
+        client_ip_hash:   ipHash,
         no_face_detected: fields.no_face_detected,
         match_count:      fields.match_count,
         top_similarity:   fields.top_similarity,
-        error_message:    fields.error_message,
+        threshold_used:   SIMILARITY_THRESHOLD,
         duration_ms:      duration,
+        error:            fields.error,
       })
       .select('id')
       .single()
@@ -116,12 +116,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     body = await request.json()
   } catch {
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: 'Invalid JSON body' })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Invalid JSON body' })
     return NextResponse.json({ error: 'Invalid JSON body', search_id: searchId }, { status: 400 })
   }
 
   if (typeof body.image !== 'string' || !body.image) {
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: 'Missing or invalid image field' })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Missing or invalid image field' })
     return NextResponse.json({ error: 'Missing or invalid image field', search_id: searchId }, { status: 400 })
   }
 
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     imageBytes = new Uint8Array(Buffer.from(base64, 'base64'))
   } catch {
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: 'Failed to decode base64 image' })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Failed to decode base64 image' })
     return NextResponse.json({ error: 'Failed to decode base64 image', search_id: searchId }, { status: 400 })
   }
 
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .toBuffer()
       imageBytes = new Uint8Array(resized)
     } catch {
-      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: 'Image resize failed' })
+      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Image resize failed' })
       return NextResponse.json({ error: 'Image resize failed', search_id: searchId }, { status: 400 })
     }
   }
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (err) {
     // InvalidParameterException = no face detected in the selfie
     if (err instanceof InvalidParameterException) {
-      const searchId = await logSearch({ no_face_detected: true, match_count: 0, top_similarity: null, error_message: null })
+      const searchId = await logSearch({ no_face_detected: true, match_count: 0, top_similarity: null, error: null })
       return NextResponse.json({
         search_id:        searchId,
         matches:          [],
@@ -179,28 +179,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     if (err instanceof InvalidImageFormatException) {
       const msg = 'Invalid image format'
-      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: msg })
+      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
       return NextResponse.json({ error: msg, search_id: searchId }, { status: 400 })
     }
     if (err instanceof ImageTooLargeException) {
       const msg = 'Image too large'
-      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: msg })
+      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
       return NextResponse.json({ error: msg, search_id: searchId }, { status: 400 })
     }
     if (err instanceof ProvisionedThroughputExceededException) {
       const msg = 'Service busy — try again shortly'
-      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: msg })
+      const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
       return NextResponse.json({ error: msg, search_id: searchId }, { status: 503 })
     }
     const msg = (err instanceof Error ? err.message : String(err)).slice(0, 500)
     console.error('[foto-lab/match] Rekognition error:', msg)
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: msg })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
     return NextResponse.json({ error: 'Search failed', search_id: searchId }, { status: 500 })
   }
 
   // ── 7. No matches ───────────────────────────────────────────────────────────
   if (faceMatches.length === 0) {
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: null })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
     return NextResponse.json({
       search_id:        searchId,
       matches:          [],
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq('file_type', 'image')
 
   if (!photos || photos.length === 0) {
-    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error_message: null })
+    const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
     return NextResponse.json({
       search_id:        searchId,
       matches:          [],
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     no_face_detected: false,
     match_count:      matches.length,
     top_similarity:   topSimilarity !== null ? Math.round(topSimilarity * 100) / 100 : null,
-    error_message:    null,
+    error:    null,
   })
 
   return NextResponse.json({
