@@ -38,6 +38,25 @@ type Result = {
   error?:  string
 }
 
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = []
+  const executing: Promise<void>[] = []
+  for (const item of items) {
+    const p = fn(item).then(r => { results.push(r) })
+    executing.push(p)
+    if (executing.length >= concurrency) {
+      await Promise.race(executing)
+      executing.splice(executing.findIndex(e => e === p), 1)
+    }
+  }
+  await Promise.all(executing)
+  return results
+}
+
 async function handle(_request: NextRequest): Promise<NextResponse> {
   const service = createServiceClient()
   const limit   = TEST_MODE ? 1 : BATCH_SIZE
@@ -65,10 +84,8 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
     .in('id', ids)
     .eq('rekognition_indexing_status', 'queued')
 
-  // ── Process batch concurrently ────────────────────────────────────────────
-  const results: Result[] = []
-
-  await Promise.all(ids.map(async (id: string) => {
+  // ── Process batch with capped concurrency (avoid Rekognition TPS limit) ───
+  const results = await runWithConcurrency<string, Result>(ids, 3, async (id) => {
     try {
       const { faceIds } = await indexFaceForMediaFile(id)
 
@@ -83,7 +100,7 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
         })
         .eq('id', id)
 
-      results.push({ id, status: finalStatus, faceIds })
+      return { id, status: finalStatus, faceIds }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('[foto-lab/index] failed:', id, message)
@@ -93,9 +110,9 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
         .update({ rekognition_indexing_status: 'failed' })
         .eq('id', id)
 
-      results.push({ id, status: 'failed', error: message })
+      return { id, status: 'failed' as const, error: message }
     }
-  }))
+  })
 
   // ── Remaining count ───────────────────────────────────────────────────────
   const { count: remaining } = await service
