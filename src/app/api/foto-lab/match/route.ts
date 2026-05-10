@@ -28,8 +28,8 @@ import { signStoragePath } from '@/lib/supabase/storage'
 const COLLECTION_ID       = 'recess-archive'
 const RECESS_ORG_ID       = '2b557660-6bb3-4d41-9b49-71e860681b9c'
 const SIMILARITY_THRESHOLD = Number(process.env.FOTO_LAB_SIMILARITY_THRESHOLD ?? 75)
-const MAX_FACES_RETURNED  = 100
-const MAX_PHOTOS_RETURNED = 50
+const MAX_FACES_RETURNED  = 4096
+const MAX_PHOTOS_RETURNED = 500
 const SIGNED_URL_TTL      = 3600  // 1 hour
 const RESIZE_THRESHOLD    = 4 * 1024 * 1024  // 4MB
 
