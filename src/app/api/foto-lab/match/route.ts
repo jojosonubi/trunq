@@ -153,7 +153,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ── 4–6. SearchFacesByImage ─────────────────────────────────────────────────
-  let faceMatches: { FaceId?: string; Similarity?: number }[] = []
+  let faceMatches: { Face?: { FaceId?: string }; Similarity?: number }[] = []
 
   try {
     const cmd = new SearchFacesByImageCommand({
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await getClient().send(cmd)
     faceMatches = result.FaceMatches ?? []
     console.log('[foto-lab/match] AWS returned face matches:', faceMatches.length)
-    console.log('[foto-lab/match] First 3 face IDs:', faceMatches.slice(0, 3).map(m => m.FaceId))
+    console.log('[foto-lab/match] First 3 face IDs:', faceMatches.slice(0, 3).map(m => m.Face?.FaceId))
   } catch (err) {
     // InvalidParameterException = no face detected in the selfie
     if (err instanceof InvalidParameterException) {
@@ -215,7 +215,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Build faceId → best similarity map (a photo can have multiple faces indexed)
   const faceSimMap = new Map<string, number>()
   for (const m of faceMatches) {
-    if (m.FaceId) faceSimMap.set(m.FaceId, m.Similarity ?? 0)
+    const fid = m.Face?.FaceId
+    if (fid) faceSimMap.set(fid, m.Similarity ?? 0)
   }
   const matchedFaceIds = [...faceSimMap.keys()]
 
