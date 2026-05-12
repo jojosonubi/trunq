@@ -50,7 +50,7 @@ export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: bo
 
   const { data: mediaFile, error: fetchErr } = await supabase
     .from('media_files')
-    .select('storage_path')
+    .select('storage_path, organisation_id')
     .eq('id', mediaFileId)
     .single()
 
@@ -152,33 +152,21 @@ export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: bo
     .slice(0, 3)
 
   // ── Write tags (skip when opts.skipTags is true) ────────────────────────────
+  const orgId = mediaFile.organisation_id
   let tagsWritten = 0
   if (!opts?.skipTags) {
+    const tag = (tag_type: string, value: string, confidence: number) => ({
+      media_file_id: mediaFileId, organisation_id: orgId, tag_type, value: value.toLowerCase(), confidence,
+    })
     const tagRows = [
-      ...result.scene_tags.slice(0, 4).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'scene',   value: v.toLowerCase(), confidence: 0.9,
-      })),
-      ...result.mood_tags.slice(0, 2).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'mood',    value: v.toLowerCase(), confidence: 0.85,
-      })),
-      ...result.subject_tags.slice(0, 4).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'subject', value: v.toLowerCase(), confidence: 0.9,
-      })),
-      ...(result.gesture_tags ?? []).slice(0, 2).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'gesture', value: v.toLowerCase(), confidence: 0.85,
-      })),
-      ...(result.fashion_tags?.hair ?? []).slice(0, 2).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'hair',    value: v.toLowerCase(), confidence: 0.85,
-      })),
-      ...(result.fashion_tags?.garment ?? []).slice(0, 3).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'garment', value: v.toLowerCase(), confidence: 0.85,
-      })),
-      ...(result.fashion_tags?.cultural_dress ?? []).slice(0, 2).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'cultural_dress', value: v.toLowerCase(), confidence: 0.85,
-      })),
-      ...(result.fashion_tags?.accessory ?? []).slice(0, 3).map((v) => ({
-        media_file_id: mediaFileId, tag_type: 'accessory', value: v.toLowerCase(), confidence: 0.85,
-      })),
+      ...result.scene_tags.slice(0, 4).map((v) => tag('scene', v, 0.9)),
+      ...result.mood_tags.slice(0, 2).map((v) => tag('mood', v, 0.85)),
+      ...result.subject_tags.slice(0, 4).map((v) => tag('subject', v, 0.9)),
+      ...(result.gesture_tags ?? []).slice(0, 2).map((v) => tag('gesture', v, 0.85)),
+      ...(result.fashion_tags?.hair ?? []).slice(0, 2).map((v) => tag('hair', v, 0.85)),
+      ...(result.fashion_tags?.garment ?? []).slice(0, 3).map((v) => tag('garment', v, 0.85)),
+      ...(result.fashion_tags?.cultural_dress ?? []).slice(0, 2).map((v) => tag('cultural_dress', v, 0.85)),
+      ...(result.fashion_tags?.accessory ?? []).slice(0, 3).map((v) => tag('accessory', v, 0.85)),
     ]
     await supabase.from('tags').delete().eq('media_file_id', mediaFileId)
     if (tagRows.length > 0) {

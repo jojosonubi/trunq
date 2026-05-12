@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
+import { getUserOrgId } from '@/lib/supabase/org'
 
 // POST /api/invites — create a new invite (admin only)
 export async function POST(req: NextRequest) {
@@ -26,9 +27,13 @@ export async function POST(req: NextRequest) {
   }
 
   const service = createServiceClient()
+
+  const orgId = await getUserOrgId(service, user.id)
+  if (!orgId) return NextResponse.json({ error: 'User has no organisation' }, { status: 403 })
+
   const { data, error } = await service
     .from('invites')
-    .insert({ role, created_by: user.id })
+    .insert({ role, created_by: user.id, organisation_id: orgId })
     .select()
     .single()
 

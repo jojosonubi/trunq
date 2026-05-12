@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
         exif_aperture:      exif.aperture,
         exif_shutter_speed: exif.shutterSpeed,
         exif_focal_length:  exif.focalLength,
+        organisation_id:    event.organisation_id,
         quality_score:      null,
         review_status:      'approved',
         photographer,

@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // ── Fetch event metadata + atomic sequence number ─────────────────────────
     const [eventRes, seqRes] = await Promise.all([
-      supabase.from('events').select('date, name').eq('id', eventId).single(),
+      supabase.from('events').select('date, name, organisation_id').eq('id', eventId).single(),
       // next_media_seq uses INSERT ... ON CONFLICT DO UPDATE — atomic, no races.
       supabase.rpc('next_media_seq', { p_event_id: eventId }),
     ])
@@ -134,9 +134,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to get sequence number' }, { status: 500 })
     }
 
-    const eventDate = eventRes.data?.date ?? new Date().toISOString().slice(0, 10)
-    const eventName = eventRes.data?.name ?? 'event'
-    const seq       = seqRes.data as number
+    const eventDate   = eventRes.data?.date ?? new Date().toISOString().slice(0, 10)
+    const eventName   = eventRes.data?.name ?? 'event'
+    const orgId       = eventRes.data?.organisation_id ?? null
+    const seq         = seqRes.data as number
+
+    if (!orgId) {
+      return NextResponse.json({ error: 'Event has no organisation — cannot upload' }, { status: 400 })
+    }
 
     // ── Build archive-standard filename and storage path ──────────────────────
     const originalFilename                   = file.name
@@ -199,6 +204,7 @@ export async function POST(request: NextRequest) {
         exif_aperture:     exif.aperture,
         exif_shutter_speed: exif.shutterSpeed,
         exif_focal_length: exif.focalLength,
+        organisation_id:   orgId,
         quality_score:     null,
         photographer,
         folder_id:         folderId,

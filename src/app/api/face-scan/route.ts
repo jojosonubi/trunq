@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Fetch the candidate media file
     const { data: mediaFile, error: mErr } = await supabase
       .from('media_files')
-      .select('id, storage_path, file_type')
+      .select('id, storage_path, file_type, organisation_id')
       .eq('id', media_file_id)
       .single()
 
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         const { error: tagErr } = await supabase
           .from('performer_tags')
           .upsert(
-            { media_file_id, performer_id: performer.id, confidence },
+            { media_file_id, performer_id: performer.id, confidence, organisation_id: mediaFile.organisation_id },
             { onConflict: 'media_file_id,performer_id' }
           )
 

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         .not('reference_storage_path', 'is', null),
       supabase
         .from('media_files')
-        .select('id, storage_path, file_type')
+        .select('id, storage_path, file_type, organisation_id')
         .eq('id', media_file_id)
         .single(),
     ])
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
         const { error: tagErr } = await supabase
           .from('brand_tags')
           .upsert(
-            { media_file_id, brand_id: brand.id, confidence },
+            { media_file_id, brand_id: brand.id, confidence, organisation_id: mediaResult.data.organisation_id },
             { onConflict: 'media_file_id,brand_id' }
           )
         if (!tagErr) tagsCreated++
