@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 import { getFileType } from '../_lib'
 import type { ExifData } from '@/lib/exif'
+import { generateDisplayDerivative } from '@/lib/storage/derivatives'
 
 export async function POST(request: NextRequest) {
   const auth = await requireApiUserWithOrg()
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
         photographer,
         photographer_id,
         folder_id,
+        display_path:       null,  // populated asynchronously below
       })
       .select()
       .single()
@@ -184,6 +186,52 @@ export async function POST(request: NextRequest) {
         console.error('[complete/backup] unexpected:', err)
       }
     })()
+
+    // Display derivative — fire-and-forget (images only)
+    if (getFileType(mime_type) === 'image') {
+      ;(async () => {
+        try {
+          const { data: fileData, error: dlError } = await supabase.storage
+            .from('media')
+            .download(storage_path)
+
+          if (dlError || !fileData) {
+            console.error('[complete/derivative] download failed:', dlError?.message)
+            return
+          }
+
+          const originalBuffer = Buffer.from(await fileData.arrayBuffer())
+          const derivative     = await generateDisplayDerivative(originalBuffer, storage_path)
+
+          const { error: uploadError } = await supabase.storage
+            .from('media')
+            .upload(derivative.path, derivative.buffer, {
+              contentType: 'image/jpeg',
+              upsert: true,
+            })
+
+          if (uploadError) {
+            console.error('[complete/derivative] upload failed:', uploadError.message)
+            return
+          }
+
+          const { error: updateError } = await supabase
+            .from('media_files')
+            .update({ display_path: derivative.path })
+            .eq('id', fileId)
+
+          if (updateError) {
+            console.error('[complete/derivative] DB update failed:', updateError.message)
+            return
+          }
+
+          console.log(`[complete/derivative] ok — path=${derivative.path} size=${derivative.buffer.length}`)
+        } catch (err) {
+          console.error('[complete/derivative] unexpected:', err instanceof Error ? err.message : err)
+          // Row stays display_path=null — falls back to storage_path for display
+        }
+      })()
+    }
 
     return NextResponse.json({ mediaFile }, { status: 201 })
   } catch (err) {

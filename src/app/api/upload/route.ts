@@ -5,6 +5,7 @@ import type { ExifData } from '@/lib/exif'
 import { requireApiUser } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
+import { generateDisplayDerivative } from '@/lib/storage/derivatives'
 
 function getServiceClient() {
   return createClient(
@@ -181,6 +182,29 @@ export async function POST(request: NextRequest) {
 
     console.log(`[upload] storage ok — path=${storagePath}`)
 
+    // ── Generate display derivative ───────────────────────────────────────────
+    let displayPath: string | null = null
+    if (getFileType(file.type) === 'image') {
+      try {
+        const derivative = await generateDisplayDerivative(fileBuffer, storagePath)
+        const { error: derivErr } = await supabase.storage
+          .from('media')
+          .upload(derivative.path, derivative.buffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          })
+        if (derivErr) {
+          console.error('[upload] derivative upload failed:', derivErr.message, { storagePath })
+        } else {
+          displayPath = derivative.path
+          console.log(`[upload] derivative ok — path=${displayPath} size=${derivative.buffer.length}`)
+        }
+      } catch (derivErr) {
+        console.error('[upload] derivative generation failed:', derivErr instanceof Error ? derivErr.message : derivErr, { storagePath })
+        // displayPath stays null — row falls back to storage_path for display
+      }
+    }
+
     // ── Insert media_files record ─────────────────────────────────────────────
     const { data: mediaFile, error: dbError } = await supabase
       .from('media_files')
@@ -208,13 +232,15 @@ export async function POST(request: NextRequest) {
         quality_score:     null,
         photographer,
         folder_id:         folderId,
+        display_path:      displayPath,
       })
       .select()
       .single()
 
     if (dbError) {
       console.error('[upload] DB insert error:', dbError.message, { storagePath })
-      await supabase.storage.from('media').remove([storagePath])
+      const toRemove = [storagePath, ...(displayPath ? [displayPath] : [])]
+      await supabase.storage.from('media').remove(toRemove)
       return NextResponse.json(
         { error: `Database insert failed: ${dbError.message}` },
         { status: 500 }
