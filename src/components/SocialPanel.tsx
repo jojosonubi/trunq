@@ -11,6 +11,7 @@ import CropTool, {
   type CropState,
 } from '@/components/CropTool'
 import type { MediaFileWithTags } from '@/types'
+import { transformUrlSized } from '@/lib/supabase/storage'
 
 // ─── Export helpers ───────────────────────────────────────────────────────────
 
@@ -298,7 +299,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
                   )}
                 >
                   <Image
-                    src={file.signed_url ?? file.public_url}
+                    src={transformUrlSized(file.signed_url ?? file.public_url, 'tiny')}
                     alt=""
                     fill
                     className="object-cover"
