@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiUser } from '@/lib/api-auth'
-import { signStoragePaths } from '@/lib/supabase/storage'
+import { signStoragePathsSized } from '@/lib/supabase/storage'
 
 export async function GET(
   _req: NextRequest,
@@ -24,7 +24,7 @@ export async function GET(
 
   const rows = data ?? []
   const paths = rows.map((r: { storage_path: string }) => r.storage_path)
-  const urlMap = paths.length > 0 ? await signStoragePaths(paths) : new Map<string, string>()
+  const urlMap = paths.length > 0 ? await signStoragePathsSized(paths, 'thumb', { aspect: 'square' }) : new Map<string, string>()
 
   const photos = rows.map((r: { id: string; storage_path: string }) => ({
     id: r.id,
