@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Calendar, ImageIcon, RotateCcw, Trash2 } from 'lucide-react'
 import type { Event, MediaFile } from '@/types'
+import { transformUrlSized } from '@/lib/supabase/storage'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {
@@ -129,7 +130,7 @@ export default function TrashClient({
                 <div className="relative aspect-square bg-surface-0">
                   {photo.public_url ? (
                     <Image
-                      src={photo.public_url}
+                      src={transformUrlSized(photo.public_url, 'card')}
                       alt={photo.filename}
                       fill
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
