@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { signStoragePaths } from '@/lib/supabase/storage'
+import { signStoragePathsSized } from '@/lib/supabase/storage'
 import { requireApiUser } from '@/lib/api-auth'
 
 export interface EventResult {
@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
 
   // Generate signed URLs for all photo results in one batch
   const storagePaths = photos.map((p) => p.storage_path).filter(Boolean)
-  const signedUrlMap = storagePaths.length > 0 ? await signStoragePaths(storagePaths) : new Map<string, string>()
+  const signedUrlMap = storagePaths.length > 0 ? await signStoragePathsSized(storagePaths, 'tiny', { aspect: 'square' }) : new Map<string, string>()
   for (const photo of photos) {
     photo.signed_url = signedUrlMap.get(photo.storage_path) ?? photo.public_url
   }
