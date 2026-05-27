@@ -7,6 +7,7 @@ import Link from 'next/link'
 import clsx from 'clsx'
 import type { Event, MediaFile } from '@/types'
 import { neutralizeOrientation } from '@/lib/exif'
+import { transformUrlSized } from '@/lib/supabase/storage'
 
 interface Profile { id: string; name?: string; email?: string; role: string }
 interface Props { event: Event; profile: Profile }
@@ -252,7 +253,7 @@ export default function EventModeClient({ event, profile }: Props) {
               {recentPhotos.map((photo) => (
                 <div key={photo.id} className="aspect-square relative overflow-hidden bg-surface-0">
                   <img
-                    src={photo.signed_url ?? photo.public_url}
+                    src={transformUrlSized(photo.signed_url ?? photo.public_url, 'thumb')}
                     alt=""
                     className="w-full h-full object-cover"
                     loading="lazy"
