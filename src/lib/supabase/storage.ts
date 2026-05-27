@@ -159,12 +159,18 @@ export type ThumbSize = keyof typeof THUMB_SIZES
 export async function signStoragePathSized(
   path: string,
   size: ThumbSize,
-  options: { resize?: 'cover' | 'contain' } = {},
+  options: { resize?: 'cover' | 'contain'; aspect?: 'square' | 'preserve' } = {},
   expiresIn?: number,
 ): Promise<string | null> {
+  const { width, quality } = THUMB_SIZES[size]
   return signStoragePathThumbnail(
     path,
-    { ...THUMB_SIZES[size], height: THUMB_SIZES[size].width, resize: options.resize ?? 'cover' },
+    {
+      width,
+      quality,
+      ...(options.aspect === 'preserve' ? {} : { height: width }),
+      resize: options.resize ?? 'cover',
+    },
     expiresIn,
   )
 }
@@ -172,12 +178,18 @@ export async function signStoragePathSized(
 export async function signStoragePathsSized(
   paths: string[],
   size: ThumbSize,
-  options: { resize?: 'cover' | 'contain' } = {},
+  options: { resize?: 'cover' | 'contain'; aspect?: 'square' | 'preserve' } = {},
   expiresIn?: number,
 ): Promise<Map<string, string>> {
+  const { width, quality } = THUMB_SIZES[size]
   return signStoragePathsThumbnail(
     paths,
-    { ...THUMB_SIZES[size], height: THUMB_SIZES[size].width, resize: options.resize ?? 'cover' },
+    {
+      width,
+      quality,
+      ...(options.aspect === 'preserve' ? {} : { height: width }),
+      resize: options.resize ?? 'cover',
+    },
     expiresIn,
   )
 }
