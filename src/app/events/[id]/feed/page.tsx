@@ -16,7 +16,7 @@ export default async function LiveFeedPage({ params }: Props) {
   ])
   if (eventResult.error || !eventResult.data) notFound()
   const files = (photosResult.data ?? []) as MediaFile[]
-  const urlMap = await signStoragePathsSized(files.map((f) => f.storage_path), 'card', { aspect: 'preserve' })
+  const urlMap = await signStoragePathsSized(files, 'card', { aspect: 'preserve' })
   const initialPhotos = files.map((f) => ({ ...f, signed_url: urlMap.get(f.storage_path) ?? '' }))
   return <LiveFeedClient event={eventResult.data as Event} initialPhotos={initialPhotos} />
 }

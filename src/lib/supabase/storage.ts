@@ -156,15 +156,41 @@ export const THUMB_SIZES = {
 
 export type ThumbSize = keyof typeof THUMB_SIZES
 
+/** A media_files row (or minimal subset) that carries an optional display derivative. */
+export interface MediaFileRef {
+  storage_path: string
+  display_path: string | null
+}
+
+/**
+ * Returns the path that should be used for display / image transforms.
+ * Falls back to storage_path when display_path is null (old rows, non-image files).
+ */
+export function getDisplayPath(row: MediaFileRef): string {
+  return row.display_path ?? row.storage_path
+}
+
+/** Accepts a bare path string or a MediaFileRef. Normalises to the display path. */
+type PathOrRef = string | MediaFileRef
+
+function resolveDisplayPath(input: PathOrRef): string {
+  if (typeof input === 'string') return input
+  return getDisplayPath(input)
+}
+
+/**
+ * For signStoragePathsSized the map is keyed by storage_path so callers can
+ * look up URLs by storage_path regardless of whether a display derivative exists.
+ */
 export async function signStoragePathSized(
-  path: string,
+  pathOrRef: PathOrRef,
   size: ThumbSize,
   options: { resize?: 'cover' | 'contain'; aspect?: 'square' | 'preserve' } = {},
   expiresIn?: number,
 ): Promise<string | null> {
   const { width, quality } = THUMB_SIZES[size]
   return signStoragePathThumbnail(
-    path,
+    resolveDisplayPath(pathOrRef),
     {
       width,
       quality,
@@ -175,23 +201,41 @@ export async function signStoragePathSized(
   )
 }
 
+/**
+ * Batch-sign an array of paths or MediaFileRef objects.
+ * The returned Map is always keyed by storage_path, so existing callers
+ * that look up by storage_path continue to work unchanged.
+ */
 export async function signStoragePathsSized(
-  paths: string[],
+  inputs: PathOrRef[],
   size: ThumbSize,
   options: { resize?: 'cover' | 'contain'; aspect?: 'square' | 'preserve' } = {},
   expiresIn?: number,
 ): Promise<Map<string, string>> {
+  if (inputs.length === 0) return new Map()
+
   const { width, quality } = THUMB_SIZES[size]
-  return signStoragePathsThumbnail(
-    paths,
-    {
-      width,
-      quality,
-      ...(options.aspect === 'preserve' ? {} : { height: width }),
-      resize: options.resize ?? 'cover',
-    },
-    expiresIn,
+  const thumbOpts = {
+    width,
+    quality,
+    ...(options.aspect === 'preserve' ? {} : { height: width }),
+    resize: options.resize ?? ('cover' as const),
+  }
+
+  const results = await Promise.all(
+    inputs.map(async (input) => {
+      const storagePath  = typeof input === 'string' ? input : input.storage_path
+      const displayPath  = resolveDisplayPath(input)
+      const url = await signStoragePathThumbnail(displayPath, thumbOpts, expiresIn)
+      return [storagePath, url] as const
+    })
   )
+
+  const map = new Map<string, string>()
+  for (const [storagePath, url] of results) {
+    if (url) map.set(storagePath, url)
+  }
+  return map
 }
 
 export function transformUrlSized(url: string, size: ThumbSize): string {

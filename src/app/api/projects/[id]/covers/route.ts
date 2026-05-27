@@ -13,7 +13,7 @@ export async function GET(
   const supabase = createClient()
   const { data, error } = await supabase
     .from('media_files')
-    .select('id, storage_path')
+    .select('id, storage_path, display_path')
     .eq('event_id', params.id)
     .eq('file_type', 'image')
     .is('deleted_at', null)
@@ -23,10 +23,9 @@ export async function GET(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   const rows = data ?? []
-  const paths = rows.map((r: { storage_path: string }) => r.storage_path)
-  const urlMap = paths.length > 0 ? await signStoragePathsSized(paths, 'thumb', { aspect: 'square' }) : new Map<string, string>()
+  const urlMap = rows.length > 0 ? await signStoragePathsSized(rows, 'thumb', { aspect: 'square' }) : new Map<string, string>()
 
-  const photos = rows.map((r: { id: string; storage_path: string }) => ({
+  const photos = rows.map((r: { id: string; storage_path: string; display_path: string | null }) => ({
     id: r.id,
     storage_path: r.storage_path,
     signed_url: urlMap.get(r.storage_path) ?? '',

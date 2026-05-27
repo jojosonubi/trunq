@@ -121,6 +121,7 @@ export interface MediaFile {
   dominant_colours: string[]
   created_at: string
   deleted_at: string | null
+  display_path: string | null
   /** Populated server-side before passing to client; not stored in DB. */
   signed_url?: string
 }

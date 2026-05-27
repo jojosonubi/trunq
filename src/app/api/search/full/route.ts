@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
   let mfQ = supabase
     .from('media_files')
-    .select('id, event_id, storage_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
+    .select('id, event_id, storage_path, display_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(200)
@@ -132,7 +132,7 @@ export async function GET(req: NextRequest) {
     if (missingIds.length > 0) {
       let extraQ = supabase
         .from('media_files')
-        .select('id, event_id, storage_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
+        .select('id, event_id, storage_path, display_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
         .is('deleted_at', null)
         .in('id', missingIds.slice(0, 200))
 
@@ -147,7 +147,8 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Step 5: merge, dedupe, build results ────────────────────────────────────
-  const photoMap = new Map<string, FullPhotoResult>()
+  const photoMap       = new Map<string, FullPhotoResult>()
+  const displayPathMap = new Map<string, string | null>()  // id → display_path
 
   function addRow(row: any, matchedTag: string | null) {
     if (photoMap.has(row.id)) return
@@ -165,6 +166,7 @@ export async function GET(req: NextRequest) {
       file_type:        row.file_type,
       matched_tag:      matchedTag,
     })
+    displayPathMap.set(row.id, row.display_path ?? null)
   }
 
   for (const row of (mfRows ?? [])) addRow(row, null)
@@ -177,10 +179,11 @@ export async function GET(req: NextRequest) {
   const photos = [...photoMap.values()]
 
   // ── Step 6: sign URLs in two sizes (card for grid, full for lightbox) ────────
-  const paths = photos.map((p) => p.storage_path).filter(Boolean)
+  // Use display_path where available so Supabase transforms work on files >25 MB
+  const photoRefs = photos.map((p) => ({ storage_path: p.storage_path, display_path: displayPathMap.get(p.id) ?? null }))
   const [cardMap, fullMap] = await Promise.all([
-    paths.length > 0 ? signStoragePathsSized(paths, 'card', { aspect: 'preserve' }) : new Map<string, string>(),
-    paths.length > 0 ? signStoragePathsSized(paths, 'full', { aspect: 'preserve' }) : new Map<string, string>(),
+    photoRefs.length > 0 ? signStoragePathsSized(photoRefs, 'card', { aspect: 'preserve' }) : new Map<string, string>(),
+    photoRefs.length > 0 ? signStoragePathsSized(photoRefs, 'full', { aspect: 'preserve' }) : new Map<string, string>(),
   ])
   for (const photo of photos) {
     photo.signed_url = cardMap.get(photo.storage_path) ?? photo.public_url

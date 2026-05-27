@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
   // Fetch limit+1 to detect whether there is a next page
   let query = supabase
     .from('media_files')
-    .select('id, storage_path, folder_id, photographer_id, photographer, created_at')
+    .select('id, storage_path, display_path, folder_id, photographer_id, photographer, created_at')
     .eq('event_id', eventId)
     .eq('organisation_id', orgId)
     .eq('review_status', 'approved')
@@ -146,11 +146,10 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 6. Sign URLs (batch, two sizes in parallel) ───────────────────────────
-  const storagePaths = pageRows.map((r) => r.storage_path).filter(Boolean) as string[]
-
+  // Pass row objects so display_path is used when available (avoids >25MB transform failures)
   const [fullMap, cardMap] = await Promise.all([
-    signStoragePathsSized(storagePaths, 'full',  { aspect: 'preserve' }),
-    signStoragePathsSized(storagePaths, 'card',  { aspect: 'preserve' }),
+    signStoragePathsSized(pageRows, 'full',  { aspect: 'preserve' }),
+    signStoragePathsSized(pageRows, 'card',  { aspect: 'preserve' }),
   ])
   console.log('[public/photos] signed URLs — full:', fullMap.size, 'card:', cardMap.size)
 

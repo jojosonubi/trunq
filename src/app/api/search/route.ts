@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     // Photos: description or photographer
     supabase
       .from('media_files')
-      .select('id, event_id, public_url, storage_path, description, photographer, events(id, name, date)')
+      .select('id, event_id, public_url, storage_path, display_path, description, photographer, events(id, name, date)')
       .or(`description.ilike.${star},photographer.ilike.${star}`)
       .eq('file_type', 'image')
       .is('deleted_at', null)
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     // Photos: AI tag value (joined back to the file + event)
     supabase
       .from('tags')
-      .select('value, media_files(id, event_id, public_url, storage_path, description, photographer, events(id, name, date))')
+      .select('value, media_files(id, event_id, public_url, storage_path, display_path, description, photographer, events(id, name, date))')
       .ilike('value', pattern)
       .limit(20),
 
@@ -93,7 +93,8 @@ export async function GET(req: NextRequest) {
   ])
 
   // ── Build photo results ──────────────────────────────────────────────────────
-  const photoMap = new Map<string, PhotoResult>()
+  const photoMap       = new Map<string, PhotoResult>()
+  const displayPathMap = new Map<string, string | null>()  // id → display_path
 
   for (const f of (photosByFieldRes.data ?? []) as any[]) {
     const ev = f.events as { name?: string; date?: string } | null
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
       photographer: f.photographer,
       matched_tag:  null,
     })
+    displayPathMap.set(f.id, f.display_path ?? null)
   }
 
   for (const t of (tagMatchesRes.data ?? []) as any[]) {
@@ -130,6 +132,7 @@ export async function GET(req: NextRequest) {
       photographer: mf.photographer,
       matched_tag:  String(t.value),
     })
+    displayPathMap.set(mf.id, mf.display_path ?? null)
   }
 
   // ── Build performer results ──────────────────────────────────────────────────
@@ -147,9 +150,9 @@ export async function GET(req: NextRequest) {
 
   const photos = [...photoMap.values()].slice(0, 8)
 
-  // Generate signed URLs for all photo results in one batch
-  const storagePaths = photos.map((p) => p.storage_path).filter(Boolean)
-  const signedUrlMap = storagePaths.length > 0 ? await signStoragePathsSized(storagePaths, 'tiny', { aspect: 'square' }) : new Map<string, string>()
+  // Generate signed URLs using display_path where available, keyed by storage_path
+  const photoRefs    = photos.map((p) => ({ storage_path: p.storage_path, display_path: displayPathMap.get(p.id) ?? null }))
+  const signedUrlMap = photoRefs.length > 0 ? await signStoragePathsSized(photoRefs, 'tiny', { aspect: 'square' }) : new Map<string, string>()
   for (const photo of photos) {
     photo.signed_url = signedUrlMap.get(photo.storage_path) ?? photo.public_url
   }
