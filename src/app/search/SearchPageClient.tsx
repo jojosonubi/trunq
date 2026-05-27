@@ -494,7 +494,7 @@ function SearchLightbox({
   const photo   = photos[index]
   const hasPrev = index > 0
   const hasNext = index < photos.length - 1
-  const imgSrc = photo.signed_url ?? photo.public_url
+  const imgSrc = photo.full_url ?? photo.signed_url ?? photo.public_url
 
   return (
     <div

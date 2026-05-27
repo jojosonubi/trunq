@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { signStoragePaths } from '@/lib/supabase/storage'
+import { signStoragePathsSized } from '@/lib/supabase/storage'
 import { requireApiUser } from '@/lib/api-auth'
 
 function getServiceClient() {
@@ -19,6 +19,7 @@ export interface FullPhotoResult {
   storage_path: string
   public_url: string
   signed_url?: string
+  full_url?:   string
   photographer: string | null
   description: string | null
   matched_tag: string | null
@@ -175,11 +176,15 @@ export async function GET(req: NextRequest) {
 
   const photos = [...photoMap.values()]
 
-  // ── Step 6: sign URLs in one batch ─────────────────────────────────────────
+  // ── Step 6: sign URLs in two sizes (card for grid, full for lightbox) ────────
   const paths = photos.map((p) => p.storage_path).filter(Boolean)
-  const urlMap = paths.length > 0 ? await signStoragePaths(paths) : new Map<string, string>()
+  const [cardMap, fullMap] = await Promise.all([
+    paths.length > 0 ? signStoragePathsSized(paths, 'card', { aspect: 'preserve' }) : new Map<string, string>(),
+    paths.length > 0 ? signStoragePathsSized(paths, 'full', { aspect: 'preserve' }) : new Map<string, string>(),
+  ])
   for (const photo of photos) {
-    photo.signed_url = urlMap.get(photo.storage_path) ?? photo.public_url
+    photo.signed_url = cardMap.get(photo.storage_path) ?? photo.public_url
+    photo.full_url   = fullMap.get(photo.storage_path) ?? photo.public_url
   }
 
   return NextResponse.json({ photos, total: photos.length })
