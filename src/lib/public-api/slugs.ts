@@ -4,7 +4,6 @@ const PUBLIC_ORG_SLUGS: Record<string, string> = {
 
 const PUBLIC_EVENT_SLUGS: Record<string, string> = {
   'recessland-2026': '6c5527a5-a7b3-41ef-b872-061fca9e52cf',
-  'recess-ibiza':    '32f33a77-a2b8-46e0-b96e-f9ecae2f657f', // TEMPORARY — verification only
 }
 
 export function resolvePublicOrg(slug: string | null): string | null {
