@@ -136,6 +136,58 @@ export async function signStoragePathsThumbnail(
   return map
 }
 
+// ─── Named thumbnail sizes ────────────────────────────────────────────────────
+
+/**
+ * Named thumbnail sizes used across the app.
+ * Always reference these by name — never pass ad-hoc width/quality numbers.
+ *
+ *   tiny  — ≤80px cells (search results 48px, social strip 40px)
+ *   thumb — 120–250px cells (cover picker, share grid, recent strip)
+ *   card  — grid cards at ~25–50vw on desktop (project/event covers, media grid, queue, delivery, search results)
+ *   full  — lightbox / max-display (fullscreen viewing)
+ */
+export const THUMB_SIZES = {
+  tiny:  { width: 120,  quality: 75 },
+  thumb: { width: 400,  quality: 80 },
+  card:  { width: 800,  quality: 80 },
+  full:  { width: 2000, quality: 85 },
+} as const
+
+export type ThumbSize = keyof typeof THUMB_SIZES
+
+export async function signStoragePathSized(
+  path: string,
+  size: ThumbSize,
+  options: { resize?: 'cover' | 'contain' } = {},
+  expiresIn?: number,
+): Promise<string | null> {
+  return signStoragePathThumbnail(
+    path,
+    { ...THUMB_SIZES[size], height: THUMB_SIZES[size].width, resize: options.resize ?? 'cover' },
+    expiresIn,
+  )
+}
+
+export async function signStoragePathsSized(
+  paths: string[],
+  size: ThumbSize,
+  options: { resize?: 'cover' | 'contain' } = {},
+  expiresIn?: number,
+): Promise<Map<string, string>> {
+  return signStoragePathsThumbnail(
+    paths,
+    { ...THUMB_SIZES[size], height: THUMB_SIZES[size].width, resize: options.resize ?? 'cover' },
+    expiresIn,
+  )
+}
+
+export function transformUrlSized(url: string, size: ThumbSize): string {
+  return transformUrl(url, THUMB_SIZES[size].width, THUMB_SIZES[size].quality)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Attach a signed `signed_url` field to every file.
  * Uses the batch createSignedUrls API.
