@@ -96,7 +96,24 @@ export async function GET(req: NextRequest) {
 
   if (dayFilter)    query = query.eq('folder_id',      dayFilter)
   if (pgFilter)     query = query.eq('photographer_id', pgFilter)
-  if (q)            query = query.or(`description.ilike.%${q}%,filename.ilike.%${q}%`)
+
+  if (q) {
+    // Pre-fetch media_file_ids whose tags match the query term, then OR them with
+    // description/filename matches. Cap at 200 unique IDs to keep the in-clause
+    // within reasonable URL length bounds (server-to-server call, ~7KB for 200 UUIDs).
+    const { data: tagRows } = await supabase
+      .from('tags')
+      .select('media_file_id')
+      .ilike('value', `%${q}%`)
+      .limit(500)
+
+    const taggedIds = [...new Set((tagRows ?? []).map((t: { media_file_id: string }) => t.media_file_id))].slice(0, 200)
+    console.log('[public/photos] q search term:', q, '| tag ID matches:', taggedIds.length)
+
+    const orParts: string[] = [`description.ilike.%${q}%`, `filename.ilike.%${q}%`]
+    if (taggedIds.length > 0) orParts.push(`id.in.(${taggedIds.join(',')})`)
+    query = query.or(orParts.join(','))
+  }
 
   // Keyset pagination: (created_at, id) < (cursor.createdAt, cursor.id)
   if (cursor) {
