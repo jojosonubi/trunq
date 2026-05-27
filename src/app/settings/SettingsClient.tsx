@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { UserProfile } from '@/lib/auth'
 import type { BackupStats } from '@/app/api/backup/route'
 import type { AuditLog, Event, MediaFile } from '@/types'
+import { transformUrlSized } from '@/lib/supabase/storage'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -976,7 +977,7 @@ export default function SettingsClient({
                               <div className="relative aspect-square bg-surface-0">
                                 {photo.public_url ? (
                                   <img
-                                    src={photo.public_url}
+                                    src={transformUrlSized(photo.public_url, 'card')}
                                     alt={photo.filename}
                                     className="w-full h-full object-cover"
                                   />
