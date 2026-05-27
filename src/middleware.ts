@@ -11,6 +11,7 @@ const PUBLIC_PREFIXES = [
   '/api/rescore/process',
   '/api/rescore/batch',
   '/api/foto-lab/',
+  '/api/public/',         // public read API (Foto Lab, recess.land)
   '/api/share/',          // share link auth/media/review (unauthenticated viewers)
   '/api/webhooks/',
 ]
