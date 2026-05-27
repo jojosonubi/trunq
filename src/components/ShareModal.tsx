@@ -228,7 +228,8 @@ export default function ShareModal({ projectId, folders, onClose }: Props) {
                         cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
-                      {f.name.replace(/\s*·.*$/, '')}
+                      {/* folder names are plain "Day N" — no suffix to strip */}
+                      {f.name}
                     </button>
                   ))}
                 </div>

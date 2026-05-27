@@ -75,34 +75,14 @@ export default function NewEventPage() {
       )
     }
 
-    // Create folder structure
+    // Create folder structure — one plain "Day N" folder per day.
+    // Photographer attribution lives on media_files, not folder names.
     if (multiDay && dayCount >= 2) {
-      // Multi-day: Day 1 · Photographer A, Day 1 · Photographer B, Day 2 · …
-      const days = Array.from({ length: dayCount }, (_, i) => i + 1)
-      const folderNames: string[] = []
-      for (const day of days) {
-        if (photographers.length > 0) {
-          for (const name of photographers) {
-            folderNames.push(`Day ${day} · ${name}`)
-          }
-        } else {
-          folderNames.push(`Day ${day}`)
-        }
-      }
-      for (const name of folderNames) {
+      for (let day = 1; day <= dayCount; day++) {
         await fetch('/api/folders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, name }),
-        })
-      }
-    } else {
-      // Single-day: one folder per photographer
-      for (const name of photographers) {
-        await fetch('/api/folders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event_id: eventId, name }),
+          body: JSON.stringify({ event_id: eventId, name: `Day ${day}` }),
         })
       }
     }

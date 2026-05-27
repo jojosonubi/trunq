@@ -313,7 +313,8 @@ export default function UploadModal({ files, photographers, folders, onStart, on
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s',
                     }}
                   >
-                    {folder.name.replace(/\s*·.*$/, '')}
+                    {/* folder names are plain "Day N" — no suffix to strip */}
+                    {folder.name}
                   </button>
                 )
               })}

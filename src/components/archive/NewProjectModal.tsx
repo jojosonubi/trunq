@@ -106,29 +106,14 @@ export default function NewProjectModal({ isOpen, onClose }: Props) {
     }
     if (upserts.length) await Promise.all(upserts)
 
-    // Create folder structure
+    // Create folder structure — one plain "Day N" folder per day.
+    // Photographer attribution lives on media_files, not folder names.
     if (multiDay && dayCount >= 2) {
-      const folderNames: string[] = []
       for (let day = 1; day <= dayCount; day++) {
-        if (photographers.length > 0) {
-          for (const pname of photographers) folderNames.push(`Day ${day} · ${pname}`)
-        } else {
-          folderNames.push(`Day ${day}`)
-        }
-      }
-      for (const name of folderNames) {
         await fetch('/api/folders', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ event_id: eventId, name }),
-        })
-      }
-    } else {
-      for (const name of photographers) {
-        await fetch('/api/folders', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ event_id: eventId, name }),
+          body:    JSON.stringify({ event_id: eventId, name: `Day ${day}` }),
         })
       }
     }
