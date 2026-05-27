@@ -6,6 +6,7 @@ import { Check, X, RotateCcw, Loader2, Copy } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import { ScorePill } from '@/components/ui/Pill'
 import type { MediaFile } from '@/types'
+import { transformUrlSized } from '@/lib/supabase/storage'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ function QueueCard({
   onRescore?:  (e: React.MouseEvent) => void
   isRescoring: boolean
 }) {
-  const src = photo.signed_url ?? photo.public_url
+  const src = transformUrlSized(photo.signed_url ?? photo.public_url, 'card')
 
   const borderColor = selected
     ? 'var(--accent)'
