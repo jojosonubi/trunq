@@ -27,21 +27,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    const { data, error } = await supabase
+    const trimmedName = name.trim()
+    console.log('[folders POST] inserting:', { event_id, name: trimmedName })
+
+    const { data: inserted, error } = await supabase
       .from('folders')
-      .insert({
-        event_id,
-        organisation_id: event.organisation_id,
-        name:            name.trim(),
-      })
+      .upsert(
+        { event_id, organisation_id: event.organisation_id, name: trimmedName },
+        { onConflict: 'event_id,name', ignoreDuplicates: true },
+      )
       .select()
       .single()
 
     if (error) {
+      console.error('[folders POST] upsert error:', error.message)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ folder: data }, { status: 201 })
+    if (inserted) {
+      // Row was created (no conflict)
+      return NextResponse.json({ folder: inserted }, { status: 201 })
+    }
+
+    // ignoreDuplicates: true returns no row on conflict — fetch the pre-existing one
+    // so callers always get back a folder regardless of whether it was just created.
+    console.log('[folders POST] conflict detected — fetching existing row:', { event_id, name: trimmedName })
+    const { data: existing, error: fetchErr } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('event_id', event_id)
+      .eq('name', trimmedName)
+      .single()
+
+    if (fetchErr || !existing) {
+      console.error('[folders POST] fallback fetch failed:', fetchErr?.message)
+      return NextResponse.json({ error: 'Could not resolve folder after conflict' }, { status: 500 })
+    }
+
+    return NextResponse.json({ folder: existing }, { status: 200 })
   } catch (err) {
     console.error('[folders POST] error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
