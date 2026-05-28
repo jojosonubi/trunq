@@ -23,7 +23,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   const profile = await requireAuth()
   const supabase = createClient()
 
-  const [eventResult, mediaResult, deliveryResult, foldersResult, performersResult, brandsResult, photographerAggResult] = await Promise.all([
+  const [eventResult, mediaResult, deliveryResult, foldersResult, performersResult, brandsResult, distinctPhotographers] = await Promise.all([
     supabase.from('events').select('*').eq('id', params.id).is('deleted_at', null).single(),
     supabase
       .from('media_files')
@@ -53,14 +53,27 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
       .select('*')
       .eq('event_id', params.id)
       .order('created_at', { ascending: true }),
-    // Aggregate: one row per distinct photographer name — volume-proof, never capped
-    supabase
-      .from('media_files')
-      .select('photographer, count()')
-      .eq('event_id', params.id)
-      .is('deleted_at', null)
-      .eq('file_type', 'image')
-      .not('photographer', 'is', null),
+    // Paginated distinct photographer names — volume-proof (PGRST123: aggregates not enabled)
+    (async () => {
+      const PAGE = 1000
+      let from = 0
+      const names = new Set<string>()
+      for (;;) {
+        const { data } = await supabase
+          .from('media_files')
+          .select('photographer')
+          .eq('event_id', params.id)
+          .is('deleted_at', null)
+          .eq('file_type', 'image')
+          .not('photographer', 'is', null)
+          .range(from, from + PAGE - 1)
+        if (!data || data.length === 0) break
+        for (const r of data) if (r.photographer) names.add(r.photographer)
+        if (data.length < PAGE) break
+        from += PAGE
+      }
+      return [...names].sort()
+    })(),
   ])
 
   if (eventResult.error || !eventResult.data) {
@@ -80,11 +93,6 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   const folders    = (foldersResult.data    ?? []) as Folder[]
   const performers = (performersResult.data ?? []) as Performer[]
   const brands     = (brandsResult.data     ?? []) as Brand[]
-
-  // Aggregate result: one row per distinct photographer name — sorted, volume-proof
-  const distinctPhotographers = ((photographerAggResult.data ?? []) as Array<{ photographer: string }>)
-    .map((r) => r.photographer)
-    .sort()
 
   const openPhotoId = searchParams?.photo ?? null
   const initialTab  = searchParams?.tab === 'performers'
