@@ -76,6 +76,13 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
     })(),
   ])
 
+  console.log('mediaResult.error:', mediaResult.error)
+  console.log('mediaResult.status:', mediaResult.status)
+  console.log('mediaResult.count:', mediaResult.count)
+  console.log('mediaResult.data length:', mediaResult.data?.length)
+  console.log('foldersResult.data length:', foldersResult.data?.length, 'error:', foldersResult.error)
+  console.log('performersResult.data length:', performersResult.data?.length, 'error:', performersResult.error)
+
   if (eventResult.error || !eventResult.data) {
     notFound()
   }
