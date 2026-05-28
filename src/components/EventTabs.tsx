@@ -27,6 +27,8 @@ interface Props {
   initialTab?: Tab
   initialOpenPhotoId?: string | null
   role?: UserRole
+  /** Aggregate-derived list of all photographer names for this event — volume-proof */
+  distinctPhotographers?: string[]
 }
 
 // ─── EventTabs ────────────────────────────────────────────────────────────────
@@ -42,6 +44,7 @@ export default function EventTabs({
   initialTab,
   initialOpenPhotoId,
   role = 'admin',
+  distinctPhotographers,
 }: Props) {
   const router = useRouter()
 
@@ -235,6 +238,7 @@ export default function EventTabs({
               brands={initialBrands}
               initialOpenPhotoId={initialOpenPhotoId}
               role={role}
+              allPhotographers={distinctPhotographers}
             />
           </div>
         </div>

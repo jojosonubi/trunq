@@ -23,14 +23,16 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
   const profile = await requireAuth()
   const supabase = createClient()
 
-  const [eventResult, mediaResult, deliveryResult, foldersResult, performersResult, brandsResult] = await Promise.all([
+  const [eventResult, mediaResult, deliveryResult, foldersResult, performersResult, brandsResult, photographerAggResult] = await Promise.all([
     supabase.from('events').select('*').eq('id', params.id).is('deleted_at', null).single(),
     supabase
       .from('media_files')
       .select('*, tags(*), performer_tags(*, performers(*)), brand_tags(*, brands(*))')
       .eq('event_id', params.id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      // TODO: paginate this grid — temporary cap, will break above 5 000 photos/event
+      .range(0, 4999),
     supabase
       .from('delivery_links')
       .select('token')
@@ -51,6 +53,14 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
       .select('*')
       .eq('event_id', params.id)
       .order('created_at', { ascending: true }),
+    // Aggregate: one row per distinct photographer name — volume-proof, never capped
+    supabase
+      .from('media_files')
+      .select('photographer, count()')
+      .eq('event_id', params.id)
+      .is('deleted_at', null)
+      .eq('file_type', 'image')
+      .not('photographer', 'is', null),
   ])
 
   if (eventResult.error || !eventResult.data) {
@@ -67,6 +77,11 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
   const folders    = (foldersResult.data    ?? []) as Folder[]
   const performers = (performersResult.data ?? []) as Performer[]
   const brands     = (brandsResult.data     ?? []) as Brand[]
+
+  // Aggregate result: one row per distinct photographer name — sorted, volume-proof
+  const distinctPhotographers = ((photographerAggResult.data ?? []) as Array<{ photographer: string }>)
+    .map((r) => r.photographer)
+    .sort()
 
   const openPhotoId = searchParams?.photo ?? null
   const initialTab  = searchParams?.tab === 'performers'
@@ -142,6 +157,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
               initialTab={initialTab}
               initialOpenPhotoId={openPhotoId}
               role={profile.role}
+              distinctPhotographers={distinctPhotographers}
             />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">

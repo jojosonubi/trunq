@@ -42,9 +42,12 @@ interface Props {
   brands?: Brand[]
   initialOpenPhotoId?: string | null
   role?: UserRole
+  /** Aggregate-derived list of all photographer names — volume-proof. When provided,
+   *  replaces the in-memory derivation so chips are correct even when the grid is capped. */
+  allPhotographers?: string[]
 }
 
-export default function GalleryWithSearch({ files, untaggedImages, event, folders, onAssignFolder, performers, brands, initialOpenPhotoId, role }: Props) {
+export default function GalleryWithSearch({ files, untaggedImages, event, folders, onAssignFolder, performers, brands, initialOpenPhotoId, role, allPhotographers }: Props) {
   const router = useRouter()
 
   // ── Column count (persisted to localStorage) ─────────────────────────────
@@ -108,10 +111,14 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
   const [rotations, setRotations] = useState<Record<string, number>>({})
 
   // ── Derived: unique photographers ────────────────────────────────────────
+  // Prefer aggregate-derived list (allPhotographers) when provided — it reflects ALL
+  // photographers for the event regardless of how many rows the grid query returned.
+  // Fall back to scanning fetched rows only when no aggregate was passed (e.g. legacy callers).
   const uniquePhotographers = useMemo(() => {
+    if (allPhotographers && allPhotographers.length > 0) return allPhotographers
     const names = files.map((f) => f.photographer).filter((p): p is string => !!p)
     return [...new Set(names)].sort()
-  }, [files])
+  }, [files, allPhotographers])
 
   // ── Derived: filtered list ────────────────────────────────────────────────
   const isFiltered = query.trim() !== '' || activePills.size > 0 || activePhotographer !== null || showStarredOnly || activePerformerId !== null || activeBrandId !== null || activeFileType !== null || activeColour !== null
