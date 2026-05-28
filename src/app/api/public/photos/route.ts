@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
   // ── 6. Sign URLs (batch, two sizes in parallel) ───────────────────────────
   // Pass row objects so display_path is used when available (avoids >25MB transform failures)
   const [fullMap, cardMap] = await Promise.all([
-    signStoragePathsSized(pageRows, 'full',  { aspect: 'preserve' }),
+    signStoragePathsSized(pageRows, 'full',  { aspect: 'preserve', resize: 'contain' }),
     signStoragePathsSized(pageRows, 'card',  { aspect: 'preserve' }),
   ])
   console.log('[public/photos] signed URLs — full:', fullMap.size, 'card:', cardMap.size)
