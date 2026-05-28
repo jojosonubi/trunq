@@ -27,7 +27,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
     supabase.from('events').select('*').eq('id', params.id).is('deleted_at', null).single(),
     supabase
       .from('media_files')
-      .select('*, tags(*), performer_tags(*, performers(*)), brand_tags(*, brands(*))')
+      .select('*')
       .eq('event_id', params.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -75,13 +75,6 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
       return [...names].sort()
     })(),
   ])
-
-  console.log('mediaResult.error:', mediaResult.error)
-  console.log('mediaResult.status:', mediaResult.status)
-  console.log('mediaResult.count:', mediaResult.count)
-  console.log('mediaResult.data length:', mediaResult.data?.length)
-  console.log('foldersResult.data length:', foldersResult.data?.length, 'error:', foldersResult.error)
-  console.log('performersResult.data length:', performersResult.data?.length, 'error:', performersResult.error)
 
   if (eventResult.error || !eventResult.data) {
     notFound()

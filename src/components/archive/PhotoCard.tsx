@@ -92,7 +92,7 @@ function StarIcon() {
 export default function PhotoCard({ file, onClick }: Props) {
   const src = file.signed_url ?? file.public_url
 
-  const displayTags = file.tags
+  const displayTags = (file.tags ?? [])
     .filter((t) => t.tag_type !== 'ai_generated' || t.confidence == null || t.confidence >= 0.7)
     .slice(0, 6)
 

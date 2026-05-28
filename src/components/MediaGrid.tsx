@@ -345,7 +345,7 @@ async function saveUsage() {
           {/* Performer tags */}
           {(file.performer_tags ?? []).length > 0 && (
             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {file.performer_tags.map((pt) => (
+              {(file.performer_tags ?? []).map((pt) => (
                 <Pill key={pt.id} variant="ghost">
                   <Users size={9} style={{ marginRight: 3 }} />
                   {pt.performers.name}
@@ -357,7 +357,7 @@ async function saveUsage() {
           {/* Brand tags */}
           {(file.brand_tags ?? []).length > 0 && (
             <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {file.brand_tags.map((bt) => (
+              {(file.brand_tags ?? []).map((bt) => (
                 <Pill key={bt.id} variant="ghost">
                   <TagIcon size={9} style={{ marginRight: 3 }} />
                   {bt.brands.name}

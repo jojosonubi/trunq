@@ -27,7 +27,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
     supabase.from('events').select('*').eq('id', params.id).is('deleted_at', null).single(),
     supabase
       .from('media_files')
-      .select('*, tags(*), performer_tags(*, performers(*)), brand_tags(*, brands(*))')
+      .select('*')
       .eq('event_id', params.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })

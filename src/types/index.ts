@@ -134,9 +134,9 @@ export interface DeliveryLink {
 }
 
 export interface MediaFileWithTags extends MediaFile {
-  tags: Tag[]
-  performer_tags: PerformerTagWithPerformer[]
-  brand_tags: BrandTagWithBrand[]
+  tags?: Tag[]
+  performer_tags?: PerformerTagWithPerformer[]
+  brand_tags?: BrandTagWithBrand[]
 }
 
 export interface Tag {
