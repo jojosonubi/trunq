@@ -98,7 +98,12 @@ export async function signStoragePathThumbnail(
     .createSignedUrl(path, expiresIn, {
       transform: {
         width:   options.width   ?? 600,
-        height:  options.height  ?? 600,
+        // Only include height when explicitly provided.
+        // Omitting it lets Supabase scale to the width constraint while preserving
+        // the image's natural aspect ratio — no cropping for portrait or landscape.
+        // Callers that want a square crop (aspect:'square') pass height:width explicitly
+        // via signStoragePathsSized, so those are unaffected.
+        ...(options.height != null ? { height: options.height } : {}),
         quality: options.quality ?? 75,
         resize:  options.resize  ?? 'cover',
       },
