@@ -43,64 +43,76 @@ export async function GET(req: NextRequest) {
   }
   console.log('[public/galleries] event confirmed:', eventRow.name)
 
-  // ── 3. Fetch folders (days) ────────────────────────────────────────────────
-  const { data: folderRows, error: folderErr } = await supabase
-    .from('folders')
-    .select('id, name')
-    .eq('event_id', eventId)
-    .order('name', { ascending: true })
+  // ── 3. Folders + aggregate counts (parallel) ──────────────────────────────
+  // AGGREGATE QUERIES — volume-proof; return one row per distinct group
+  // regardless of total photo count. count() uses PostgREST v12 aggregate syntax.
+  const [foldersRes, folderAggRes, pgAggRes] = await Promise.all([
+    // 3a. Folder list (names)
+    supabase
+      .from('folders')
+      .select('id, name')
+      .eq('event_id', eventId)
+      .order('name', { ascending: true }),
 
-  if (folderErr) {
-    console.log('[public/galleries] folders error:', folderErr.message)
+    // 3b. Approved photo count per folder_id (aggregate — never capped by row limit)
+    supabase
+      .from('media_files')
+      .select('folder_id, count()')
+      .eq('event_id', eventId)
+      .eq('organisation_id', orgId)
+      .eq('review_status', 'approved')
+      .is('deleted_at', null),
+
+    // 3c. Approved photo count per photographer_id (aggregate — volume-proof)
+    supabase
+      .from('media_files')
+      .select('photographer_id, count()')
+      .eq('event_id', eventId)
+      .eq('organisation_id', orgId)
+      .eq('review_status', 'approved')
+      .is('deleted_at', null)
+      .not('photographer_id', 'is', null),
+  ])
+
+  if (foldersRes.error) {
+    console.log('[public/galleries] folders error:', foldersRes.error.message)
     return NextResponse.json({ error: 'Failed to load days' }, { status: 500, headers: CORS_HEADERS })
   }
-  const folders = folderRows ?? []
-  console.log('[public/galleries] folders:', folders.length)
-
-  // ── 4. Approved media counts per folder ───────────────────────────────────
-  // Supabase doesn't support GROUP BY natively, so pull folder_id of all approved media
-  // then count client-side. Max rows = approved media per event (typically < 10k).
-  const { data: mediaRows, error: mediaErr } = await supabase
-    .from('media_files')
-    .select('id, folder_id, photographer_id, photographer')
-    .eq('event_id', eventId)
-    .eq('organisation_id', orgId)
-    .eq('review_status', 'approved')
-    .is('deleted_at', null)
-
-  if (mediaErr) {
-    console.log('[public/galleries] media error:', mediaErr.message)
-    return NextResponse.json({ error: 'Failed to load media' }, { status: 500, headers: CORS_HEADERS })
+  if (folderAggRes.error) {
+    console.log('[public/galleries] folder agg error:', folderAggRes.error.message)
+    return NextResponse.json({ error: 'Failed to load day counts' }, { status: 500, headers: CORS_HEADERS })
   }
-  const media = mediaRows ?? []
-  console.log('[public/galleries] approved media rows:', media.length)
+  if (pgAggRes.error) {
+    console.log('[public/galleries] photographer agg error:', pgAggRes.error.message)
+    return NextResponse.json({ error: 'Failed to load photographer counts' }, { status: 500, headers: CORS_HEADERS })
+  }
 
-  // Count per folder
-  const folderCounts = new Map<string, number>()
-  for (const m of media) {
-    if (m.folder_id) folderCounts.set(m.folder_id, (folderCounts.get(m.folder_id) ?? 0) + 1)
+  const folders = foldersRes.data ?? []
+
+  // PostgREST aggregate rows: { folder_id, count } / { photographer_id, count }
+  // count() returns a number; cast explicitly.
+  type FolderAggRow = { folder_id: string | null; count: number }
+  type PgAggRow     = { photographer_id: string;  count: number }
+
+  const folderAgg = (folderAggRes.data ?? []) as FolderAggRow[]
+  const pgAgg     = (pgAggRes.data     ?? []) as PgAggRow[]
+
+  console.log('[public/galleries] folder agg rows:', folderAgg.length, '| pg agg rows:', pgAgg.length)
+
+  // ── 4. Build day facets from aggregate ────────────────────────────────────
+  const folderCountMap = new Map<string, number>()
+  for (const row of folderAgg) {
+    if (row.folder_id) folderCountMap.set(row.folder_id, Number(row.count))
   }
 
   const days = folders.map((f) => ({
     value: f.id,
     label: f.name,
-    count: folderCounts.get(f.id) ?? 0,
+    count: folderCountMap.get(f.id) ?? 0,
   }))
 
-  // ── 5. Photographer facets ─────────────────────────────────────────────────
-  // Gather distinct photographer_ids that have approved media in this event
-  const photographerCounts = new Map<string, number>()
-  const nullPhotographerNames = new Map<string, string>() // fallback text name for null-id rows
-
-  for (const m of media) {
-    if (m.photographer_id) {
-      photographerCounts.set(m.photographer_id, (photographerCounts.get(m.photographer_id) ?? 0) + 1)
-    }
-    // null photographer_id rows are not included in the facet (no stable id to filter by)
-  }
-
-  // Fetch names for all distinct photographer_ids
-  const photographerIds = [...photographerCounts.keys()]
+  // ── 5. Fetch photographer names for distinct IDs ───────────────────────────
+  const photographerIds = pgAgg.map((r) => r.photographer_id)
   let photographerNameMap = new Map<string, string>()
 
   if (photographerIds.length > 0) {
@@ -110,23 +122,25 @@ export async function GET(req: NextRequest) {
       .in('id', photographerIds)
 
     if (pgErr) {
-      console.log('[public/galleries] photographers error:', pgErr.message)
+      console.log('[public/galleries] photographer names error:', pgErr.message)
       return NextResponse.json({ error: 'Failed to load photographers' }, { status: 500, headers: CORS_HEADERS })
     }
     for (const p of (pgRows ?? [])) photographerNameMap.set(p.id, p.name)
   }
 
-  const photographers = photographerIds
-    .map((id) => ({
-      value: id,
-      label: photographerNameMap.get(id) ?? 'Unknown',
-      count: photographerCounts.get(id) ?? 0,
+  // ── 6. Build photographer facets from aggregate ───────────────────────────
+  const photographers = pgAgg
+    .map((row) => ({
+      value: row.photographer_id,
+      label: photographerNameMap.get(row.photographer_id) ?? 'Unknown',
+      count: Number(row.count),
     }))
     .sort((a, b) => b.count - a.count)
 
-  console.log('[public/galleries] photographer facets:', photographers.length)
+  console.log('[public/galleries] photographer facets:', photographers.length,
+    '| total approved:', photographers.reduce((s, p) => s + p.count, 0))
 
-  // ── 6. Respond ────────────────────────────────────────────────────────────
+  // ── 7. Respond ────────────────────────────────────────────────────────────
   return NextResponse.json(
     {
       event: {
