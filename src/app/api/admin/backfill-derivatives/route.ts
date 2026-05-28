@@ -75,8 +75,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Owner role required' }, { status: 403 })
   }
 
-  // ── Optional event_id scope ───────────────────────────────────────────────
+  // ── Optional params ───────────────────────────────────────────────────────
   const eventId = req.nextUrl.searchParams.get('event_id') ?? null
+  // force=1 reprocesses rows that already have a display_path (regenerates the derivative)
+  const force   = req.nextUrl.searchParams.get('force') === '1'
 
   const supabase = createServiceClient()
 
@@ -96,17 +98,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Fetch rows that still need a derivative ───────────────────────────────
-  // Idempotent: only rows where display_path IS NULL and file is an image
+  // ── Fetch rows to process ─────────────────────────────────────────────────
+  // Default: only rows where display_path IS NULL (never generated).
+  // force=1: include all rows regardless of display_path (regenerates derivatives).
   let q = supabase
     .from('media_files')
     .select('id, storage_path, file_size')
-    .is('display_path', null)
     .is('deleted_at', null)
     .eq('file_type', 'image')
     .eq('organisation_id', auth.organisationId)
     .order('created_at', { ascending: true })
     .limit(100)    // cap per invocation to avoid timeout; re-run for remainder
+
+  if (!force) q = q.is('display_path', null)
 
   if (eventId) q = q.eq('event_id', eventId)
 

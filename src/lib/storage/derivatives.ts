@@ -30,6 +30,7 @@ export async function generateDisplayDerivative(
 
   for (const quality of [85, 80, 75]) {
     const buffer = await sharp(originalBuffer)
+      .rotate()                        // auto-apply EXIF orientation before resize
       .resize({
         width:             LONG_EDGE,
         height:            LONG_EDGE,
