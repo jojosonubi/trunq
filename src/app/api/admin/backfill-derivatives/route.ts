@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     .eq('file_type', 'image')
     .eq('organisation_id', auth.organisationId)
     .order('created_at', { ascending: true })
-    .limit(1000)   // cap per invocation to avoid timeout; re-run for remainder
+    .limit(100)    // cap per invocation to avoid timeout; re-run for remainder
 
   if (eventId) q = q.eq('event_id', eventId)
 
