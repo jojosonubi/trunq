@@ -32,7 +32,9 @@ export default async function DeliveryPage({ params }: Props) {
       .eq('event_id', link.event_id)
       .eq('review_status', 'approved')
       .is('deleted_at', null)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      // TODO: paginate delivery portal — temporary cap, will break above 5 000 approved photos
+      .range(0, 4999),
   ])
 
   if (eventResult.error || !eventResult.data) notFound()

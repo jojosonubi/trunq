@@ -41,9 +41,11 @@ export default async function SettingsPage() {
     service.from('media_files').select('id', { count: 'exact', head: true }).is('deleted_at', null).not('backup_storage_path', 'is', null),
     service.from('media_files').select('id, filename, storage_path, event_id, created_at').is('deleted_at', null).is('backup_storage_path', null).order('created_at', { ascending: false }).limit(100),
     service.from('photographers').select('id, name, created_at').order('name'),
-    service.from('media_files').select('photographer, event_id').not('photographer', 'is', null).is('deleted_at', null),
+    // TODO: paginate — temporary cap for per-photographer stats, will undercount above 5 000 photos
+    service.from('media_files').select('photographer, event_id').not('photographer', 'is', null).is('deleted_at', null).range(0, 4999),
     service.from('events').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
-    service.from('media_files').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }),
+    // TODO: paginate — temporary cap for trashed photos panel
+    service.from('media_files').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).range(0, 4999),
     service
       .from('audit_log')
       .select('id, user_id, action, entity_type, entity_id, metadata, created_at, profiles(full_name, email)')

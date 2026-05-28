@@ -41,6 +41,8 @@ export default async function PhotographerProfilePage({ params }: Props) {
     .is('deleted_at', null)
     .eq('file_type', 'image')
     .order('created_at', { ascending: false })
+    // TODO: paginate — temporary cap, will break above 5 000 photos per photographer
+    .range(0, 4999)
 
   const files = (rawFiles ?? []) as (MediaFile & { events: { id: string; name: string; date: string } | null })[]
 
