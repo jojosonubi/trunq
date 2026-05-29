@@ -25,6 +25,13 @@ import { signStoragePath } from '@/lib/supabase/storage'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Max-Age':       '86400',
+}
+
 const COLLECTION_ID       = 'recess-archive'
 const RECESS_ORG_ID       = '2b557660-6bb3-4d41-9b49-71e860681b9c'
 const SIMILARITY_THRESHOLD = Number(process.env.FOTO_LAB_SIMILARITY_THRESHOLD ?? 75)
@@ -79,6 +86,10 @@ interface MatchResult {
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const startMs  = Date.now()
   const service  = createServiceClient()
@@ -117,12 +128,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     body = await request.json()
   } catch {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Invalid JSON body' })
-    return NextResponse.json({ error: 'Invalid JSON body', search_id: searchId }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid JSON body', search_id: searchId }, { status: 400, headers: CORS_HEADERS })
   }
 
   if (typeof body.image !== 'string' || !body.image) {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Missing or invalid image field' })
-    return NextResponse.json({ error: 'Missing or invalid image field', search_id: searchId }, { status: 400 })
+    return NextResponse.json({ error: 'Missing or invalid image field', search_id: searchId }, { status: 400, headers: CORS_HEADERS })
   }
 
   // ── 2. Decode base64, strip data URL prefix ─────────────────────────────────
@@ -135,7 +146,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     imageBytes = new Uint8Array(Buffer.from(base64, 'base64'))
   } catch {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Failed to decode base64 image' })
-    return NextResponse.json({ error: 'Failed to decode base64 image', search_id: searchId }, { status: 400 })
+    return NextResponse.json({ error: 'Failed to decode base64 image', search_id: searchId }, { status: 400, headers: CORS_HEADERS })
   }
 
   // ── 3. Resize if over 4MB ───────────────────────────────────────────────────
@@ -148,7 +159,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       imageBytes = new Uint8Array(resized)
     } catch {
       const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: 'Image resize failed' })
-      return NextResponse.json({ error: 'Image resize failed', search_id: searchId }, { status: 400 })
+      return NextResponse.json({ error: 'Image resize failed', search_id: searchId }, { status: 400, headers: CORS_HEADERS })
     }
   }
 
@@ -175,27 +186,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         total_matches:    0,
         no_face_detected: true,
         duration_ms:      Date.now() - startMs,
-      })
+      }, { headers: CORS_HEADERS })
     }
     if (err instanceof InvalidImageFormatException) {
       const msg = 'Invalid image format'
       const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
-      return NextResponse.json({ error: msg, search_id: searchId }, { status: 400 })
+      return NextResponse.json({ error: msg, search_id: searchId }, { status: 400, headers: CORS_HEADERS })
     }
     if (err instanceof ImageTooLargeException) {
       const msg = 'Image too large'
       const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
-      return NextResponse.json({ error: msg, search_id: searchId }, { status: 400 })
+      return NextResponse.json({ error: msg, search_id: searchId }, { status: 400, headers: CORS_HEADERS })
     }
     if (err instanceof ProvisionedThroughputExceededException) {
       const msg = 'Service busy — try again shortly'
       const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
-      return NextResponse.json({ error: msg, search_id: searchId }, { status: 503 })
+      return NextResponse.json({ error: msg, search_id: searchId }, { status: 503, headers: CORS_HEADERS })
     }
     const msg = (err instanceof Error ? err.message : String(err)).slice(0, 500)
     console.error('[foto-lab/match] Rekognition error:', msg)
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: msg })
-    return NextResponse.json({ error: 'Search failed', search_id: searchId }, { status: 500 })
+    return NextResponse.json({ error: 'Search failed', search_id: searchId }, { status: 500, headers: CORS_HEADERS })
   }
 
   // ── 7. No matches ───────────────────────────────────────────────────────────
@@ -207,7 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       total_matches:    0,
       no_face_detected: false,
       duration_ms:      Date.now() - startMs,
-    })
+    }, { headers: CORS_HEADERS })
   }
 
   // Build faceId → best similarity map (a photo can have multiple faces indexed)
@@ -225,6 +236,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .overlaps('rekognition_face_ids', matchedFaceIds)
     .is('deleted_at', null)
     .eq('file_type', 'image')
+    .eq('review_status', 'approved')
 
   if (!photos || photos.length === 0) {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
@@ -234,7 +246,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       total_matches:    0,
       no_face_detected: false,
       duration_ms:      Date.now() - startMs,
-    })
+    }, { headers: CORS_HEADERS })
   }
 
   // ── 9–10. Score and sort ────────────────────────────────────────────────────
@@ -287,5 +299,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     total_matches:    matches.length,
     no_face_detected: false,
     duration_ms:      Date.now() - startMs,
-  })
+  }, { headers: CORS_HEADERS })
 }
