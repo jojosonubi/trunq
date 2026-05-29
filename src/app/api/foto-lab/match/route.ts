@@ -122,6 +122,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return data?.id ?? null
   }
 
+  // ── 0. Optional event scope ─────────────────────────────────────────────────
+  const eventId = request.nextUrl.searchParams.get('event_id') ?? null
+
   // ── 1. Parse body ───────────────────────────────────────────────────────────
   let body: { image?: unknown }
   try {
@@ -230,13 +233,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const matchedFaceIds = [...faceSimMap.keys()]
 
   // ── 8. Query media_files ────────────────────────────────────────────────────
-  const { data: photos } = await service
+  // Fetch all matching rows first (no cap here — cap applied after scoring so
+  // event-scoped results aren't crowded out by other-event matches).
+  let photosQuery = service
     .from('media_files')
     .select('id, storage_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
     .overlaps('rekognition_face_ids', matchedFaceIds)
     .is('deleted_at', null)
     .eq('file_type', 'image')
     .eq('review_status', 'approved')
+
+  if (eventId) photosQuery = photosQuery.eq('event_id', eventId)
+
+  const { data: photos } = await photosQuery
 
   if (!photos || photos.length === 0) {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
