@@ -43,6 +43,8 @@ export async function GET(req: NextRequest) {
   const cursorRaw    = searchParams.get('cursor')      || null
   const limitRaw     = parseInt(searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10)
   const limit        = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), MAX_LIMIT) : DEFAULT_LIMIT
+  const minScoreRaw  = searchParams.get('min_score')
+  const minScore     = minScoreRaw !== null ? parseInt(minScoreRaw, 10) : null
 
   console.log('[public/photos] params:', { orgSlug, eventSlug, dayFilter, pgFilter, q, cursorRaw, limit })
 
@@ -84,15 +86,18 @@ export async function GET(req: NextRequest) {
   // Fetch limit+1 to detect whether there is a next page
   let query = supabase
     .from('media_files')
-    .select('id, storage_path, display_path, folder_id, photographer_id, photographer, created_at')
+    .select('id, storage_path, display_path, folder_id, photographer_id, photographer, created_at, quality_score')
     .eq('event_id', eventId)
     .eq('organisation_id', orgId)
     .eq('review_status', 'approved')
     .is('deleted_at', null)
     .eq('file_type', 'image')
+    .order(minScore !== null ? 'quality_score' : 'created_at', { ascending: false })
     .order('created_at', { ascending: false })
     .order('id',         { ascending: false })
     .limit(limit + 1)
+
+  if (minScore !== null && Number.isFinite(minScore)) query = query.gte('quality_score', minScore)
 
   if (dayFilter)    query = query.eq('folder_id',      dayFilter)
   if (pgFilter)     query = query.eq('photographer_id', pgFilter)
@@ -187,6 +192,7 @@ export async function GET(req: NextRequest) {
       ? { id: row.photographer_id, name: photographerNameMap.get(row.photographer_id) ?? 'Unknown' }
       : { id: null,                name: row.photographer ?? 'Unknown' },
     createdAt:    row.created_at,
+    qualityScore: row.quality_score ?? null,
   }))
 
   return NextResponse.json({ photos, nextCursor }, { headers: CORS_HEADERS })
