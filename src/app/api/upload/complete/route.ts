@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 import { getFileType } from '../_lib'
 import type { ExifData } from '@/lib/exif'
-import { generateDisplayDerivative } from '@/lib/storage/derivatives'
+import { generateDisplayDerivative, generateThumbnailDerivative } from '@/lib/storage/derivatives'
 
 export async function POST(request: NextRequest) {
   const auth = await requireApiUserWithOrg()
@@ -191,6 +191,9 @@ export async function POST(request: NextRequest) {
     // waitUntil keeps the Vercel function context alive for the derivative
     // pipeline after the HTTP response is sent. Without this, the async IIFE
     // is killed mid-execution and display_path stays null on uploaded rows.
+    //
+    // Two derivatives: _display.jpg (full-size for modal), _thumb.jpg (600x600 smart-crop for grid)
+    // Both run inside the waitUntil block; row gets a single combined update at the end.
     if (getFileType(mime_type) === 'image') {
       waitUntil((async () => {
         try {
@@ -204,23 +207,47 @@ export async function POST(request: NextRequest) {
           }
 
           const originalBuffer = Buffer.from(await fileData.arrayBuffer())
-          const derivative     = await generateDisplayDerivative(originalBuffer, storage_path)
 
-          const { error: uploadError } = await supabase.storage
+          // Generate both derivatives from the same buffer in parallel
+          const [display, thumbResult] = await Promise.all([
+            generateDisplayDerivative(originalBuffer, storage_path),
+            generateThumbnailDerivative(originalBuffer, storage_path).catch((err: unknown) => {
+              console.error('[complete/derivative] thumb generation failed:', err instanceof Error ? err.message : err)
+              return null
+            }),
+          ])
+
+          // Upload display derivative (required — bail if this fails)
+          const { error: displayUploadError } = await supabase.storage
             .from('media')
-            .upload(derivative.path, derivative.buffer, {
-              contentType: 'image/jpeg',
-              upsert: true,
-            })
+            .upload(display.path, display.buffer, { contentType: 'image/jpeg', upsert: true })
 
-          if (uploadError) {
-            console.error('[complete/derivative] upload failed:', uploadError.message)
+          if (displayUploadError) {
+            console.error('[complete/derivative] display upload failed:', displayUploadError.message)
             return
           }
 
+          // Upload thumbnail derivative (optional — log failure but continue)
+          let thumbPath: string | null = null
+          if (thumbResult) {
+            const { error: thumbUploadError } = await supabase.storage
+              .from('media')
+              .upload(thumbResult.path, thumbResult.buffer, { contentType: 'image/jpeg', upsert: true })
+
+            if (thumbUploadError) {
+              console.error('[complete/derivative] thumb upload failed:', thumbUploadError.message)
+            } else {
+              thumbPath = thumbResult.path
+            }
+          }
+
+          // Single combined DB update
+          const updatePayload: Record<string, string | null> = { display_path: display.path }
+          if (thumbPath) updatePayload.thumbnail_url = thumbPath
+
           const { error: updateError } = await supabase
             .from('media_files')
-            .update({ display_path: derivative.path })
+            .update(updatePayload)
             .eq('id', fileId)
 
           if (updateError) {
@@ -228,7 +255,7 @@ export async function POST(request: NextRequest) {
             return
           }
 
-          console.log(`[complete/derivative] ok — path=${derivative.path} size=${derivative.buffer.length}`)
+          console.log(`[complete/derivative] ok — display=${display.path} thumb=${thumbPath ?? 'skipped'} display_size=${display.buffer.length}`)
         } catch (err) {
           console.error('[complete/derivative] unexpected:', err instanceof Error ? err.message : err)
           // Row stays display_path=null — falls back to storage_path for display
