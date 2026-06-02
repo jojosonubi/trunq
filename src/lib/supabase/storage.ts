@@ -54,22 +54,32 @@ export async function signStoragePath(storagePath: string, expiresIn = DEFAULT_T
  * Build a Map of storagePath → signed URL for an array of paths.
  * Uses the batch createSignedUrls API for efficiency.
  */
+// Supabase createSignedUrls silently caps at 1000 paths per call.
+// Chunk to avoid the cap; Promise.all preserves chunk order.
+const CHUNK_SIZE = 1000
+
 export async function signStoragePaths(
   paths: string[],
   expiresIn = DEFAULT_TTL,
 ): Promise<Map<string, string>> {
   if (paths.length === 0) return new Map()
   const supabase = createServiceClient()
-  const { data, error } = await supabase.storage
-    .from(MEDIA_BUCKET)
-    .createSignedUrls(paths, expiresIn)
-  if (error || !data) {
-    console.error('[storage] signStoragePaths failed:', error?.message)
-    return new Map()
+
+  const chunks: string[][] = []
+  for (let i = 0; i < paths.length; i += CHUNK_SIZE) {
+    chunks.push(paths.slice(i, i + CHUNK_SIZE))
   }
+
+  const responses = await Promise.all(
+    chunks.map((batch) => supabase.storage.from(MEDIA_BUCKET).createSignedUrls(batch, expiresIn))
+  )
+
   const map = new Map<string, string>()
-  for (const item of data) {
-    if (item.signedUrl && item.path) map.set(item.path, item.signedUrl)
+  for (const { data, error } of responses) {
+    if (error) { console.error('[storage] signStoragePaths chunk failed:', error.message); continue }
+    for (const item of (data ?? [])) {
+      if (item.signedUrl && item.path) map.set(item.path, item.signedUrl)
+    }
   }
   return map
 }
