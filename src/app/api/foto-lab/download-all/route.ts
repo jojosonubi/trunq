@@ -4,13 +4,13 @@
  * Public endpoint (no auth). Accepts a list of signed URLs from the match
  * response and streams them back as a ZIP archive.
  *
- * Compression level 0 — JPEGs are already compressed; recompressing wastes CPU.
+ * Compression level 0 (ZipPassThrough) — JPEGs are already compressed;
+ * recompressing wastes CPU.
  * Per-file errors are non-fatal: a .txt note is appended and the ZIP continues.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import archiver from 'archiver'
-import { PassThrough } from 'stream'
+import { Zip, ZipPassThrough } from 'fflate'
 import { Readable } from 'stream'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -81,19 +81,22 @@ export async function POST(request: NextRequest): Promise<Response> {
   const safeUrls = urls.slice(0, MAX_FILES)
   const zipName  = eventLabel.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 80) + '.zip'
 
-  // ── Stream bridge ─────────────────────────────────────────────────────────
-  // archiver writes to a Node PassThrough; we pump its chunks into a Web
-  // TransformStream so Next.js can serve a streaming Response.
-  const pass    = new PassThrough()
-  const archive = archiver('zip', { zlib: { level: 0 } })
-  archive.pipe(pass)
-
+  // ── Stream setup ──────────────────────────────────────────────────────────
+  // fflate's Zip is push-based and works natively with Uint8Array, so we
+  // wire its ondata callback directly into a Web TransformStream writer —
+  // no Node PassThrough bridge needed.
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
   const writer = writable.getWriter()
 
-  pass.on('data', (chunk: Buffer) => { writer.write(new Uint8Array(chunk)).catch(() => {}) })
-  pass.on('end',  ()             => { writer.close().catch(() => {}) })
-  pass.on('error', (err)         => { writer.abort(err).catch(() => {}) })
+  const zip = new Zip()
+  zip.ondata = (err, chunk, final) => {
+    if (err) {
+      writer.abort(err).catch(() => {})
+      return
+    }
+    writer.write(chunk).catch(() => {})
+    if (final) writer.close().catch(() => {})
+  }
 
   // ── Build archive in background ───────────────────────────────────────────
   ;(async () => {
@@ -105,25 +108,34 @@ export async function POST(request: NextRequest): Promise<Response> {
       try {
         const res = await fetchWithTimeout(url)
         if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
+
+        const entry = new ZipPassThrough(filename)
+        zip.add(entry)
+
         const nodeStream = Readable.fromWeb(res.body as import('stream/web').ReadableStream)
         await new Promise<void>((resolve, reject) => {
-          archive.append(nodeStream, { name: filename })
-          nodeStream.once('end',   resolve)
+          nodeStream.on('data', (chunk: Buffer) => {
+            entry.push(new Uint8Array(chunk), false)
+          })
+          nodeStream.once('end', () => {
+            entry.push(new Uint8Array(0), true)
+            resolve()
+          })
           nodeStream.once('error', reject)
         })
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
+        const msg      = err instanceof Error ? err.message : String(err)
+        const errName  = filename.replace('.jpg', '-error.txt')
         console.warn(`[foto-lab/download-all] failed ${filename}:`, msg)
-        archive.append(
-          `Could not download ${filename}: ${msg}\n`,
-          { name: filename.replace('.jpg', '-error.txt') },
-        )
+
+        const errEntry = new ZipPassThrough(errName)
+        zip.add(errEntry)
+        const encoded  = new TextEncoder().encode(`Could not download ${filename}: ${msg}\n`)
+        errEntry.push(encoded, true)
       }
     }
 
-    archive.finalize().catch((err) => {
-      console.error('[foto-lab/download-all] finalize error:', err)
-    })
+    zip.end()
   })()
 
   return new Response(readable, {
