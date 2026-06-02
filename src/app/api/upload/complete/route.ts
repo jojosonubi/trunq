@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
 import { requireApiUserWithOrg } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
@@ -187,9 +188,11 @@ export async function POST(request: NextRequest) {
       }
     })()
 
-    // Display derivative — fire-and-forget (images only)
+    // waitUntil keeps the Vercel function context alive for the derivative
+    // pipeline after the HTTP response is sent. Without this, the async IIFE
+    // is killed mid-execution and display_path stays null on uploaded rows.
     if (getFileType(mime_type) === 'image') {
-      ;(async () => {
+      waitUntil((async () => {
         try {
           const { data: fileData, error: dlError } = await supabase.storage
             .from('media')
@@ -230,7 +233,7 @@ export async function POST(request: NextRequest) {
           console.error('[complete/derivative] unexpected:', err instanceof Error ? err.message : err)
           // Row stays display_path=null — falls back to storage_path for display
         }
-      })()
+      })())
     }
 
     return NextResponse.json({ mediaFile }, { status: 201 })
