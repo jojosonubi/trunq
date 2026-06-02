@@ -3,7 +3,7 @@ import { requireApiUserWithOrg } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { generateThumbnailDerivative } from '@/lib/storage/derivatives'
 
-const BATCH_SIZE = 50
+const BATCH_SIZE = 10
 
 interface RowResult {
   id: string
