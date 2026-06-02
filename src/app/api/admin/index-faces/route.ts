@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 import { requireApiUserWithOrg } from '@/lib/api-auth'
 
-function getBaseUrl(): string | null {
-  const v = process.env.NEXT_PUBLIC_VERCEL_URL ?? process.env.VERCEL_URL
-  if (v) return `https://${v}`
-  if (process.env.NODE_ENV === 'development') return 'http://localhost:3000'
-  return null
-}
+const BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : 'https://www.trunq.so'
 
 export async function POST() {
   const auth = await requireApiUserWithOrg()
@@ -18,11 +15,8 @@ export async function POST() {
   const taskSecret = process.env.TASK_SECRET
   if (!taskSecret) return NextResponse.json({ error: 'TASK_SECRET env var not set' }, { status: 500 })
 
-  const baseUrl = getBaseUrl()
-  if (!baseUrl) return NextResponse.json({ error: 'Cannot determine app URL — set NEXT_PUBLIC_VERCEL_URL or VERCEL_URL' }, { status: 500 })
-
   try {
-    const upstream = await fetch(`${baseUrl}/api/foto-lab/index`, {
+    const upstream = await fetch(`${BASE_URL}/api/foto-lab/index`, {
       method:  'POST',
       headers: { 'x-task-secret': taskSecret },
     })
