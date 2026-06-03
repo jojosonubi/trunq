@@ -47,19 +47,37 @@ export async function GET(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // ── Fetch tag frequencies ────────────────────────────────────────────────────
-  // Supabase can't GROUP BY across a join, so we fetch all qualifying tag rows
-  // and aggregate in JS. Typical volume: ~30k rows for a 1k-photo event.
+  // ── Step 1: Fetch media_file IDs for the target event ───────────────────────
+  // Supabase dot-notation filters (.eq('relation.column', v)) apply to the
+  // embedded object only, not as a WHERE on the parent row. We use a two-step
+  // query to avoid silently aggregating across all events in the org.
+  const { data: mediaRows, error: mediaErr } = await supabase
+    .from('media_files')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('organisation_id', orgId)
+    .eq('file_type', 'image')
+    .is('deleted_at', null)
+
+  if (mediaErr) {
+    console.error('[pill-suggestions] media_files query error:', mediaErr.message)
+    return NextResponse.json({ error: 'Failed to load media data' }, { status: 500, headers: CORS_HEADERS })
+  }
+
+  const mediaIds = (mediaRows ?? []).map((r) => r.id)
+  if (mediaIds.length === 0) {
+    return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
+  }
+
+  // ── Step 2: Fetch tags for those media files ──────────────────────────────
   const { data: rows, error } = await supabase
     .from('tags')
-    .select('value, tag_type, media_file_id, media_files!inner(event_id, file_type, deleted_at)')
+    .select('media_file_id, value, tag_type')
+    .in('media_file_id', mediaIds)
     .eq('organisation_id', orgId)
-    .eq('media_files.event_id', eventId)
-    .eq('media_files.file_type', 'image')
-    .is('media_files.deleted_at', null)
 
   if (error) {
-    console.error('[pill-suggestions] query error:', error.message)
+    console.error('[pill-suggestions] tags query error:', error.message)
     return NextResponse.json({ error: 'Failed to load tag data' }, { status: 500, headers: CORS_HEADERS })
   }
 
