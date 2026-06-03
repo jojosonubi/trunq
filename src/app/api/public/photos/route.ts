@@ -183,14 +183,16 @@ export async function GET(req: NextRequest) {
 
   // ── 8. Resolve photographer names (batch) ─────────────────────────────────
   const photographerIds = [...new Set(pageRows.map((r) => r.photographer_id).filter(Boolean))] as string[]
-  let photographerNameMap = new Map<string, string>()
+  let photographerNameMap   = new Map<string, string>()
+  let photographerHandleMap = new Map<string, string | null>()
 
   if (photographerIds.length > 0) {
     const { data: pgRows } = await supabase
       .from('photographers')
-      .select('id, name')
+      .select('id, name, instagram_handle')
       .in('id', photographerIds)
     for (const p of (pgRows ?? [])) photographerNameMap.set(p.id, p.name)
+    for (const p of (pgRows ?? [])) photographerHandleMap.set(p.id, p.instagram_handle ?? null)
   }
 
   // ── 9. Shape response ─────────────────────────────────────────────────────
@@ -200,8 +202,8 @@ export async function GET(req: NextRequest) {
     thumbnailUrl: thumbnailMap.get(row.storage_path) ?? cardMap.get(row.storage_path) ?? '',
     day:          (row.folder_id ? folderNameMap.get(row.folder_id) : null) ?? null,
     photographer: row.photographer_id
-      ? { id: row.photographer_id, name: photographerNameMap.get(row.photographer_id) ?? 'Unknown' }
-      : { id: null,                name: row.photographer ?? 'Unknown' },
+      ? { id: row.photographer_id, name: photographerNameMap.get(row.photographer_id) ?? 'Unknown', instagramHandle: photographerHandleMap.get(row.photographer_id) ?? null }
+      : { id: null,                name: row.photographer ?? 'Unknown',                              instagramHandle: null },
     createdAt:    row.created_at,
     qualityScore: row.quality_score ?? null,
   }))
