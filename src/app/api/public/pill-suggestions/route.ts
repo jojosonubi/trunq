@@ -9,7 +9,7 @@ const CORS_HEADERS = {
 }
 
 const CACHE_HEADERS = {
-  'Cache-Control': 'public, max-age=60',
+  'Cache-Control': 'no-store, must-revalidate',
 }
 
 const SKIP_LIST = new Set([
