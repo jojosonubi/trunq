@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolvePublicOrg, resolvePublicEvent } from '@/lib/public-api/slugs'
-import { signStoragePathsSized } from '@/lib/supabase/storage'
+import { signStoragePath, signStoragePathsSized } from '@/lib/supabase/storage'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
   // Fetch limit+1 to detect whether there is a next page
   let query = supabase
     .from('media_files')
-    .select('id, storage_path, display_path, folder_id, photographer_id, photographer, created_at, quality_score')
+    .select('id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score')
     .eq('event_id', eventId)
     .eq('organisation_id', orgId)
     .eq('review_status', 'approved')
@@ -151,12 +151,23 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 6. Sign URLs (batch, two sizes in parallel) ───────────────────────────
-  // Pass row objects so display_path is used when available (avoids >25MB transform failures)
-  const [fullMap, cardMap] = await Promise.all([
-    signStoragePathsSized(pageRows, 'full',  { aspect: 'preserve', resize: 'contain' }),
-    signStoragePathsSized(pageRows, 'card',  { aspect: 'preserve' }),
+  // full: always via transform (modal needs original aspect ratio)
+  // thumbnail: sign thumbnail_url directly when available (pre-baked 600x600 JPEG);
+  //            fall back to 'card' transform for rows where backfill hasn't run yet.
+  const rowsNeedingCardTransform = pageRows.filter((r) => !r.thumbnail_url)
+  const [fullMap, cardMap, thumbnailEntries] = await Promise.all([
+    signStoragePathsSized(pageRows, 'full', { aspect: 'preserve', resize: 'contain' }),
+    rowsNeedingCardTransform.length > 0
+      ? signStoragePathsSized(rowsNeedingCardTransform, 'card', { aspect: 'preserve' })
+      : Promise.resolve(new Map<string, string>()),
+    Promise.all(
+      pageRows
+        .filter((r) => r.thumbnail_url)
+        .map(async (r) => [r.storage_path, await signStoragePath(r.thumbnail_url!)] as const)
+    ),
   ])
-  console.log('[public/photos] signed URLs — full:', fullMap.size, 'card:', cardMap.size)
+  const thumbnailMap = new Map<string, string>(thumbnailEntries)
+  console.log('[public/photos] signed URLs — full:', fullMap.size, 'thumbnail (baked):', thumbnailMap.size, 'card (fallback):', cardMap.size)
 
   // ── 7. Resolve folder names (batch) ───────────────────────────────────────
   const folderIds = [...new Set(pageRows.map((r) => r.folder_id).filter(Boolean))] as string[]
@@ -186,7 +197,7 @@ export async function GET(req: NextRequest) {
   const photos = pageRows.map((row) => ({
     id:           row.id,
     url:          fullMap.get(row.storage_path) ?? '',
-    thumbnailUrl: cardMap.get(row.storage_path) ?? '',
+    thumbnailUrl: thumbnailMap.get(row.storage_path) ?? cardMap.get(row.storage_path) ?? '',
     day:          (row.folder_id ? folderNameMap.get(row.folder_id) : null) ?? null,
     photographer: row.photographer_id
       ? { id: row.photographer_id, name: photographerNameMap.get(row.photographer_id) ?? 'Unknown' }
