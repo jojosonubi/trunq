@@ -61,6 +61,19 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
   const service = createServiceClient()
   const limit   = TEST_MODE ? 1 : BATCH_SIZE
 
+  // ── Recovery: re-queue rows orphaned by timed-out invocations ────────────
+  // No updated_at on media_files; rekognition_indexed_at is only set on completion.
+  // 10-minute threshold safely exceeds maxDuration (300s) — active batches finish in ~50s.
+  const recoveryThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+  const { count: recoveredCount } = await service
+    .from('media_files')
+    .update({ rekognition_indexing_status: 'queued' }, { count: 'exact' })
+    .eq('rekognition_indexing_status', 'processing')
+    .lt('created_at', recoveryThreshold)
+  if (recoveredCount && recoveredCount > 0) {
+    console.log(`[foto-lab/index] re-queued ${recoveredCount} stuck rows`)
+  }
+
   // ── Claim next batch atomically ───────────────────────────────────────────
   const { data: candidates } = await service
     .from('media_files')
