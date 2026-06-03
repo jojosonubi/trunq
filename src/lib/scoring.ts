@@ -50,7 +50,7 @@ export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: bo
 
   const { data: mediaFile, error: fetchErr } = await supabase
     .from('media_files')
-    .select('storage_path, organisation_id')
+    .select('storage_path, display_path, organisation_id')
     .eq('id', mediaFileId)
     .single()
 
@@ -58,7 +58,8 @@ export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: bo
     throw new Error(`Media file not found: ${mediaFileId}`)
   }
 
-  const imageUrl = await signStoragePath(mediaFile.storage_path, 3600)
+  const pathToSign = mediaFile.display_path ?? mediaFile.storage_path
+  const imageUrl = await signStoragePath(pathToSign, 3600)
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
