@@ -13,26 +13,36 @@ import { ArrowLeft, ImageIcon, Smartphone } from 'lucide-react'
 
 export const revalidate = 0
 
+const FIRST_PAGE = 60
+
 interface Props {
   params: { id: string }
   searchParams?: { photo?: string; tab?: string }
 }
 
-
 export default async function EventDetailPage({ params, searchParams }: Props) {
   const profile = await requireAuth()
   const supabase = createClient()
 
-  const [eventResult, mediaResult, deliveryResult, foldersResult, performersResult, brandsResult, distinctPhotographers] = await Promise.all([
+  const [eventResult, mediaResult, photoCountResult, deliveryResult, foldersResult, performersResult, brandsResult, distinctPhotographers, initialFolderCounts] = await Promise.all([
     supabase.from('events').select('*').eq('id', params.id).is('deleted_at', null).single(),
+
     supabase
       .from('media_files')
-      .select('*')
+      .select('*, tags(*), performer_tags(*, performers(*)), brand_tags(*, brands(*))')
       .eq('event_id', params.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-      // TODO: paginate this grid — temporary cap, will break above 5 000 photos/event
-      .range(0, 4999),
+      .order('id', { ascending: false })
+      .limit(FIRST_PAGE),
+
+    supabase
+      .from('media_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', params.id)
+      .is('deleted_at', null)
+      .eq('file_type', 'image'),
+
     supabase
       .from('delivery_links')
       .select('token')
@@ -53,7 +63,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
       .select('*')
       .eq('event_id', params.id)
       .order('created_at', { ascending: true }),
-    // Paginated distinct photographer names — volume-proof (PGRST123: aggregates not enabled)
+
     (async () => {
       const PAGE = 1000
       let from = 0
@@ -74,22 +84,45 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
       }
       return [...names].sort()
     })(),
+
+    (async () => {
+      const PAGE = 1000
+      let from = 0
+      const counts: Record<string, number> = {}
+      for (;;) {
+        const { data } = await supabase
+          .from('media_files')
+          .select('folder_id')
+          .eq('event_id', params.id)
+          .is('deleted_at', null)
+          .not('folder_id', 'is', null)
+          .range(from, from + PAGE - 1)
+        if (!data || data.length === 0) break
+        for (const r of data) if (r.folder_id) counts[r.folder_id] = (counts[r.folder_id] ?? 0) + 1
+        if (data.length < PAGE) break
+        from += PAGE
+      }
+      return counts
+    })(),
   ])
 
   if (eventResult.error || !eventResult.data) {
     notFound()
   }
 
-  const event = eventResult.data as Event
-  const mediaFiles = await signMediaFiles((mediaResult.data ?? []) as MediaFileWithTags[])
-  const untaggedImages = mediaFiles.filter(
-    (f) => f.file_type === 'image' && (!f.tags || f.tags.length === 0)
-  )
-  const photoCount    = mediaFiles.filter((f) => f.file_type === 'image').length
+  const event         = eventResult.data as Event
+  const rawFiles      = (mediaResult.data ?? []) as MediaFileWithTags[]
+  const initialFiles  = await signMediaFiles(rawFiles)
+  const photoCount    = photoCountResult.count ?? 0
   const existingToken = deliveryResult.data?.token ?? null
-  const folders    = (foldersResult.data    ?? []) as Folder[]
-  const performers = (performersResult.data ?? []) as Performer[]
-  const brands     = (brandsResult.data     ?? []) as Brand[]
+  const folders       = (foldersResult.data    ?? []) as Folder[]
+  const performers    = (performersResult.data ?? []) as Performer[]
+  const brands        = (brandsResult.data     ?? []) as Brand[]
+
+  const lastRow       = rawFiles[rawFiles.length - 1]
+  const initialCursor = rawFiles.length === FIRST_PAGE && lastRow
+    ? Buffer.from(JSON.stringify({ t: new Date(lastRow.created_at).getTime(), id: lastRow.id })).toString('base64url')
+    : null
 
   const openPhotoId = searchParams?.photo ?? null
   const initialTab  = searchParams?.tab === 'performers'
@@ -153,10 +186,12 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
 
         {/* Gallery + Review tabs */}
         <div id="gallery">
-          {mediaFiles.length > 0 ? (
+          {photoCount > 0 || initialFiles.length > 0 ? (
             <EventTabs
-              files={mediaFiles}
-              untaggedImages={untaggedImages}
+              initialFiles={initialFiles}
+              initialCursor={initialCursor}
+              initialFolderCounts={initialFolderCounts}
+              totalCount={photoCount}
               eventId={event.id}
               event={event}
               initialFolders={folders}

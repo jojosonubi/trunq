@@ -17,8 +17,14 @@ import type { UserRole } from '@/lib/auth'
 type Tab = 'gallery' | 'performers' | 'brands' | 'shares'
 
 interface Props {
-  files: MediaFileWithTags[]
-  untaggedImages: MediaFileWithTags[]
+  /** First page of signed files from the server. GalleryWithSearch fetches the rest. */
+  initialFiles: MediaFileWithTags[]
+  /** Cursor for GalleryWithSearch to fetch page 2+. Null when all files fit in first page. */
+  initialCursor: string | null
+  /** Folder-assignment counts from the server (all files, not just first page). */
+  initialFolderCounts: Record<string, number>
+  /** Total image count for the sidebar "All" row. */
+  totalCount: number
   eventId: string
   event: Event
   initialFolders: Folder[]
@@ -34,8 +40,10 @@ interface Props {
 // ─── EventTabs ────────────────────────────────────────────────────────────────
 
 export default function EventTabs({
-  files,
-  untaggedImages,
+  initialFiles,
+  initialCursor,
+  initialFolderCounts,
+  totalCount,
   eventId,
   event,
   initialFolders,
@@ -61,38 +69,15 @@ export default function EventTabs({
 
   // ── Folder state ──────────────────────────────────────────────────────────
 
-  const [folders, setFolders]                   = useState<Folder[]>(initialFolders)
+  const [folders, setFolders]                 = useState<Folder[]>(initialFolders)
   /** Optimistic overrides: file id → folder_id (null = unfiled) */
-  const [folderOverrides, setFolderOverrides]   = useState<Record<string, string | null>>({})
+  const [folderOverrides, setFolderOverrides] = useState<Record<string, string | null>>({})
   /** Which folder is selected in the sidebar (null = All, '__unfiled__' = Unfiled) */
-  const [activeFolderId, setActiveFolderId]     = useState<string | null>(null)
+  const [activeFolderId, setActiveFolderId]   = useState<string | null>(null)
 
-  // Files with overrides applied
-  const filesWithFolders = useMemo(
-    () => files.map((f) => f.id in folderOverrides ? { ...f, folder_id: folderOverrides[f.id] } : f),
-    [files, folderOverrides]
-  )
-
-  // Files visible in the gallery based on sidebar selection
-  const visibleFiles = useMemo(() => {
-    if (activeFolderId === null) return filesWithFolders
-    if (activeFolderId === '__unfiled__') return filesWithFolders.filter((f) => !f.folder_id)
-    return filesWithFolders.filter((f) => f.folder_id === activeFolderId)
-  }, [filesWithFolders, activeFolderId])
-
-  const visibleUntagged = useMemo(
-    () => visibleFiles.filter((f) => f.file_type === 'image' && (!f.tags || f.tags.length === 0)),
-    [visibleFiles]
-  )
-
-  // Count of files per folder (uses overrides)
-  const folderCounts = useMemo(() => {
-    const counts: Record<string, number> = {}
-    filesWithFolders.forEach((f) => {
-      if (f.folder_id) counts[f.folder_id] = (counts[f.folder_id] ?? 0) + 1
-    })
-    return counts
-  }, [filesWithFolders])
+  // Folder counts come from the server (all files, not just the first page).
+  // No dynamic adjustment needed — they refresh on next page load.
+  const folderCounts = initialFolderCounts
 
   // ── Folder CRUD ───────────────────────────────────────────────────────────
 
@@ -216,7 +201,7 @@ export default function EventTabs({
           <FolderSidebar
             folders={folders}
             folderCounts={folderCounts}
-            totalCount={filesWithFolders.length}
+            totalCount={totalCount}
             activeFolderId={activeFolderId}
             onSelect={setActiveFolderId}
             onCreateFolder={createFolder}
@@ -229,8 +214,12 @@ export default function EventTabs({
           {/* Gallery */}
           <div className="flex-1 min-w-0">
             <GalleryWithSearch
-              files={visibleFiles}
-              untaggedImages={visibleUntagged}
+              eventId={eventId}
+              initialFiles={initialFiles}
+              initialCursor={initialCursor}
+              totalCount={totalCount}
+              activeFolderId={activeFolderId}
+              folderOverrides={folderOverrides}
               event={event}
               folders={folders}
               onAssignFolder={assignFolder}
@@ -246,13 +235,13 @@ export default function EventTabs({
         <PerformersTab
           eventId={eventId}
           initialPerformers={initialPerformers}
-          mediaFiles={files}
+          mediaFiles={initialFiles}
         />
       ) : tab === 'brands' ? (
         <BrandsTab
           eventId={eventId}
           initialBrands={initialBrands}
-          mediaFiles={files}
+          mediaFiles={initialFiles}
         />
       ) : (
         <SharesTab projectId={eventId} />

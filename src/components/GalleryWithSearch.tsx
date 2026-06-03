@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare, LayoutGrid } from 'lucide-react'
+import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare, LayoutGrid, Loader2 } from 'lucide-react'
 import type { UserRole } from '@/lib/auth'
 import clsx from 'clsx'
 import MediaGrid from '@/components/MediaGrid'
@@ -33,8 +33,17 @@ const COLOUR_SWATCHES: { name: string; bg: string; ring: string }[] = [
 ]
 
 interface Props {
-  files: MediaFileWithTags[]
-  untaggedImages: MediaFileWithTags[]
+  eventId: string
+  /** First page of signed files from the server. */
+  initialFiles: MediaFileWithTags[]
+  /** Cursor for page 2+. Null when all files fit on the first page. */
+  initialCursor: string | null
+  /** Total media count (images only) for the file counter. */
+  totalCount: number
+  /** Active folder from EventTabs sidebar (null = All, '__unfiled__' = Unfiled). */
+  activeFolderId: string | null
+  /** Optimistic folder overrides from EventTabs. */
+  folderOverrides: Record<string, string | null>
   event: Event
   folders?: Folder[]
   onAssignFolder?: (ids: string[], folderId: string | null) => Promise<void>
@@ -42,12 +51,26 @@ interface Props {
   brands?: Brand[]
   initialOpenPhotoId?: string | null
   role?: UserRole
-  /** Aggregate-derived list of all photographer names — volume-proof. When provided,
-   *  replaces the in-memory derivation so chips are correct even when the grid is capped. */
+  /** Aggregate-derived list of all photographer names — volume-proof. */
   allPhotographers?: string[]
 }
 
-export default function GalleryWithSearch({ files, untaggedImages, event, folders, onAssignFolder, performers, brands, initialOpenPhotoId, role, allPhotographers }: Props) {
+export default function GalleryWithSearch({
+  eventId,
+  initialFiles,
+  initialCursor,
+  totalCount,
+  activeFolderId,
+  folderOverrides,
+  event,
+  folders,
+  onAssignFolder,
+  performers,
+  brands,
+  initialOpenPhotoId,
+  role,
+  allPhotographers,
+}: Props) {
   const router = useRouter()
 
   // ── Column count (persisted to localStorage) ─────────────────────────────
@@ -83,8 +106,8 @@ export default function GalleryWithSearch({ files, untaggedImages, event, folder
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
 
   // ── Filter panel ──────────────────────────────────────────────────────────
-  const [filterOpen, setFilterOpen]             = useState(false)
-const [activeFileType, setActiveFileType]     = useState<string | null>(null)
+  const [filterOpen, setFilterOpen]         = useState(false)
+  const [activeFileType, setActiveFileType] = useState<string | null>(null)
   const filterRef = useRef<HTMLDivElement>(null)
 
   // ── Colour filter ─────────────────────────────────────────────────────────
@@ -104,76 +127,142 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
   const downloadingRef = useRef(false)
 
   // ── Folder-select state ───────────────────────────────────────────────────
-  const [folderSelectMode, setFolderSelectMode] = useState(false)
+  const [folderSelectMode, setFolderSelectMode]   = useState(false)
   const [folderSelectedIds, setFolderSelectedIds] = useState<Set<string>>(new Set())
-  const [assigningFolder, setAssigningFolder] = useState(false)
+  const [assigningFolder, setAssigningFolder]     = useState(false)
   const cancelDownloadRef = useRef(false)
   const [rotations, setRotations] = useState<Record<string, number>>({})
 
+  // ── Infinite scroll state ─────────────────────────────────────────────────
+  const [loadedFiles, setLoadedFiles]   = useState<MediaFileWithTags[]>(initialFiles)
+  const [cursor, setCursor]             = useState<string | null>(initialCursor)
+  const [hasMore, setHasMore]           = useState(initialCursor !== null)
+  const [isLoading, setIsLoading]       = useState(false)
+  const isLoadingRef                    = useRef(false)
+  const sentinelRef                     = useRef<HTMLDivElement>(null)
+
+  // Debounced query — prevents a fetch on every keystroke
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 400)
+    return () => clearTimeout(t)
+  }, [query])
+
+  // Stable key for activePills — used in effect dep arrays
+  const activePillsKey = useMemo(() => [...activePills].sort().join(','), [activePills])
+
+  // ── Build fetch URL from current filter state ─────────────────────────────
+  const buildParams = useCallback((cursorVal: string | null): URLSearchParams => {
+    const p = new URLSearchParams()
+    if (cursorVal)          p.set('cursor',       cursorVal)
+    if (debouncedQuery)     p.set('q',            debouncedQuery)
+    if (activePhotographer) p.set('photographer', activePhotographer)
+    if (showStarredOnly)    p.set('starred',      'true')
+    if (activeFileType)     p.set('file_type',    activeFileType)
+    if (activeColour)       p.set('colour',       activeColour)
+    if (activePerformerId)  p.set('performer_id', activePerformerId)
+    if (activeBrandId)      p.set('brand_id',     activeBrandId)
+    if (activeFolderId === '__unfiled__') p.set('folder_id', '__unfiled__')
+    else if (activeFolderId) p.set('folder_id',   activeFolderId)
+    if (activePills.size > 0) p.set('pills',      [...activePills].join(','))
+    return p
+  }, [debouncedQuery, activePhotographer, showStarredOnly, activeFileType, activeColour, activePerformerId, activeBrandId, activeFolderId, activePills])
+
+  // ── Core fetch function ───────────────────────────────────────────────────
+  const fetchPage = useCallback(async (cursorVal: string | null, append: boolean) => {
+    if (isLoadingRef.current) return
+    isLoadingRef.current = true
+    setIsLoading(true)
+    try {
+      const params = buildParams(cursorVal)
+      const res    = await fetch(`/api/events/${eventId}/media?${params}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const { files, nextCursor } = await res.json() as { files: MediaFileWithTags[]; nextCursor: string | null }
+      setLoadedFiles(prev => append ? [...prev, ...files] : files)
+      setCursor(nextCursor)
+      setHasMore(nextCursor !== null)
+    } catch (err) {
+      console.error('[GalleryWithSearch] fetch failed:', err)
+    } finally {
+      isLoadingRef.current = false
+      setIsLoading(false)
+    }
+  }, [eventId, buildParams])
+
+  // ── Reset + refetch when any filter changes ───────────────────────────────
+  // Skip on first render — initialFiles are already correct.
+  const isMounted = useRef(false)
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    setLoadedFiles([])
+    setCursor(null)
+    setHasMore(true)
+    fetchPage(null, false)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, activePhotographer, showStarredOnly, activeFileType, activeColour, activePerformerId, activeBrandId, activeFolderId, activePillsKey])
+
+  // ── IntersectionObserver: load next page when sentinel comes into view ────
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingRef.current) {
+          // Read cursor from state via ref-style closure — effect reconnects on cursor change
+          fetchPage(cursor, true)
+        }
+      },
+      { rootMargin: '400px' }
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, cursor, fetchPage])
+
+  // ── displayFiles: loadedFiles + folder overrides applied ──────────────────
+  // The server already filters by activeFolderId, but we also apply the client-side
+  // folder filter so optimistic overrides (moving a file out of the active folder)
+  // are reflected immediately without waiting for a refetch.
+  const displayFiles = useMemo(() => {
+    let result = loadedFiles.map(f =>
+      f.id in folderOverrides ? { ...f, folder_id: folderOverrides[f.id] } : f
+    )
+    if (activeFolderId === '__unfiled__') result = result.filter(f => !f.folder_id)
+    else if (activeFolderId)             result = result.filter(f => f.folder_id === activeFolderId)
+    return result
+  }, [loadedFiles, folderOverrides, activeFolderId])
+
   // ── Derived: unique photographers ────────────────────────────────────────
-  // Prefer aggregate-derived list (allPhotographers) when provided — it reflects ALL
-  // photographers for the event regardless of how many rows the grid query returned.
-  // Fall back to scanning fetched rows only when no aggregate was passed (e.g. legacy callers).
   const uniquePhotographers = useMemo(() => {
     if (allPhotographers && allPhotographers.length > 0) return allPhotographers
-    const names = files.map((f) => f.photographer).filter((p): p is string => !!p)
+    const names = loadedFiles.map((f) => f.photographer).filter((p): p is string => !!p)
     return [...new Set(names)].sort()
-  }, [files, allPhotographers])
+  }, [loadedFiles, allPhotographers])
 
-  // ── Derived: filtered list ────────────────────────────────────────────────
-  const isFiltered = query.trim() !== '' || activePills.size > 0 || activePhotographer !== null || showStarredOnly || activePerformerId !== null || activeBrandId !== null || activeFileType !== null || activeColour !== null
+  const isFiltered = debouncedQuery !== '' || activePills.size > 0 || activePhotographer !== null ||
+    showStarredOnly || activePerformerId !== null || activeBrandId !== null ||
+    activeFileType !== null || activeColour !== null || activeFolderId !== null
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return files.filter((file) => {
-      // Starred filter (applies optimistic overrides)
-      const starred = file.id in starOverrides ? starOverrides[file.id] : file.starred
-      if (showStarredOnly && !starred) return false
-
-      // Performer filter
-      if (activePerformerId !== null) {
-        const hasPerformer = (file.performer_tags ?? []).some((pt) => pt.performer_id === activePerformerId)
-        if (!hasPerformer) return false
-      }
-
-      // Brand filter
-      if (activeBrandId !== null) {
-        const hasBrand = (file.brand_tags ?? []).some((bt) => bt.brand_id === activeBrandId)
-        if (!hasBrand) return false
-      }
-
-      // File type filter
-      if (activeFileType !== null && file.file_type !== activeFileType) return false
-
-      // Colour filter
-      if (activeColour !== null && !(file.dominant_colours ?? []).includes(activeColour)) return false
-
-      const tags = file.tags ?? []
-      const textMatch =
-        !q ||
-        file.description?.toLowerCase().includes(q) ||
-        tags.some((t) => t.value.toLowerCase().includes(q))
-      const pillMatch =
-        activePills.size === 0 ||
-        [...activePills].some((pill) =>
-          tags.some((t) => t.value.toLowerCase() === pill.toLowerCase())
-        )
-      const photographerMatch =
-        !activePhotographer || file.photographer === activePhotographer
-      return textMatch && pillMatch && photographerMatch
-    })
-  }, [files, query, activePills, activePhotographer, showStarredOnly, starOverrides, activePerformerId, activeBrandId, activeFileType, activeColour])
-
-  // Images in the filtered view — what gets downloaded / shown in download btn
+  // Images in the current view for download / social pick
   const downloadableFiles = useMemo(
-    () => filtered.filter((f) => f.file_type === 'image'),
-    [filtered]
+    () => displayFiles.filter((f) => f.file_type === 'image'),
+    [displayFiles]
+  )
+
+  // Untagged images from loaded set (for BulkRetag)
+  const untaggedImages = useMemo(
+    () => loadedFiles.filter((f) =>
+      f.file_type === 'image' &&
+      f.tagging_status !== 'complete' &&
+      f.tagging_status !== 'queued' &&
+      f.tagging_status !== 'processing'
+    ),
+    [loadedFiles]
   )
 
   // ── Derived: sorted-by-quality images for social selection ───────────────
   const selectionFiles = useMemo(
-    () => [...files].filter((f) => f.file_type === 'image').sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0)),
-    [files]
+    () => [...loadedFiles].filter((f) => f.file_type === 'image').sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0)),
+    [loadedFiles]
   )
 
   const recommendedIds = useMemo(
@@ -181,19 +270,19 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
     [selectionFiles]
   )
 
-  // ── Derived: starred IDs set (for MediaGrid star indicator) ──────────────
+  // ── Derived: starred IDs set ──────────────────────────────────────────────
   const starredIds = useMemo(
     () => new Set(
-      files
+      loadedFiles
         .filter((f) => (f.id in starOverrides ? starOverrides[f.id] : f.starred))
         .map((f) => f.id)
     ),
-    [files, starOverrides]
+    [loadedFiles, starOverrides]
   )
 
   // ── Star toggle ───────────────────────────────────────────────────────────
   const toggleStar = useCallback(async (id: string) => {
-    const file = files.find((f) => f.id === id)
+    const file = loadedFiles.find((f) => f.id === id)
     if (!file) return
     const current = id in starOverrides ? starOverrides[id] : file.starred
     const next    = !current
@@ -206,10 +295,9 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
       })
       router.refresh()
     } catch {
-      // Revert on network error
       setStarOverrides((prev) => ({ ...prev, [id]: current }))
     }
-  }, [files, starOverrides, router])
+  }, [loadedFiles, starOverrides, router])
 
   // ── Trash photo ───────────────────────────────────────────────────────────
   const handleTrashPhoto = useCallback(async (id: string) => {
@@ -218,8 +306,9 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type: 'photo', id }),
     })
-    router.refresh()
-  }, [router])
+    // Remove immediately from loaded state — no full router.refresh() needed
+    setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
+  }, [])
 
   // ── Download (zip with smart renaming) ───────────────────────────────────
   const downloadFiles = useCallback(async (filesToDownload: MediaFileWithTags[]) => {
@@ -252,7 +341,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           entries.push({ filename: renamedFilename, data: new Uint8Array(await res.arrayBuffer()) })
         }
       } catch {
-        // skip failed files — zip will contain what did succeed
+        // skip failed files
       }
 
       setDownloadState({ done: i + 1, total: filesToDownload.length })
@@ -286,7 +375,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
   }
 
   function selectAllVisible() {
-    setFolderSelectedIds(new Set(filtered.map((f) => f.id)))
+    setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))
     setFolderSelectMode(true)
   }
 
@@ -384,7 +473,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFolderSelectedIds(new Set(filtered.map((f) => f.id)))}
+              onClick={() => setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))}
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
             >
               <CheckSquare size={12} />
@@ -392,7 +481,6 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
             </button>
             {folderSelectedIds.size > 0 && (
               <>
-                {/* Assign to existing folder */}
                 {folders.map((folder) => (
                   <button
                     key={folder.id}
@@ -404,7 +492,6 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
                     {folder.name}
                   </button>
                 ))}
-                {/* Remove from folder (unfiled) */}
                 <button
                   onClick={() => doAssignFolder(null)}
                   disabled={assigningFolder}
@@ -426,7 +513,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
         </div>
 
         <MediaGrid
-          files={filtered}
+          files={displayFiles}
           compact
           selection={{
             selectedIds: folderSelectedIds,
@@ -455,7 +542,6 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Download selected */}
               {selectedFiles.length > 0 && (
                 <button
                   onClick={() => downloadFiles(selectedFiles)}
@@ -607,7 +693,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           })()}
         </div>
 
-        {/* Download all (images in current filtered view) */}
+        {/* Download all (images in current view) */}
         {downloadableFiles.length > 0 && (
           <button
             onClick={() => downloadFiles(downloadableFiles)}
@@ -642,7 +728,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           </button>
         )}
 
-        {filtered.length > 0 && (
+        {displayFiles.length > 0 && (
           <button
             onClick={selectAllVisible}
             className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
@@ -680,9 +766,9 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
         </div>
       )}
 
-      {/* ── Row 2: active chips (only when filter panel open or filter active) ── */}
+      {/* ── Row 2: active chips ───────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-2 flex-wrap">
-        {/* Starred filter pill — show only when panel open or active */}
+        {/* Starred filter pill */}
         {(filterOpen || showStarredOnly) && (
           <button
             onClick={() => setShowStarredOnly((v) => !v)}
@@ -698,7 +784,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           </button>
         )}
 
-        {/* Active pill chips — show only when panel open or pills active */}
+        {/* Active pill chips */}
         {(filterOpen || activePills.size > 0) && [...activePills].map((pill) => (
           <button
             key={pill}
@@ -719,10 +805,11 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
           </button>
         )}
 
+        {/* File count */}
         <span className="ml-auto text-[#444] text-xs tabular-nums shrink-0">
           {isFiltered
-            ? `${filtered.length} of ${files.length} files`
-            : `${files.length} file${files.length !== 1 ? 's' : ''}`}
+            ? `${displayFiles.length}${hasMore ? '+' : ''} file${displayFiles.length !== 1 ? 's' : ''}`
+            : `${totalCount} file${totalCount !== 1 ? 's' : ''}`}
         </span>
 
         <BulkRetag untaggedImages={untaggedImages} eventId={event.id} />
@@ -754,9 +841,8 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
 
       {/* ── Row 4: performer filter ───────────────────────────────────────── */}
       {performers && performers.length > 0 && (() => {
-        // Only show performers that have tagged photos in the current files
         const performerIdsInFiles = new Set(
-          files.flatMap((f) => (f.performer_tags ?? []).map((pt) => pt.performer_id))
+          loadedFiles.flatMap((f) => (f.performer_tags ?? []).map((pt) => pt.performer_id))
         )
         const visiblePerformers = performers.filter((p) => performerIdsInFiles.has(p.id))
         if (!visiblePerformers.length) return null
@@ -787,7 +873,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
       {/* ── Row 5: brand filter ───────────────────────────────────────────── */}
       {brands && brands.length > 0 && (() => {
         const brandIdsInFiles = new Set(
-          files.flatMap((f) => (f.brand_tags ?? []).map((bt) => bt.brand_id))
+          loadedFiles.flatMap((f) => (f.brand_tags ?? []).map((bt) => bt.brand_id))
         )
         const visibleBrands = brands.filter((b) => brandIdsInFiles.has(b.id))
         if (!visibleBrands.length) return null
@@ -816,7 +902,7 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
       })()}
 
       {/* ── Row 6: colour filter swatches ────────────────────────────────── */}
-      {files.some((f) => (f.dominant_colours ?? []).length > 0) && (
+      {loadedFiles.some((f) => (f.dominant_colours ?? []).length > 0) && (
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <span className="text-[#444] text-[10px] uppercase tracking-wider shrink-0">Colour</span>
           {COLOUR_SWATCHES.map((swatch) => {
@@ -843,23 +929,36 @@ const [activeFileType, setActiveFileType]     = useState<string | null>(null)
       )}
 
       {/* ── Gallery ───────────────────────────────────────────────────────── */}
-      {filtered.length > 0 ? (
-        <MediaGrid
-          files={filtered}
-          columns={columns}
-          stars={starsProps}
-          folderProps={folders && onAssignFolder
-            ? (file) => ({
-                folders,
-                currentFolderId: file.folder_id,
-                onAssign: (folderId) => onAssignFolder([file.id], folderId),
-              })
-            : undefined}
-          initialOpenPhotoId={initialOpenPhotoId}
-          event={event}
-          onTrash={role === 'admin' ? handleTrashPhoto : undefined}
-          onQuickSelect={enterFolderSelectModeWith}
-        />
+      {displayFiles.length > 0 ? (
+        <>
+          <MediaGrid
+            files={displayFiles}
+            columns={columns}
+            stars={starsProps}
+            folderProps={folders && onAssignFolder
+              ? (file) => ({
+                  folders,
+                  currentFolderId: file.folder_id,
+                  onAssign: (folderId) => onAssignFolder([file.id], folderId),
+                })
+              : undefined}
+            initialOpenPhotoId={initialOpenPhotoId}
+            event={event}
+            onTrash={role === 'admin' ? handleTrashPhoto : undefined}
+            onQuickSelect={enterFolderSelectModeWith}
+          />
+
+          {/* Infinite scroll sentinel */}
+          {hasMore && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-8">
+              {isLoading && <Loader2 size={18} className="text-[#444] animate-spin" />}
+            </div>
+          )}
+        </>
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={20} className="text-[#444] animate-spin" />
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">
           <ImageIcon size={28} className="text-[#333] mb-3" />
