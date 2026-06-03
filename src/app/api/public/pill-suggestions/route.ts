@@ -47,41 +47,52 @@ export async function GET(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // ── Step 1: Fetch media_file IDs for the target event ───────────────────────
-  // Supabase dot-notation filters (.eq('relation.column', v)) apply to the
-  // embedded object only, not as a WHERE on the parent row. We use a two-step
-  // query to avoid silently aggregating across all events in the org.
-  const { data: mediaRows, error: mediaErr } = await supabase
-    .from('media_files')
-    .select('id')
-    .eq('event_id', eventId)
-    .eq('organisation_id', orgId)
-    .eq('file_type', 'image')
-    .is('deleted_at', null)
+  // ── Step 1: Paginate media_file IDs for the target event ───────────────────
+  // Supabase default row limit is 1000; paginate to collect all IDs.
+  const PAGE = 1000
+  const mediaIds: string[] = []
+  for (let from = 0; ; from += PAGE) {
+    const { data: mediaRows, error: mediaErr } = await supabase
+      .from('media_files')
+      .select('id')
+      .eq('event_id', eventId)
+      .eq('organisation_id', orgId)
+      .eq('file_type', 'image')
+      .is('deleted_at', null)
+      .range(from, from + PAGE - 1)
 
-  if (mediaErr) {
-    console.error('[pill-suggestions] media_files query error:', mediaErr.message)
-    return NextResponse.json({ error: 'Failed to load media data' }, { status: 500, headers: CORS_HEADERS })
+    if (mediaErr) {
+      console.error('[pill-suggestions] media_files query error:', mediaErr.message)
+      return NextResponse.json({ error: 'Failed to load media data' }, { status: 500, headers: CORS_HEADERS })
+    }
+    if (!mediaRows || mediaRows.length === 0) break
+    for (const r of mediaRows) mediaIds.push(r.id)
+    if (mediaRows.length < PAGE) break
   }
 
-  const mediaIds = (mediaRows ?? []).map((r) => r.id)
   if (mediaIds.length === 0) {
     return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
   }
 
-  // ── Step 2: Fetch tags for those media files ──────────────────────────────
-  const { data: rows, error } = await supabase
-    .from('tags')
-    .select('media_file_id, value, tag_type')
-    .in('media_file_id', mediaIds)
-    .eq('organisation_id', orgId)
+  // ── Step 2: Fetch tags in chunks (URL limit ~4KB; 500 UUIDs ≈ 18KB) ────────
+  const CHUNK = 500
+  const rows: { media_file_id: string; value: string; tag_type: string }[] = []
+  for (let i = 0; i < mediaIds.length; i += CHUNK) {
+    const chunk = mediaIds.slice(i, i + CHUNK)
+    const { data: chunkRows, error } = await supabase
+      .from('tags')
+      .select('media_file_id, value, tag_type')
+      .in('media_file_id', chunk)
+      .eq('organisation_id', orgId)
 
-  if (error) {
-    console.error('[pill-suggestions] tags query error:', error.message)
-    return NextResponse.json({ error: 'Failed to load tag data' }, { status: 500, headers: CORS_HEADERS })
+    if (error) {
+      console.error('[pill-suggestions] tags query error:', error.message)
+      return NextResponse.json({ error: 'Failed to load tag data' }, { status: 500, headers: CORS_HEADERS })
+    }
+    if (chunkRows) for (const r of chunkRows) rows.push(r)
   }
 
-  if (!rows || rows.length === 0) {
+  if (rows.length === 0) {
     return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
   }
 
