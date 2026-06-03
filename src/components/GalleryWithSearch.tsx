@@ -175,7 +175,7 @@ export default function GalleryWithSearch({
     setIsLoading(true)
     try {
       const params = buildParams(cursorVal)
-      const res    = await fetch(`/api/events/${eventId}/media?${params}`)
+      const res    = await fetch(`/api/projects/${eventId}/media?${params}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { files, nextCursor } = await res.json() as { files: MediaFileWithTags[]; nextCursor: string | null }
       setLoadedFiles(prev => append ? [...prev, ...files] : files)
@@ -200,6 +200,17 @@ export default function GalleryWithSearch({
     fetchPage(null, false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery, activePhotographer, showStarredOnly, activeFileType, activeColour, activePerformerId, activeBrandId, activeFolderId, activePillsKey])
+
+  // ── Mount-time fetch: recover when server passed empty initialFiles ──────
+  // If the server returned no files but the event has photos (totalCount > 0),
+  // trigger an immediate client-side fetch so the gallery isn't permanently empty.
+  useEffect(() => {
+    if (initialFiles.length === 0 && totalCount > 0) {
+      setHasMore(true)
+      fetchPage(null, false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally mount-only
 
   // ── IntersectionObserver: load next page when sentinel comes into view ────
   useEffect(() => {
