@@ -5,7 +5,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 font-mono text-[15px] leading-relaxed text-neutral-900">
+    <main className="mx-auto max-w-3xl px-6 py-16 text-[15px] leading-relaxed text-neutral-900">
       <h1 className="mb-2 text-3xl font-bold">Privacy Policy: Foto Lab</h1>
       <p className="mb-10 text-sm text-neutral-600">
         Effective from 3 June 2026. Last updated 3 June 2026.
