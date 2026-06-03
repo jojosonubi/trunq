@@ -261,17 +261,19 @@ export function transformUrlSized(url: string, size: ThumbSize): string {
 
 /**
  * Attach a signed `signed_url` field to every file.
- * Uses the batch createSignedUrls API.
+ * Signs display_path when available (avoids >25MB transform failures on raw originals).
+ * The urlMap is keyed by display_path (or storage_path as fallback), so the lookup
+ * below uses the same key used for signing.
  */
-export async function signMediaFiles<T extends { storage_path: string }>(
+export async function signMediaFiles<T extends { storage_path: string; display_path?: string | null }>(
   files: T[],
   expiresIn = DEFAULT_TTL,
 ): Promise<(T & { signed_url: string })[]> {
   if (files.length === 0) return []
-  const paths = files.map((f) => f.storage_path)
+  const paths = files.map((f) => f.display_path ?? f.storage_path)
   const urlMap = await signStoragePaths(paths, expiresIn)
   return files.map((f) => ({
     ...f,
-    signed_url: urlMap.get(f.storage_path) ?? '',
+    signed_url: urlMap.get(f.display_path ?? f.storage_path) ?? '',
   }))
 }
