@@ -13,8 +13,16 @@ const CACHE_HEADERS = {
 }
 
 const SKIP_LIST = new Set([
+  // scene — too generic
   'outdoor', 'indoor', 'day', 'night', 'daylight',
+  // subject — too generic
   'solo', 'duo', 'candid', 'posing', 'posed-portrait', 'close-up',
+  // mood — too generic / near-universal
+  'confident', 'high-energy', 'joyful', 'playful', 'cinematic',
+  // garment/accessory — too common to be interesting
+  't-shirt', 'crop-top', 'tank-top', 'crossbody',
+  // hair — ambiguous single words
+  'short', 'long',
 ])
 
 const TYPE_WEIGHT: Record<string, number> = {
@@ -74,22 +82,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
   }
 
-  // ── Step 2: Fetch tags in chunks (URL limit ~4KB; 500 UUIDs ≈ 18KB) ────────
-  const CHUNK = 500
+  // ── Step 2: Fetch tags in ID-chunks, paginating within each chunk ───────────
+  // Supabase caps responses at 1000 rows by default. With ~10 tags/photo and
+  // CHUNK=500 IDs, each chunk can have ~5,000 rows — must paginate within chunk.
+  const CHUNK     = 500
+  const TAG_PAGE  = 1000
   const rows: { media_file_id: string; value: string; tag_type: string }[] = []
   for (let i = 0; i < mediaIds.length; i += CHUNK) {
     const chunk = mediaIds.slice(i, i + CHUNK)
-    const { data: chunkRows, error } = await supabase
-      .from('tags')
-      .select('media_file_id, value, tag_type')
-      .in('media_file_id', chunk)
-      .eq('organisation_id', orgId)
+    for (let from = 0; ; from += TAG_PAGE) {
+      const { data: chunkRows, error } = await supabase
+        .from('tags')
+        .select('media_file_id, value, tag_type')
+        .in('media_file_id', chunk)
+        .eq('organisation_id', orgId)
+        .range(from, from + TAG_PAGE - 1)
 
-    if (error) {
-      console.error('[pill-suggestions] tags query error:', error.message)
-      return NextResponse.json({ error: 'Failed to load tag data' }, { status: 500, headers: CORS_HEADERS })
+      if (error) {
+        console.error('[pill-suggestions] tags query error:', error.message)
+        return NextResponse.json({ error: 'Failed to load tag data' }, { status: 500, headers: CORS_HEADERS })
+      }
+      if (!chunkRows || chunkRows.length === 0) break
+      for (const r of chunkRows) rows.push(r)
+      if (chunkRows.length < TAG_PAGE) break
     }
-    if (chunkRows) for (const r of chunkRows) rows.push(r)
   }
 
   if (rows.length === 0) {
@@ -111,14 +127,22 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Filter eligible tags ─────────────────────────────────────────────────────
-  const eligible: { value: string; tag_type: string; frequency: number }[] = []
+  const allGroups = [...freqMap.values()]
+    .map(({ value, tag_type, fileIds }) => ({ value, tag_type, frequency: fileIds.size }))
+    .sort((a, b) => b.frequency - a.frequency)
 
-  for (const { value, tag_type, fileIds } of freqMap.values()) {
-    const frequency = fileIds.size
-    if (frequency < 80 || frequency > 500) continue
-    if (SKIP_LIST.has(value.toLowerCase())) continue
-    eligible.push({ value, tag_type, frequency })
-  }
+  console.log('[pill-suggestions] mediaIds:', mediaIds.length, 'tagRows:', rows.length,
+    'groups:', allGroups.length)
+  console.log('[pill-suggestions] top 30 by freq:',
+    allGroups.slice(0, 30).map(g => `${g.tag_type}/${g.value}:${g.frequency}`).join(', '))
+
+  const eligible = allGroups.filter(({ value, frequency }) =>
+    frequency >= 80 && frequency <= 500 && !SKIP_LIST.has(value.toLowerCase())
+  )
+
+  console.log('[pill-suggestions] eligible (80–500, not skipped):', eligible.length)
+  console.log('[pill-suggestions] eligible sample:',
+    eligible.slice(0, 20).map(g => `${g.tag_type}/${g.value}:${g.frequency}`).join(', '))
 
   if (eligible.length === 0) {
     return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
@@ -149,6 +173,9 @@ export async function GET(req: NextRequest) {
     typeCounts.set(tag.tag_type, count + 1)
     picked.push({ value: tag.value, tag_type: tag.tag_type })
   }
+
+  console.log('[pill-suggestions] final picks:',
+    picked.map(p => `${p.tag_type}/${p.value}`).join(', '))
 
   // ── Shape response ────────────────────────────────────────────────────────────
   const pills = picked.map((tag) => ({
