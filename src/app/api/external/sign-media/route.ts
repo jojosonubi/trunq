@@ -69,11 +69,14 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. Sign in parallel ───────────────────────────────────────────────────────
+  // Strip the "media/" bucket prefix before passing to the storage client.
+  // Validation above requires it; the client already scopes to the media bucket,
+  // so the path argument must be the object path within the bucket only.
   // Promise.allSettled — one signing failure must not abort the rest.
   const results = await Promise.allSettled(
     stringPaths.map((path) =>
       signStoragePathThumbnail(
-        path,
+        path.slice(MEDIA_PREFIX.length),
         { width: 800, quality: 80, resize: 'cover' },
         TTL,
       )
