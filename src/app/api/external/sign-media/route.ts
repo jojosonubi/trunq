@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     stringPaths.map((path) =>
       signStoragePathThumbnail(
         path.slice(MEDIA_PREFIX.length),
-        { width: 800, quality: 80, resize: 'cover' },
+        { width: 800, quality: 80, resize: 'contain' },
         TTL,
       )
     )
