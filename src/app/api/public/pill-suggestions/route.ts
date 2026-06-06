@@ -59,28 +59,29 @@ export async function GET(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // ── Step 1: Paginate media_file IDs for the target event ───────────────────
-  // Supabase default row limit is 1000; paginate to collect all IDs.
-  const PAGE = 1000
-  const mediaIds: string[] = []
-  for (let from = 0; ; from += PAGE) {
-    const { data: mediaRows, error: mediaErr } = await supabase
-      .from('media_files')
-      .select('id')
-      .eq('event_id', eventId)
-      .eq('organisation_id', orgId)
-      .eq('file_type', 'image')
-      .is('deleted_at', null)
-      .range(from, from + PAGE - 1)
+  // ── Step 1: Sample media_file IDs for the target event ────────────────────
+  // Cap at 1000 IDs (one Supabase page). Tag frequencies across a 1000-photo
+  // sample are representative enough for pill selection, and capping here
+  // reduces the downstream tag query count from ~15 calls to ~5, keeping the
+  // cold-path response time within Vercel's function timeout window.
+  // TODO: if the event grows and representative coverage matters, switch to a
+  //       random-ordered sample (add .order('created_at', { ascending: false })
+  //       and paginate with a random offset) rather than restoring full pagination.
+  const { data: mediaRows, error: mediaErr } = await supabase
+    .from('media_files')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('organisation_id', orgId)
+    .eq('file_type', 'image')
+    .is('deleted_at', null)
+    .limit(1000)
 
-    if (mediaErr) {
-      console.error('[pill-suggestions] media_files query error:', mediaErr.message)
-      return NextResponse.json({ error: 'Failed to load media data' }, { status: 500, headers: CORS_HEADERS })
-    }
-    if (!mediaRows || mediaRows.length === 0) break
-    for (const r of mediaRows) mediaIds.push(r.id)
-    if (mediaRows.length < PAGE) break
+  if (mediaErr) {
+    console.error('[pill-suggestions] media_files query error:', mediaErr.message)
+    return NextResponse.json({ error: 'Failed to load media data' }, { status: 500, headers: CORS_HEADERS })
   }
+
+  const mediaIds = (mediaRows ?? []).map((r: { id: string }) => r.id)
 
   if (mediaIds.length === 0) {
     return NextResponse.json({ pills: [] }, { headers: { ...CORS_HEADERS, ...CACHE_HEADERS } })
