@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { indexFaceForMediaFile } from '@/lib/aws/rekognition'
+import { indexFaceForMediaFile, persistRekognitionError } from '@/lib/aws/rekognition'
 
 const BATCH_SIZE = 30
 
@@ -122,6 +122,9 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
         .from('media_files')
         .update({ rekognition_indexing_status: 'failed' })
         .eq('id', id)
+
+      // Best-effort — column may not exist yet if migration 035 hasn't run
+      await persistRekognitionError(id, message).catch(() => {})
 
       return { id, status: 'failed' as const, error: message }
     }

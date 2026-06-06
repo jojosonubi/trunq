@@ -42,7 +42,7 @@ export async function indexFaceForMediaFile(mediaFileId: string): Promise<{ face
 
   const { data: mediaFile, error: fetchErr } = await supabase
     .from('media_files')
-    .select('storage_path')
+    .select('storage_path, display_path')
     .eq('id', mediaFileId)
     .single()
 
@@ -50,7 +50,10 @@ export async function indexFaceForMediaFile(mediaFileId: string): Promise<{ face
     throw new Error(`[rekognition] Media file not found: ${mediaFileId}`)
   }
 
-  const signedUrl = await signStoragePath(mediaFile.storage_path, 300)
+  // Prefer display_path (2000px JPEG, ~200-500 KB) over the raw original (can be 10-50 MB).
+  // Same pattern as scoring.ts -- avoids the 5 MB Rekognition inline limit for nearly all rows.
+  const pathToSign = mediaFile.display_path ?? mediaFile.storage_path
+  const signedUrl = await signStoragePath(pathToSign, 300)
   if (!signedUrl) {
     throw new Error(`[rekognition] Failed to sign storage path for: ${mediaFileId}`)
   }
@@ -111,4 +114,17 @@ export async function indexFaceForMediaFile(mediaFileId: string): Promise<{ face
     }
     throw err
   }
+}
+
+/**
+ * Persist a failure reason on a media_files row.
+ * Call this from the indexing route's catch block after setting status='failed'.
+ * Requires the rekognition_error_message column (migration 035).
+ */
+export async function persistRekognitionError(mediaFileId: string, message: string): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase
+    .from('media_files')
+    .update({ rekognition_error_message: message })
+    .eq('id', mediaFileId)
 }
