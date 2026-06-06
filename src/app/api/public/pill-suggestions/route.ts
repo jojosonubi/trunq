@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolvePublicOrg, resolvePublicEvent } from '@/lib/public-api/slugs'
 
+// Cache for 60 seconds at the Vercel edge. Pills rotate via jitter on each revalidation,
+// which is frequent enough to feel fresh across visits without hitting Supabase on every request.
+export const revalidate = 60
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -9,7 +13,7 @@ const CORS_HEADERS = {
 }
 
 const CACHE_HEADERS = {
-  'Cache-Control': 'no-store, must-revalidate',
+  'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
 }
 
 const SKIP_LIST = new Set([
