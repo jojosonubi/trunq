@@ -11,6 +11,9 @@ const CORS_HEADERS = {
 
 const DEFAULT_LIMIT = 30
 const MAX_LIMIT     = 100
+const MAX_IDS       = 50
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 interface Cursor { createdAt: string; id: string }
 
@@ -45,36 +48,55 @@ export async function GET(req: NextRequest) {
   const limit        = Number.isFinite(limitRaw) ? Math.min(Math.max(1, limitRaw), MAX_LIMIT) : DEFAULT_LIMIT
   const minScoreRaw  = searchParams.get('min_score')
   const minScore     = minScoreRaw !== null ? parseInt(minScoreRaw, 10) : null
+  const idsRaw       = searchParams.get('ids')        || null
 
-  console.log('[public/photos] params:', { orgSlug, eventSlug, dayFilter, pgFilter, q, cursorRaw, limit })
+  // Optional ids mode: fetch exactly these photos, no pagination
+  let ids: string[] | null = null
+  if (idsRaw) {
+    const parsed = idsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    if (parsed.length > MAX_IDS) {
+      return NextResponse.json({ error: `Too many ids (max ${MAX_IDS})` }, { status: 400, headers: CORS_HEADERS })
+    }
+    if (parsed.some((id) => !UUID_RE.test(id))) {
+      return NextResponse.json({ error: 'Invalid id in ids' }, { status: 400, headers: CORS_HEADERS })
+    }
+    ids = [...new Set(parsed)]
+  }
+
+  console.log('[public/photos] params:', { orgSlug, eventSlug, dayFilter, pgFilter, q, cursorRaw, limit, ids: ids?.length ?? null })
 
   // ── 2. Resolve slugs ───────────────────────────────────────────────────────
   const orgId   = resolvePublicOrg(orgSlug)
   const eventId = resolvePublicEvent(eventSlug)
   console.log('[public/photos] resolved:', { orgId, eventId })
 
-  if (!orgId)   return NextResponse.json({ error: 'Unknown org slug' },   { status: 400, headers: CORS_HEADERS })
-  if (!eventId) return NextResponse.json({ error: 'Unknown event slug' }, { status: 400, headers: CORS_HEADERS })
+  if (!orgId) return NextResponse.json({ error: 'Unknown org slug' }, { status: 400, headers: CORS_HEADERS })
+  // ids mode: event is optional, but if a slug was passed it must still resolve
+  if (!eventId && (!ids || eventSlug)) {
+    return NextResponse.json({ error: 'Unknown event slug' }, { status: 400, headers: CORS_HEADERS })
+  }
 
   const supabase = createServiceClient()
 
-  // ── 3. Defensive org/event ownership check ────────────────────────────────
-  const { data: eventRow, error: eventErr } = await supabase
-    .from('events')
-    .select('id, organisation_id')
-    .eq('id', eventId)
-    .eq('organisation_id', orgId)
-    .is('deleted_at', null)
-    .single()
+  // ── 3. Defensive org/event ownership check (skipped when ids mode has no event) ──
+  if (eventId) {
+    const { data: eventRow, error: eventErr } = await supabase
+      .from('events')
+      .select('id, organisation_id')
+      .eq('id', eventId)
+      .eq('organisation_id', orgId)
+      .is('deleted_at', null)
+      .single()
 
-  if (eventErr || !eventRow) {
-    console.log('[public/photos] event not found or org mismatch', { eventId, orgId })
-    return NextResponse.json({ error: 'Event not found' }, { status: 400, headers: CORS_HEADERS })
+    if (eventErr || !eventRow) {
+      console.log('[public/photos] event not found or org mismatch', { eventId, orgId })
+      return NextResponse.json({ error: 'Event not found' }, { status: 400, headers: CORS_HEADERS })
+    }
   }
 
-  // ── 4. Decode cursor ───────────────────────────────────────────────────────
+  // ── 4. Decode cursor (not used in ids mode) ──────────────────────────────
   let cursor: Cursor | null = null
-  if (cursorRaw) {
+  if (!ids && cursorRaw) {
     cursor = decodeCursor(cursorRaw)
     if (!cursor) {
       return NextResponse.json({ error: 'Invalid cursor' }, { status: 400, headers: CORS_HEADERS })
@@ -83,11 +105,10 @@ export async function GET(req: NextRequest) {
   console.log('[public/photos] cursor:', cursor)
 
   // ── 5. Build query ────────────────────────────────────────────────────────
-  // Fetch limit+1 to detect whether there is a next page
+  // Fetch limit+1 to detect whether there is a next page (ids mode: exact fetch, no pagination)
   let query = supabase
     .from('media_files')
     .select('id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score')
-    .eq('event_id', eventId)
     .eq('organisation_id', orgId)
     .eq('review_status', 'approved')
     .is('deleted_at', null)
@@ -95,14 +116,19 @@ export async function GET(req: NextRequest) {
     .order(minScore !== null ? 'quality_score' : 'created_at', { ascending: false })
     .order('created_at', { ascending: false })
     .order('id',         { ascending: false })
-    .limit(limit + 1)
+    .limit(ids ? ids.length : limit + 1)
 
-  if (minScore !== null && Number.isFinite(minScore)) query = query.gte('quality_score', minScore)
+  // Event filter: always present in browse mode; in ids mode only when an event slug was passed
+  if (eventId) query = query.eq('event_id', eventId)
 
-  if (dayFilter)    query = query.eq('folder_id',      dayFilter)
-  if (pgFilter)     query = query.eq('photographer_id', pgFilter)
+  if (ids) query = query.in('id', ids)
 
-  if (q) {
+  if (!ids && minScore !== null && Number.isFinite(minScore)) query = query.gte('quality_score', minScore)
+
+  if (!ids && dayFilter)    query = query.eq('folder_id',      dayFilter)
+  if (!ids && pgFilter)     query = query.eq('photographer_id', pgFilter)
+
+  if (!ids && q) {
     // Pre-fetch media_file_ids whose tags match the query term, then OR them with
     // description/filename matches. Cap at 200 unique IDs to keep the in-clause
     // within reasonable URL length bounds (server-to-server call, ~7KB for 200 UUIDs).
@@ -138,9 +164,13 @@ export async function GET(req: NextRequest) {
   const allRows = rows ?? []
   console.log('[public/photos] rows returned:', allRows.length)
 
-  // Determine pagination
-  const hasMore    = allRows.length > limit
-  const pageRows   = hasMore ? allRows.slice(0, limit) : allRows
+  // Determine pagination (ids mode: no pagination, results follow request order)
+  const hasMore    = !ids && allRows.length > limit
+  let pageRows     = hasMore ? allRows.slice(0, limit) : allRows
+  if (ids) {
+    const byId = new Map(allRows.map((r) => [r.id, r]))
+    pageRows = ids.flatMap((id) => byId.get(id) ?? [])
+  }
   const lastRow    = pageRows[pageRows.length - 1]
   const nextCursor = hasMore && lastRow
     ? encodeCursor(lastRow.created_at, lastRow.id)
