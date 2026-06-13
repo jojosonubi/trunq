@@ -83,6 +83,7 @@ interface MatchResult {
   taken_at:      string | null
   event_id:      string | null
   venue:         string | null
+  event_date:    string | null
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -276,19 +277,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const topSimilarity = scored[0]?.similarity ?? null
 
-  // ── 10b. Batched venue lookup ────────────────────────────────────────────────
-  // Matches span many events; resolve all venues in one query rather than per photo.
-  // Prefer venue, fall back to location; treat empty/whitespace as unpopulated.
+  // ── 10b. Batched event lookup (venue + date) ─────────────────────────────────
+  // Matches span many events; resolve all events in one query rather than per photo.
+  // Venue: prefer venue, fall back to location; treat empty/whitespace as unpopulated.
   const eventIds = [...new Set(scored.map(({ photo }) => photo.event_id).filter(Boolean))] as string[]
   const venueByEvent = new Map<string, string | null>()
+  const dateByEvent  = new Map<string, string | null>()
   if (eventIds.length > 0) {
     const { data: eventRows } = await service
       .from('events')
-      .select('id, venue, location')
+      .select('id, venue, location, date')
       .in('id', eventIds)
     const populated = (v: string | null | undefined) => (v && v.trim() ? v : null)
     for (const e of (eventRows ?? [])) {
       venueByEvent.set(e.id, populated(e.venue) ?? populated(e.location))
+      dateByEvent.set(e.id, e.date ?? null)
     }
   }
 
@@ -308,6 +311,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         taken_at:      photo.exif_date_taken ?? null,
         event_id:      photo.event_id ?? null,
         venue:         photo.event_id ? venueByEvent.get(photo.event_id) ?? null : null,
+        event_date:    photo.event_id ? dateByEvent.get(photo.event_id) ?? null : null,
       }
     })
   )
