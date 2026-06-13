@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
   const minScoreRaw  = searchParams.get('min_score')
   const minScore     = minScoreRaw !== null ? parseInt(minScoreRaw, 10) : null
   const idsRaw       = searchParams.get('ids')        || null
+  const eventIdRaw   = searchParams.get('event_id')   || null
 
   // Optional ids mode: fetch exactly these photos, no pagination
   let ids: string[] | null = null
@@ -66,11 +67,18 @@ export async function GET(req: NextRequest) {
     ids = [...new Set(parsed)]
   }
 
-  console.log('[public/photos] params:', { orgSlug, eventSlug, dayFilter, pgFilter, q, cursorRaw, limit, ids: ids?.length ?? null })
+  // Optional event_id: a raw event UUID. Distinct from the event slug param and
+  // takes precedence over it when both are passed. Validate format up front.
+  if (eventIdRaw && !UUID_RE.test(eventIdRaw)) {
+    return NextResponse.json({ error: 'Invalid event_id' }, { status: 400, headers: CORS_HEADERS })
+  }
+
+  console.log('[public/photos] params:', { orgSlug, eventSlug, eventIdRaw, dayFilter, pgFilter, q, cursorRaw, limit, ids: ids?.length ?? null })
 
   // ── 2. Resolve slugs ───────────────────────────────────────────────────────
   const orgId   = resolvePublicOrg(orgSlug)
-  const eventId = resolvePublicEvent(eventSlug)
+  // Raw event_id wins over the event slug; fall back to slug resolution otherwise.
+  const eventId = eventIdRaw ?? resolvePublicEvent(eventSlug)
   console.log('[public/photos] resolved:', { orgId, eventId })
 
   if (!orgId) return NextResponse.json({ error: 'Unknown org slug' }, { status: 400, headers: CORS_HEADERS })
