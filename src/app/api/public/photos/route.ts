@@ -11,7 +11,10 @@ const CORS_HEADERS = {
 
 const DEFAULT_LIMIT = 30
 const MAX_LIMIT     = 100
-const MAX_IDS       = 50
+// 500 UUIDs in a single .in() — no chunking needed. PostgREST has no IN-list
+// cardinality cap, and 500 UUIDs is ~18.5KB in the URL, well under the ~7000+
+// PostgREST request-line limit. Also bounded by Supabase's 1000-row default page.
+const MAX_IDS       = 500
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
