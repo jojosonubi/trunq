@@ -21,7 +21,7 @@ import {
 import { createHash } from 'crypto'
 import sharp from 'sharp'
 import { createServiceClient } from '@/lib/supabase/service'
-import { signStoragePath } from '@/lib/supabase/storage'
+import { signStoragePath, signStoragePathSized } from '@/lib/supabase/storage'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // event-scoped results aren't crowded out by other-event matches).
   let photosQuery = service
     .from('media_files')
-    .select('id, storage_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
+    .select('id, storage_path, display_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
     .overlaps('rekognition_face_ids', matchedFaceIds)
     .is('deleted_at', null)
     .eq('file_type', 'image')
@@ -299,9 +299,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const matches: MatchResult[] = await Promise.all(
     scored.map(async ({ photo, similarity }) => {
       const fullUrl      = await signStoragePath(photo.storage_path, SIGNED_URL_TTL)
+      // Baked thumbnail when present; otherwise a 'card' transform — mirrors
+      // the fallback in src/app/api/public/photos/route.ts. Falls back to the
+      // full URL only if the transform fails to sign.
       const thumbnailUrl = photo.thumbnail_url
         ? await signStoragePath(photo.thumbnail_url, SIGNED_URL_TTL)
-        : fullUrl
+        : (await signStoragePathSized(photo, 'card', { aspect: 'preserve' }, SIGNED_URL_TTL)) ?? fullUrl
       return {
         media_file_id: photo.id,
         similarity:    Math.round(similarity * 100) / 100,
