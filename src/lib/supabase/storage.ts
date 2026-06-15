@@ -194,6 +194,17 @@ function resolveDisplayPath(input: PathOrRef): string {
 }
 
 /**
+ * Whether the input carries a usable display derivative (a small, transform-safe
+ * image). When false, resolveDisplayPath falls back to the full-resolution
+ * original, which can exceed Supabase's render limits (25MB / 50MP) and 422.
+ * Bare path strings are assumed already-resolved and transform-safe.
+ */
+function hasDisplayDerivative(input: PathOrRef): boolean {
+  if (typeof input === 'string') return true
+  return input.display_path != null
+}
+
+/**
  * For signStoragePathsSized the map is keyed by storage_path so callers can
  * look up URLs by storage_path regardless of whether a display derivative exists.
  */
@@ -204,6 +215,12 @@ export async function signStoragePathSized(
   expiresIn?: number,
 ): Promise<string | null> {
   const { width, quality } = THUMB_SIZES[size]
+  // No display derivative → the source is the full-resolution original, which can
+  // exceed Supabase's render limits and 422. Serve a plain (untransformed) signed
+  // object URL so it degrades to a working, heavier image instead of a broken one.
+  if (!hasDisplayDerivative(pathOrRef)) {
+    return (await signStoragePath(resolveDisplayPath(pathOrRef), expiresIn ?? DEFAULT_TTL)) || null
+  }
   return signStoragePathThumbnail(
     resolveDisplayPath(pathOrRef),
     {
@@ -241,7 +258,11 @@ export async function signStoragePathsSized(
     inputs.map(async (input) => {
       const storagePath  = typeof input === 'string' ? input : input.storage_path
       const displayPath  = resolveDisplayPath(input)
-      const url = await signStoragePathThumbnail(displayPath, thumbOpts, expiresIn)
+      // No display derivative → avoid transforming the oversized original (would
+      // 422 past Supabase's 25MB/50MP limit); serve a plain signed object URL.
+      const url = hasDisplayDerivative(input)
+        ? await signStoragePathThumbnail(displayPath, thumbOpts, expiresIn)
+        : (await signStoragePath(displayPath, expiresIn ?? DEFAULT_TTL)) || null
       return [storagePath, url] as const
     })
   )
