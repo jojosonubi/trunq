@@ -82,8 +82,9 @@ export async function GET(req: NextRequest) {
   console.log('[public/photos] resolved:', { orgId, eventId })
 
   if (!orgId) return NextResponse.json({ error: 'Unknown org slug' }, { status: 400, headers: CORS_HEADERS })
-  // ids mode: event is optional, but if a slug was passed it must still resolve
-  if (!eventId && (!ids || eventSlug)) {
+  // Event is optional in both browse and ids mode (org-only browse returns the
+  // whole archive). Reject only when a slug was supplied but failed to resolve.
+  if (!eventId && eventSlug) {
     return NextResponse.json({ error: 'Unknown event slug' }, { status: 400, headers: CORS_HEADERS })
   }
 
