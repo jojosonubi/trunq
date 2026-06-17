@@ -47,7 +47,7 @@ let _client: RekognitionClient | null = null
 function getClient(): RekognitionClient {
   if (!_client) {
     _client = new RekognitionClient({
-      region:      process.env.AWS_REGION ?? 'eu-west-2',
+      region:      process.env.AWS_REGION || 'eu-west-2',
       credentials: {
         accessKeyId:     process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
