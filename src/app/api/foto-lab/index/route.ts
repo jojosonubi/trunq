@@ -1,8 +1,10 @@
 /**
  * GET|POST /api/foto-lab/index  (internal — do not call from client directly)
  *
- * Claims the next batch of media_files with rekognition_indexing_status='queued'
- * and indexes their faces into Rekognition. Invoked every minute by Vercel Cron
+ * Claims the next batch of media_files with rekognition_indexing_status in
+ * ('queued','unindexed') and indexes their faces into Rekognition. ('unindexed'
+ * is the column default new uploads land in, so it must be claimable too.)
+ * Invoked every minute by Vercel Cron
  * (GET) or manually via curl (POST).
  *
  * Auth: x-task-secret header (manual) OR Authorization: Bearer <CRON_SECRET> (cron).
@@ -83,7 +85,7 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
   const { data: candidates } = await service
     .from('media_files')
     .select('id')
-    .eq('rekognition_indexing_status', 'queued')
+    .in('rekognition_indexing_status', ['queued', 'unindexed'])
     .eq('file_type', 'image')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
@@ -97,7 +99,7 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
 
   // Atomic claim — update with a status guard and .select() back the rows we won.
   // A concurrent invocation that selected the same candidates will only have its
-  // update match rows still 'queued', so each row is processed by exactly one caller.
+  // update match rows still queued/unindexed, so each row is processed by exactly one caller.
   // rekognition_claimed_at stamps the claim time for stuck-row recovery.
   const { data: claimed } = await service
     .from('media_files')
@@ -106,7 +108,7 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
       rekognition_claimed_at:      new Date().toISOString(),
     })
     .in('id', candidateIds)
-    .eq('rekognition_indexing_status', 'queued')
+    .in('rekognition_indexing_status', ['queued', 'unindexed'])
     .select('id')
 
   const ids = (claimed ?? []).map((r: { id: string }) => r.id)
@@ -151,7 +153,7 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
   const { count: remaining } = await service
     .from('media_files')
     .select('id', { count: 'exact', head: true })
-    .eq('rekognition_indexing_status', 'queued')
+    .in('rekognition_indexing_status', ['queued', 'unindexed'])
     .eq('file_type', 'image')
     .is('deleted_at', null)
 
