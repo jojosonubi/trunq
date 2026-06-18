@@ -34,6 +34,8 @@ type EventRow = {
   thumbnail_storage_path: string | null
 }
 
+type PhotographerFacet = { id: string; name: string; count: number }
+
 type EventItem = {
   id: string
   slug: string | null
@@ -43,6 +45,11 @@ type EventItem = {
   location: string | null
   photo_count: number
   cover_url: string | null
+  // Distinct photographers in this event (approved photos), id+name+count,
+  // sorted by count desc. Empty when the event has no photographer_ids (e.g.
+  // older events). Sourced from media_files.photographer_id — NOT the stale
+  // events.photographers column.
+  photographers: PhotographerFacet[]
 }
 
 export async function OPTIONS() {
@@ -101,28 +108,53 @@ export async function GET(req: NextRequest) {
 
   const eventIds = events.map((e) => e.id)
 
-  // ── 3. Per-event approved photo counts (paginated sweep; count() disabled) ──
+  // ── 3. Per-event approved photo + photographer counts (paginated sweep) ─────
+  // count() is disabled (PGRST123), so we sweep (event_id, photographer_id) rows
+  // and tally both the photo count and the per-event photographer facet in one
+  // pass. photographer_id is the authoritative source (events.photographers is
+  // stale); rows without one are still counted as photos but contribute no facet.
   const counts = new Map<string, number>()
+  const pgCounts = new Map<string, Map<string, number>>() // eventId → (photographerId → count)
   let fromRow = 0
   for (;;) {
     const { data, error } = await supabase
       .from('media_files')
-      .select('event_id')
+      .select('event_id, photographer_id')
       .eq('organisation_id', orgId)
       .eq('review_status', 'approved')
       .is('deleted_at', null)
       .eq('file_type', 'image')
       .in('event_id', eventIds)
+      // Stable order is REQUIRED: .range() offset pagination without it is
+      // non-deterministic across pages (rows duplicated/skipped), which scrambles
+      // the per-event photo + photographer tallies once the sweep spans >1 page.
+      .order('id', { ascending: true })
       .range(fromRow, fromRow + MEDIA_PAGE_SIZE - 1)
 
     if (error) {
       console.log('[public/events] count sweep error:', error.message)
       return NextResponse.json({ error: 'Failed to count photos' }, { status: 500, headers: CORS_HEADERS })
     }
-    const page = (data ?? []) as { event_id: string | null }[]
-    for (const m of page) if (m.event_id) counts.set(m.event_id, (counts.get(m.event_id) ?? 0) + 1)
+    const page = (data ?? []) as { event_id: string | null; photographer_id: string | null }[]
+    for (const m of page) {
+      if (!m.event_id) continue
+      counts.set(m.event_id, (counts.get(m.event_id) ?? 0) + 1)
+      if (m.photographer_id) {
+        let inner = pgCounts.get(m.event_id)
+        if (!inner) { inner = new Map(); pgCounts.set(m.event_id, inner) }
+        inner.set(m.photographer_id, (inner.get(m.photographer_id) ?? 0) + 1)
+      }
+    }
     if (page.length < MEDIA_PAGE_SIZE) break
     fromRow += MEDIA_PAGE_SIZE
+  }
+
+  // Resolve photographer names for every distinct id seen across the public set.
+  const allPgIds = [...new Set([...pgCounts.values()].flatMap((m) => [...m.keys()]))]
+  const pgNameMap = new Map<string, string>()
+  if (allPgIds.length > 0) {
+    const { data: pgRows } = await supabase.from('photographers').select('id, name').in('id', allPgIds)
+    for (const p of (pgRows ?? [])) pgNameMap.set(p.id, p.name)
   }
 
   // ── 4. Cover paths ──────────────────────────────────────────────────────────
@@ -174,6 +206,9 @@ export async function GET(req: NextRequest) {
       location: e.location ?? null,
       photo_count: counts.get(e.id) ?? 0,
       cover_url: coverPath ? (signed.get(coverPath) || null) : null,
+      photographers: [...(pgCounts.get(e.id)?.entries() ?? [])]
+        .map(([id, count]): PhotographerFacet => ({ id, name: pgNameMap.get(id) ?? 'Unknown', count }))
+        .sort((a, b) => b.count - a.count),
     }
     if (!byYear.has(yr)) byYear.set(yr, [])
     byYear.get(yr)!.push(item)

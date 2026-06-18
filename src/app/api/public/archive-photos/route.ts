@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
   const from      = searchParams.get('from')       || null
   const to        = searchParams.get('to')         || null
   const venue     = searchParams.get('venue')      || null
+  const photographer = searchParams.get('photographer') || null
   const cursorRaw = searchParams.get('cursor')     || null
   const matchAll  = searchParams.get('colour_match') === 'all'   // default: any-of (&&)
   const limitRaw  = parseInt(searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10)
@@ -59,8 +60,9 @@ export async function GET(req: NextRequest) {
   }
   if (from && !DATE_RE.test(from)) return NextResponse.json({ error: 'Invalid from (YYYY-MM-DD)' }, { status: 400, headers: CORS_HEADERS })
   if (to   && !DATE_RE.test(to))   return NextResponse.json({ error: 'Invalid to (YYYY-MM-DD)' },   { status: 400, headers: CORS_HEADERS })
+  if (photographer && !UUID_RE.test(photographer)) return NextResponse.json({ error: 'Invalid photographer id' }, { status: 400, headers: CORS_HEADERS })
 
-  console.log('[public/archive-photos] params:', { orgSlug, eventSlug, colours, matchAll, from, to, venue, limit })
+  console.log('[public/archive-photos] params:', { orgSlug, eventSlug, colours, matchAll, from, to, venue, photographer, limit })
 
   const orgId = await resolvePublicOrgId(orgSlug)
   if (!orgId) return NextResponse.json({ error: 'Unknown org slug' }, { status: 400, headers: CORS_HEADERS })
@@ -129,6 +131,7 @@ export async function GET(req: NextRequest) {
     // all-of → @> (contains); any-of → && (overlaps).
     query = matchAll ? query.contains('dominant_colours', colours) : query.overlaps('dominant_colours', colours)
   }
+  if (photographer) query = query.eq('photographer_id', photographer)   // mirrors public/photos pgFilter
   if (cursor) {
     query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`)
   }
