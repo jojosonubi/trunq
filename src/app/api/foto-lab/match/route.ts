@@ -84,6 +84,7 @@ interface MatchResult {
   event_id:      string | null
   venue:         string | null
   event_date:    string | null
+  event_name:    string | null
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -312,15 +313,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const eventIds = [...new Set(scored.map(({ photo }) => photo.event_id).filter(Boolean))] as string[]
   const venueByEvent = new Map<string, string | null>()
   const dateByEvent  = new Map<string, string | null>()
+  const nameByEvent  = new Map<string, string | null>()
   if (eventIds.length > 0) {
     const { data: eventRows } = await service
       .from('events')
-      .select('id, venue, location, date')
+      .select('id, venue, location, date, name')
       .in('id', eventIds)
     const populated = (v: string | null | undefined) => (v && v.trim() ? v : null)
     for (const e of (eventRows ?? [])) {
       venueByEvent.set(e.id, populated(e.venue) ?? populated(e.location))
       dateByEvent.set(e.id, e.date ?? null)
+      nameByEvent.set(e.id, e.name ?? null)
     }
   }
 
@@ -344,6 +347,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         event_id:      photo.event_id ?? null,
         venue:         photo.event_id ? venueByEvent.get(photo.event_id) ?? null : null,
         event_date:    photo.event_id ? dateByEvent.get(photo.event_id) ?? null : null,
+        event_name:    photo.event_id ? nameByEvent.get(photo.event_id) ?? null : null,
       }
     })
   )

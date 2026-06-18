@@ -121,9 +121,9 @@ export async function GET(req: NextRequest) {
     id: string; storage_path: string; display_path: string | null
     thumbnail_url: string | null; folder_id: string | null
     photographer_id: string | null; photographer: string | null
-    created_at: string; quality_score: number | null
+    created_at: string; quality_score: number | null; event_id: string | null
   }
-  const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score'
+  const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score, event_id'
   const baseQuery = () =>
     supabase
       .from('media_files')
@@ -268,6 +268,24 @@ export async function GET(req: NextRequest) {
     for (const p of (pgRows ?? [])) photographerHandleMap.set(p.id, p.instagram_handle ?? null)
   }
 
+  // ── 8b. Resolve event capture dates (batch) ───────────────────────────────
+  // The archive spans many events/years, so callers need the real per-photo
+  // event date for an accurate label (created_at is the UPLOAD time, not the
+  // capture date). Distinct events per page is small, so a single .in() is fine.
+  const eventIds = [...new Set(pageRows.map((r) => r.event_id).filter(Boolean))] as string[]
+  const eventDateMap = new Map<string, string | null>()
+  const eventNameMap = new Map<string, string | null>()
+  if (eventIds.length > 0) {
+    const { data: eventRows } = await supabase
+      .from('events')
+      .select('id, date, name')
+      .in('id', eventIds)
+    for (const e of (eventRows ?? [])) {
+      eventDateMap.set(e.id, e.date ?? null)
+      eventNameMap.set(e.id, e.name ?? null)
+    }
+  }
+
   // ── 9. Shape response ─────────────────────────────────────────────────────
   const photos = pageRows.map((row) => ({
     id:           row.id,
@@ -279,6 +297,11 @@ export async function GET(req: NextRequest) {
       : { id: null,                name: row.photographer ?? 'Unknown',                              instagramHandle: null },
     createdAt:    row.created_at,
     qualityScore: row.quality_score ?? null,
+    // Real event name + capture date (YYYY-MM-DD) from the photo's event — null
+    // if unknown. event_date is distinct from createdAt (upload time). Lets
+    // clients label the true event + date (e.g. "Recess June 2019 · 14.07.2019").
+    event_name:   row.event_id ? eventNameMap.get(row.event_id) ?? null : null,
+    event_date:   row.event_id ? eventDateMap.get(row.event_id) ?? null : null,
   }))
 
   return NextResponse.json({ photos, nextCursor }, { headers: CORS_HEADERS })
