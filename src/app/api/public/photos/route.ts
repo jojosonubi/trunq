@@ -117,64 +117,86 @@ export async function GET(req: NextRequest) {
   console.log('[public/photos] cursor:', cursor)
 
   // ── 5. Build query ────────────────────────────────────────────────────────
-  // Fetch limit+1 to detect whether there is a next page (ids mode: exact fetch, no pagination)
-  let query = supabase
-    .from('media_files')
-    .select('id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score')
-    .eq('organisation_id', orgId)
-    .eq('review_status', 'approved')
-    .is('deleted_at', null)
-    .eq('file_type', 'image')
-    .order(minScore !== null ? 'quality_score' : 'created_at', { ascending: false })
-    .order('created_at', { ascending: false })
-    .order('id',         { ascending: false })
-    .limit(ids ? ids.length : limit + 1)
-
-  // Event filter: always present in browse mode; in ids mode only when an event slug was passed
-  if (eventId) query = query.eq('event_id', eventId)
-
-  if (ids) query = query.in('id', ids)
-
-  if (!ids && minScore !== null && Number.isFinite(minScore)) query = query.gte('quality_score', minScore)
-
-  if (!ids && dayFilter)    query = query.eq('folder_id',      dayFilter)
-  if (!ids && pgFilter)     query = query.eq('photographer_id', pgFilter)
-
-  if (!ids && q) {
-    // Pre-fetch media_file_ids whose tags match the query term, then OR them with
-    // description/filename matches. Cap at 200 unique IDs to keep the in-clause
-    // within reasonable URL length bounds (server-to-server call, ~7KB for 200 UUIDs).
-    const { data: tagRows } = await supabase
-      .from('tags')
-      .select('media_file_id')
-      .ilike('value', `%${q}%`)
-      .limit(500)
-
-    const taggedIds = [...new Set((tagRows ?? []).map((t: { media_file_id: string }) => t.media_file_id))].slice(0, 200)
-    console.log('[public/photos] q search term:', q, '| tag ID matches:', taggedIds.length)
-
-    const orParts: string[] = [`description.ilike.%${q}%`, `filename.ilike.%${q}%`]
-    if (taggedIds.length > 0) orParts.push(`id.in.(${taggedIds.join(',')})`)
-    query = query.or(orParts.join(','))
+  type PhotoRow = {
+    id: string; storage_path: string; display_path: string | null
+    thumbnail_url: string | null; folder_id: string | null
+    photographer_id: string | null; photographer: string | null
+    created_at: string; quality_score: number | null
   }
+  const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score'
+  const baseQuery = () =>
+    supabase
+      .from('media_files')
+      .select(SELECT)
+      .eq('organisation_id', orgId)
+      .eq('review_status', 'approved')
+      .is('deleted_at', null)
+      .eq('file_type', 'image')
 
-  // Keyset pagination: (created_at, id) < (cursor.createdAt, cursor.id)
-  if (cursor) {
-    query = query.or(
-      `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
-    )
+  let allRows: PhotoRow[] = []
+  let rowsErr: { message: string } | null = null
+
+  if (ids) {
+    // ids mode: chunk the .in('id', …) SELECT. A single 500-id .in() is a
+    // ~18.5KB GET to Supabase and fails; query ~100 ids at a time and
+    // concatenate. No order/limit needed — results are reordered to the
+    // requested order below, and id is unique so each chunk returns ≤chunk rows.
+    const ID_QUERY_CHUNK = 100
+    for (let i = 0; i < ids.length; i += ID_QUERY_CHUNK) {
+      let q = baseQuery().in('id', ids.slice(i, i + ID_QUERY_CHUNK))
+      if (eventId) q = q.eq('event_id', eventId)
+      const { data, error } = await q
+      if (error) { rowsErr = error; break }
+      if (data) allRows.push(...(data as PhotoRow[]))
+    }
+    console.log('[public/photos] ids mode —', ids.length, 'ids in', Math.ceil(ids.length / ID_QUERY_CHUNK), 'chunk(s), rows:', allRows.length)
+  } else {
+    // browse mode: single keyset-paginated query (limit+1 to detect next page)
+    let query = baseQuery()
+      .order(minScore !== null ? 'quality_score' : 'created_at', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id',         { ascending: false })
+      .limit(limit + 1)
+
+    if (eventId) query = query.eq('event_id', eventId)
+    if (minScore !== null && Number.isFinite(minScore)) query = query.gte('quality_score', minScore)
+    if (dayFilter) query = query.eq('folder_id',      dayFilter)
+    if (pgFilter)  query = query.eq('photographer_id', pgFilter)
+
+    if (q) {
+      // Pre-fetch media_file_ids whose tags match the query term, then OR them with
+      // description/filename matches. Cap at 200 unique IDs to keep the in-clause
+      // within reasonable URL length bounds (server-to-server call, ~7KB for 200 UUIDs).
+      const { data: tagRows } = await supabase
+        .from('tags')
+        .select('media_file_id')
+        .ilike('value', `%${q}%`)
+        .limit(500)
+
+      const taggedIds = [...new Set((tagRows ?? []).map((t: { media_file_id: string }) => t.media_file_id))].slice(0, 200)
+      console.log('[public/photos] q search term:', q, '| tag ID matches:', taggedIds.length)
+
+      const orParts: string[] = [`description.ilike.%${q}%`, `filename.ilike.%${q}%`]
+      if (taggedIds.length > 0) orParts.push(`id.in.(${taggedIds.join(',')})`)
+      query = query.or(orParts.join(','))
+    }
+
+    if (cursor) {
+      query = query.or(
+        `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
+      )
+    }
+
+    const { data, error } = await query
+    allRows = (data ?? []) as PhotoRow[]
+    rowsErr = error
+    console.log('[public/photos] browse mode — rows returned:', allRows.length)
   }
-
-  console.log('[public/photos] query built — executing...')
-  const { data: rows, error: rowsErr } = await query
 
   if (rowsErr) {
     console.log('[public/photos] query error:', rowsErr.message)
     return NextResponse.json({ error: 'Failed to load photos' }, { status: 500, headers: CORS_HEADERS })
   }
-
-  const allRows = rows ?? []
-  console.log('[public/photos] rows returned:', allRows.length)
 
   // Determine pagination (ids mode: no pagination, results follow request order)
   const hasMore    = !ids && allRows.length > limit
