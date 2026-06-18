@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { resolvePublicOrg, resolvePublicEvent } from '@/lib/public-api/slugs'
-import { signStoragePath, signStoragePathsSized } from '@/lib/supabase/storage'
+import { signStoragePaths } from '@/lib/supabase/storage'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -192,24 +192,33 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ photos: [], nextCursor: null }, { headers: CORS_HEADERS })
   }
 
-  // ── 6. Sign URLs (batch, two sizes in parallel) ───────────────────────────
-  // full: always via transform (modal needs original aspect ratio)
-  // thumbnail: sign thumbnail_url directly when available (pre-baked 600x600 JPEG);
-  //            fall back to 'card' transform for rows where backfill hasn't run yet.
-  const rowsNeedingCardTransform = pageRows.filter((r) => !r.thumbnail_url)
-  const [fullMap, cardMap, thumbnailEntries] = await Promise.all([
-    signStoragePathsSized(pageRows, 'full', { aspect: 'preserve', resize: 'contain' }),
-    rowsNeedingCardTransform.length > 0
-      ? signStoragePathsSized(rowsNeedingCardTransform, 'card', { aspect: 'preserve' })
-      : Promise.resolve(new Map<string, string>()),
-    Promise.all(
-      pageRows
-        .filter((r) => r.thumbnail_url)
-        .map(async (r) => [r.storage_path, await signStoragePath(r.thumbnail_url!)] as const)
-    ),
-  ])
-  const thumbnailMap = new Map<string, string>(thumbnailEntries)
-  console.log('[public/photos] signed URLs — full:', fullMap.size, 'thumbnail (baked):', thumbnailMap.size, 'card (fallback):', cardMap.size)
+  // ── 6. Sign URLs (batched) ────────────────────────────────────────────────
+  // Previously this fired ~N concurrent createSignedUrl calls per size (one per
+  // row for the 'full' transform + one per baked thumbnail), so a large share
+  // (~500 photos → ~1000 concurrent) hit Supabase's rate limit and some signs
+  // came back empty → blank thumbnails non-deterministically.
+  //
+  // Instead, collect every path and batch-sign with createSignedUrls (≤1000
+  // paths/call, chunked internally) — one or two round trips total, no burst.
+  // Batch signing can't apply a render transform, so we sign plain object URLs:
+  //   full      → display derivative (or original) — display-sized, viewable
+  //   thumbnail → pre-baked thumbnail_url when present, else the full path
+  // Plain object URLs (no /render/image transform) also avoid the transform quota.
+  const fullPathOf  = (r: { storage_path: string; display_path: string | null }) =>
+    r.display_path ?? r.storage_path
+  const thumbPathOf = (r: { storage_path: string; display_path: string | null; thumbnail_url: string | null }) =>
+    r.thumbnail_url ?? r.display_path ?? r.storage_path
+
+  const allPaths = [...new Set(pageRows.flatMap((r) => [fullPathOf(r), thumbPathOf(r)]))]
+  const signed   = await signStoragePaths(allPaths)
+  console.log('[public/photos] batch-signed', signed.size, 'of', allPaths.length, 'paths for', pageRows.length, 'photos')
+
+  // First non-empty signed URL, else null. Treats '' (a failed sign) as failure
+  // so the client is never handed an empty src (which forces a full page reload).
+  const firstUrl = (...vals: (string | undefined)[]): string | null => {
+    for (const v of vals) if (v) return v
+    return null
+  }
 
   // ── 7. Resolve folder names (batch) ───────────────────────────────────────
   const folderIds = [...new Set(pageRows.map((r) => r.folder_id).filter(Boolean))] as string[]
@@ -240,8 +249,8 @@ export async function GET(req: NextRequest) {
   // ── 9. Shape response ─────────────────────────────────────────────────────
   const photos = pageRows.map((row) => ({
     id:           row.id,
-    url:          fullMap.get(row.storage_path) ?? '',
-    thumbnailUrl: thumbnailMap.get(row.storage_path) ?? cardMap.get(row.storage_path) ?? '',
+    url:          firstUrl(signed.get(fullPathOf(row))),
+    thumbnailUrl: firstUrl(signed.get(thumbPathOf(row)), signed.get(fullPathOf(row))),
     day:          (row.folder_id ? folderNameMap.get(row.folder_id) : null) ?? null,
     photographer: row.photographer_id
       ? { id: row.photographer_id, name: photographerNameMap.get(row.photographer_id) ?? 'Unknown', instagramHandle: photographerHandleMap.get(row.photographer_id) ?? null }
