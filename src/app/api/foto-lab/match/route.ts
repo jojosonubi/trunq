@@ -237,17 +237,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ── 8. Query media_files ────────────────────────────────────────────────────
   // Fetch all matching rows first (no cap here — cap applied after scoring so
   // event-scoped results aren't crowded out by other-event matches).
-  let photosQuery = service
-    .from('media_files')
-    .select('id, storage_path, display_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
-    .overlaps('rekognition_face_ids', matchedFaceIds)
-    .is('deleted_at', null)
-    .eq('file_type', 'image')
-    .eq('review_status', 'approved')
+  // Chunk the face IDs: a large match set (e.g. 699) serialised into a single
+  // overlaps() query builds an over-length GET URL that fails with 414. Query in
+  // batches of FACE_ID_CHUNK and dedupe rows by id (a photo can match through
+  // several of its indexed faces).
+  const FACE_ID_CHUNK = 100  // ~100 UUIDs keeps each request URL well under gateway limits
+  const photosById = new Map()
 
-  if (eventId) photosQuery = photosQuery.eq('event_id', eventId)
+  for (let i = 0; i < matchedFaceIds.length; i += FACE_ID_CHUNK) {
+    const chunk = matchedFaceIds.slice(i, i + FACE_ID_CHUNK)
 
-  const { data: photos } = await photosQuery
+    let photosQuery = service
+      .from('media_files')
+      .select('id, storage_path, display_path, rekognition_face_ids, photographer, exif_date_taken, event_id, thumbnail_url')
+      .overlaps('rekognition_face_ids', chunk)
+      .is('deleted_at', null)
+      .eq('file_type', 'image')
+      .eq('review_status', 'approved')
+
+    if (eventId) photosQuery = photosQuery.eq('event_id', eventId)
+
+    // Capture AND check the error on every chunk — a failed query must never be
+    // silently treated as "no matches" (the previous bug discarded this error).
+    const { data: chunkRows, error: chunkErr } = await photosQuery
+    if (chunkErr) {
+      console.error(`[foto-lab/match] media_files lookup failed (chunk offset ${i}):`, chunkErr.message)
+      const searchId = await logSearch({
+        no_face_detected: false,
+        match_count:      0,
+        top_similarity:   null,
+        error:            `photo lookup failed: ${chunkErr.message}`,
+      })
+      return NextResponse.json({ error: 'Search failed', search_id: searchId }, { status: 500, headers: CORS_HEADERS })
+    }
+
+    for (const row of chunkRows ?? []) {
+      if (!photosById.has(row.id)) photosById.set(row.id, row)
+    }
+  }
+
+  const photos = [...photosById.values()]
 
   if (!photos || photos.length === 0) {
     const searchId = await logSearch({ no_face_detected: false, match_count: 0, top_similarity: null, error: null })
