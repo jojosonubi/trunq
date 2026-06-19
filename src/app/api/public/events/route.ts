@@ -35,6 +35,10 @@ type EventRow = {
 }
 
 type PhotographerFacet = { id: string; name: string; count: number }
+type TagValueFacet = { value: string; count: number }
+// Tags grouped by type, e.g. { scene: [{value,count}], mood: [...] }. Empty
+// types are omitted; values are sorted by count desc. cultural_dress excluded.
+type TagFacets = Record<string, TagValueFacet[]>
 
 type EventItem = {
   id: string
@@ -50,7 +54,13 @@ type EventItem = {
   // older events). Sourced from media_files.photographer_id — NOT the stale
   // events.photographers column.
   photographers: PhotographerFacet[]
+  // Tag facet grouped by type (scene/subject/mood/garment/accessory/hair/gesture),
+  // sorted by count desc within each type; empty types omitted. From the
+  // public_event_tag_facets RPC (server-side GROUP BY over the tags table).
+  tags: TagFacets
 }
+
+const FACET_TAG_TYPES = ['scene', 'subject', 'mood', 'garment', 'accessory', 'hair', 'gesture']
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
@@ -157,6 +167,29 @@ export async function GET(req: NextRequest) {
     for (const p of (pgRows ?? [])) pgNameMap.set(p.id, p.name)
   }
 
+  // ── 3b. Tag facet (server-side GROUP BY via RPC; uses idx_tags_mfid_type_value) ──
+  // Avoids sweeping the 373k-row tags table client-side. Returns one row per
+  // (event_id, tag_type, value, count); we group into tagsByEvent[eventId][type].
+  const tagsByEvent = new Map<string, Map<string, TagValueFacet[]>>()
+  {
+    const { data: tagRows, error: tagErr } = await supabase.rpc('public_event_tag_facets', {
+      p_org: orgId,
+      p_event_ids: eventIds,
+    })
+    if (tagErr) {
+      // Non-fatal: the album grid still works without the tag facet.
+      console.log('[public/events] tag facet RPC error:', tagErr.message)
+    } else {
+      for (const r of (tagRows ?? []) as { event_id: string; tag_type: string; value: string; count: number }[]) {
+        let byType = tagsByEvent.get(r.event_id)
+        if (!byType) { byType = new Map(); tagsByEvent.set(r.event_id, byType) }
+        const arr = byType.get(r.tag_type) ?? []
+        arr.push({ value: r.value, count: Number(r.count) })
+        byType.set(r.tag_type, arr)
+      }
+    }
+  }
+
   // ── 4. Cover paths ──────────────────────────────────────────────────────────
   // Prefer the event's explicit cover (thumbnail_storage_path). For events with
   // none, fall back to the newest approved photo's thumbnail — one limit(1)
@@ -209,6 +242,19 @@ export async function GET(req: NextRequest) {
       photographers: [...(pgCounts.get(e.id)?.entries() ?? [])]
         .map(([id, count]): PhotographerFacet => ({ id, name: pgNameMap.get(id) ?? 'Unknown', count }))
         .sort((a, b) => b.count - a.count),
+      // Tag facet: ordered by FACET_TAG_TYPES, values sorted by count desc,
+      // empty types omitted (only present types become keys).
+      tags: (() => {
+        const byType = tagsByEvent.get(e.id)
+        const out: TagFacets = {}
+        if (byType) {
+          for (const type of FACET_TAG_TYPES) {
+            const vals = byType.get(type)
+            if (vals && vals.length > 0) out[type] = [...vals].sort((a, b) => b.count - a.count)
+          }
+        }
+        return out
+      })(),
     }
     if (!byYear.has(yr)) byYear.set(yr, [])
     byYear.get(yr)!.push(item)

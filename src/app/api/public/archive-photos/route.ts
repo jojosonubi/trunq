@@ -22,6 +22,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // Canonical 12-colour palette (migration 016 — the dominant_colours values).
 const PALETTE = new Set(['red','orange','yellow','green','teal','blue','purple','pink','white','black','grey','brown'])
 
+// Tag filter (the 7 surfaced types; cultural_dress excluded — matches the facet).
+const TAG_TYPES = ['scene', 'subject', 'mood', 'garment', 'accessory', 'hair', 'gesture']
+const TAG_PREFETCH_PAGE = 1000  // page size when collecting media_file_ids per tag value
+const ID_FETCH_CHUNK    = 100   // ids per .in() chunk when fetching the matched photos
+
 interface Cursor { createdAt: string; id: string }
 function encodeCursor(createdAt: string, id: string): string {
   return Buffer.from(JSON.stringify({ createdAt, id })).toString('base64url')
@@ -62,7 +67,10 @@ export async function GET(req: NextRequest) {
   if (to   && !DATE_RE.test(to))   return NextResponse.json({ error: 'Invalid to (YYYY-MM-DD)' },   { status: 400, headers: CORS_HEADERS })
   if (photographer && !UUID_RE.test(photographer)) return NextResponse.json({ error: 'Invalid photographer id' }, { status: 400, headers: CORS_HEADERS })
 
-  console.log('[public/archive-photos] params:', { orgSlug, eventSlug, colours, matchAll, from, to, venue, photographer, limit })
+  // Tag filter: 1+ tag VALUES, AND-semantics (a photo must carry all of them).
+  const tags = (searchParams.get('tag') || '').split(',').map((t) => t.trim()).filter(Boolean)
+
+  console.log('[public/archive-photos] params:', { orgSlug, eventSlug, colours, matchAll, tags, from, to, venue, photographer, limit })
 
   const orgId = await resolvePublicOrgId(orgSlug)
   if (!orgId) return NextResponse.json({ error: 'Unknown org slug' }, { status: 400, headers: CORS_HEADERS })
@@ -114,38 +122,117 @@ export async function GET(req: NextRequest) {
   }
   const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score, event_id'
 
-  let query = supabase
-    .from('media_files')
-    .select(SELECT)
-    .eq('organisation_id', orgId)
-    .eq('review_status', 'approved')
-    .is('deleted_at', null)
-    .eq('file_type', 'image')
-    .in('event_id', publicEventIds)
-    .order('created_at', { ascending: false })
-    .order('id',         { ascending: false })
-    .limit(limit + 1)
+  let pageRows: PhotoRow[]
+  let nextCursor: string | null
 
-  if (colours.length > 0) {
-    // dominant_colours is TEXT[] with a GIN index (migration 016).
-    // all-of → @> (contains); any-of → && (overlaps).
-    query = matchAll ? query.contains('dominant_colours', colours) : query.overlaps('dominant_colours', colours)
-  }
-  if (photographer) query = query.eq('photographer_id', photographer)   // mirrors public/photos pgFilter
-  if (cursor) {
-    query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`)
-  }
+  if (tags.length > 0) {
+    // ── Tag filter (AND) ──────────────────────────────────────────────────────
+    // Prefetch the media_file_id set for EACH tag value, scoped to the public
+    // events (embedded media_files!inner join → uses idx_tags_mfid_type_value).
+    // Intersect for AND, then fetch the matched photos via chunked .in() with
+    // per-chunk error checks — composing colour + photographer. No 200-id cap:
+    // every prefetch and fetch is fully paginated/chunked, so nothing truncates.
+    const idSets: Set<string>[] = []
+    for (const value of tags) {
+      const ids = new Set<string>()
+      let f = 0
+      for (;;) {
+        const { data, error } = await supabase
+          .from('tags')
+          .select('media_file_id, media_files!inner(event_id, review_status, deleted_at, file_type)')
+          .eq('organisation_id', orgId)
+          .in('tag_type', TAG_TYPES)
+          .eq('value', value)
+          .in('media_files.event_id', publicEventIds)
+          .eq('media_files.review_status', 'approved')
+          .is('media_files.deleted_at', null)
+          .eq('media_files.file_type', 'image')
+          .range(f, f + TAG_PREFETCH_PAGE - 1)
+        if (error) {
+          console.log('[public/archive-photos] tag prefetch error:', error.message)
+          return NextResponse.json({ error: 'Failed to filter by tag' }, { status: 500, headers: CORS_HEADERS })
+        }
+        const rows = (data ?? []) as { media_file_id: string }[]
+        for (const r of rows) ids.add(r.media_file_id)
+        if (rows.length < TAG_PREFETCH_PAGE) break
+        f += TAG_PREFETCH_PAGE
+      }
+      idSets.push(ids)
+    }
 
-  const { data, error } = await query
-  if (error) {
-    console.log('[public/archive-photos] photos error:', error.message)
-    return NextResponse.json({ error: 'Failed to load photos' }, { status: 500, headers: CORS_HEADERS })
+    // AND: keep ids present in EVERY selected tag's set.
+    let candidate = idSets[0] ?? new Set<string>()
+    for (let i = 1; i < idSets.length; i++) {
+      const next = idSets[i]
+      candidate = new Set([...candidate].filter((id) => next.has(id)))
+    }
+    const candidateIds = [...candidate]
+    console.log('[public/archive-photos] tag AND →', candidateIds.length, 'candidates from', tags.length, 'tag(s)')
+
+    if (candidateIds.length === 0) {
+      return NextResponse.json({ photos: [], nextCursor: null }, { headers: CORS_HEADERS })
+    }
+
+    // Fetch matched photos in id chunks; compose colour + photographer per chunk.
+    const rows: PhotoRow[] = []
+    for (let i = 0; i < candidateIds.length; i += ID_FETCH_CHUNK) {
+      const chunk = candidateIds.slice(i, i + ID_FETCH_CHUNK)
+      let cq = supabase
+        .from('media_files')
+        .select(SELECT)
+        .eq('organisation_id', orgId)
+        .eq('review_status', 'approved')
+        .is('deleted_at', null)
+        .eq('file_type', 'image')
+        .in('id', chunk)
+      if (colours.length > 0) cq = matchAll ? cq.contains('dominant_colours', colours) : cq.overlaps('dominant_colours', colours)
+      if (photographer) cq = cq.eq('photographer_id', photographer)
+      const { data, error } = await cq
+      if (error) {
+        console.log('[public/archive-photos] tag fetch chunk error:', error.message)
+        return NextResponse.json({ error: 'Failed to load photos' }, { status: 500, headers: CORS_HEADERS })
+      }
+      rows.push(...((data ?? []) as PhotoRow[]))
+    }
+    // Newest first; return the full matched set (album-scoped, bounded) — no cursor.
+    rows.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : (a.id < b.id ? 1 : -1)))
+    pageRows = rows
+    nextCursor = null
+  } else {
+    // ── No tag filter: colour-filtered, keyset-paginated (original path) ───────
+    let query = supabase
+      .from('media_files')
+      .select(SELECT)
+      .eq('organisation_id', orgId)
+      .eq('review_status', 'approved')
+      .is('deleted_at', null)
+      .eq('file_type', 'image')
+      .in('event_id', publicEventIds)
+      .order('created_at', { ascending: false })
+      .order('id',         { ascending: false })
+      .limit(limit + 1)
+
+    if (colours.length > 0) {
+      // dominant_colours is TEXT[] with a GIN index (migration 016).
+      // all-of → @> (contains); any-of → && (overlaps).
+      query = matchAll ? query.contains('dominant_colours', colours) : query.overlaps('dominant_colours', colours)
+    }
+    if (photographer) query = query.eq('photographer_id', photographer)   // mirrors public/photos pgFilter
+    if (cursor) {
+      query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.log('[public/archive-photos] photos error:', error.message)
+      return NextResponse.json({ error: 'Failed to load photos' }, { status: 500, headers: CORS_HEADERS })
+    }
+    const allRows = (data ?? []) as PhotoRow[]
+    const hasMore = allRows.length > limit
+    pageRows = hasMore ? allRows.slice(0, limit) : allRows
+    const lastRow  = pageRows[pageRows.length - 1]
+    nextCursor = hasMore && lastRow ? encodeCursor(lastRow.created_at, lastRow.id) : null
   }
-  const allRows = (data ?? []) as PhotoRow[]
-  const hasMore = allRows.length > limit
-  const pageRows = hasMore ? allRows.slice(0, limit) : allRows
-  const lastRow  = pageRows[pageRows.length - 1]
-  const nextCursor = hasMore && lastRow ? encodeCursor(lastRow.created_at, lastRow.id) : null
 
   if (pageRows.length === 0) {
     return NextResponse.json({ photos: [], nextCursor: null }, { headers: CORS_HEADERS })
