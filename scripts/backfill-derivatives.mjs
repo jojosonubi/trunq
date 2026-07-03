@@ -28,7 +28,7 @@ dotenv.config({ path: '.env.local' })
 const GO           = process.argv.includes('--go')
 const ORG          = '2b557660-6bb3-4d41-9b49-71e860681b9c'   // recess
 const MEDIA_BUCKET = 'media'
-const CONCURRENCY  = 5                 // parallel rows (download + sharp + upload)
+const CONCURRENCY  = Number(process.env.BACKFILL_CONCURRENCY ?? 5)   // parallel rows (download + sharp + upload)
 const MAX_DISPLAY_BYTES = 20 * 1024 * 1024
 const LONG_EDGE    = 4000
 

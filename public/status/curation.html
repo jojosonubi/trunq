@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RECESS · pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#0a0a0a; --bone:#f0ebe0; --recess:#d33b3b; --green:#3a9d3a; --amber:#e8821e; }
+  body{background:#0e0e0e;color:var(--bone);font-family:'VT323',monospace;margin:0;padding:22px 16px;max-width:520px;margin:auto;font-size:19px}
+  .brand{background:var(--recess);border:3px solid #000;padding:10px 14px;text-align:center;letter-spacing:4px;font-size:24px;text-shadow:2px 2px 0 var(--ink);box-shadow:5px 5px 0 #000}
+  .big{font-size:74px;margin:18px 0 0;text-align:center;line-height:1}
+  .sub{color:#8a8a8a;text-align:center;font-size:16px;margin-top:4px}
+  .barwrap{border:2px solid #333;background:#161616;height:26px;margin:16px 0;position:relative}
+  .bar{background:var(--recess);height:100%;width:0%;transition:width 1s}
+  .scan{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(0,0,0,.25) 8px 10px)}
+  .card{border:2px solid #333;background:#161616;padding:12px 14px;margin:12px 0;line-height:1.75}
+  .ok{color:var(--green)} .live{color:#e8c019;animation:blink 1.4s infinite} .q{color:#555}
+  @keyframes blink{50%{opacity:.45}}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:8px;vertical-align:baseline}
+  .feed{font-size:15px;color:#999;line-height:1.7;margin-top:8px}
+  .ts{color:#555;font-size:15px;text-align:center;margin-top:16px;line-height:1.6}
+  .stale{color:var(--amber)}
+  #err{color:var(--amber);text-align:center;display:none;margin-top:10px}
+</style>
+</head>
+<body>
+  <div class="brand">RECESS ARCHIVE PIPELINE</div>
+  <div class="big" id="pct">—%</div>
+  <div class="sub" id="counts">loading…</div>
+  <div class="barwrap"><div class="bar" id="bar"></div><div class="scan"></div></div>
+  <div class="card" id="phases"></div>
+  <div class="card"><span class="dot" id="dot" style="background:#555"></span>storage health: <b id="health">…</b>
+    <span style="color:#666;font-size:15px"> · failed batches retry free</span>
+    <div class="feed" id="feed"></div>
+  </div>
+  <div class="ts" id="ts"></div>
+  <div id="err">couldn't reach status data — retrying…</div>
+<script>
+const DATA_URL = "https://gczexfrogxqiierfeacg.supabase.co/storage/v1/object/sign/media/_ops/curation-progress.json?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9kZDc2YmYwNi1mM2RiLTQxNTEtYWJkNS0wMmNkMzk2Y2E0NjciLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJtZWRpYS9fb3BzL2N1cmF0aW9uLXByb2dyZXNzLmpzb24iLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzgzMTE1MzY5LCJleHAiOjE3ODM3MjAxNjl9.4osNj_Ut6FFMMELGr8JBH-6cbAzKK9Dn017KoxDNR5k";
+const $ = (id) => document.getElementById(id);
+function phase(label, st){
+  const cls = st === "done" ? "ok" : st === "live" ? "live" : "q";
+  const tag = st === "done" ? "■ DONE  " : st === "live" ? "■ LIVE  " : "□ QUEUED";
+  return `<div><span class="${cls}">${tag}</span> ${label}</div>`;
+}
+async function refresh(){
+  try{
+    const res = await fetch(DATA_URL + "&cb=" + Date.now());
+    if(!res.ok) throw new Error(res.status);
+    const d = await res.json();
+    $("err").style.display = "none";
+    const pct = d.total ? 100 * d.scored / d.total : 0;
+    $("pct").textContent = pct.toFixed(1) + "%";
+    $("bar").style.width = pct.toFixed(1) + "%";
+    $("counts").textContent = `curation re-score · ${d.scored.toLocaleString()} / ${d.total.toLocaleString()} photos`;
+    $("phases").innerHTML =
+      phase("display derivatives (14.5k)", "done") +
+      phase("energy scoring (25.4k)", "done") +
+      phase(`curation re-score — rubric v2`, d.scored >= d.total ? "done" : "live") +
+      phase(`summer top-20 ranking${d.ranked ? " — " + d.ranked + " ranked" : ""}`, d.ranked >= 180 ? "done" : d.ranked > 0 ? "live" : "queued") +
+      phase("curate page wiring", "queued");
+    $("health").textContent = d.health;
+    $("dot").style.background = d.health === "good" ? "#3a9d3a" : d.health === "throttled" ? "#e8821e" : "#555";
+    $("feed").innerHTML = (d.batches || []).map((b) => `<div>${b}</div>`).join("") || "<div>waiting for first ingest…</div>";
+    const age = (Date.now() - new Date(d.ts).getTime()) / 60000;
+    $("ts").innerHTML = `data from ${new Date(d.ts).toLocaleTimeString()} (${age < 1 ? "just now" : Math.round(age) + " min ago"})` +
+      (age > 4 ? `<br><span class="stale">stale — the laptop is probably asleep; everything resumes on wake</span>` : "");
+  }catch(e){ $("err").style.display = "block"; }
+}
+refresh();
+setInterval(refresh, 30_000);
+</script>
+</body>
+</html>
