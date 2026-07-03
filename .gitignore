@@ -3,3 +3,8 @@ node_modules
 .env*
 .vercel
 .env*.local
+
+# OS + build junk (untracked 2026-07-03; were committed by accident)
+.DS_Store
+*.tsbuildinfo
+supabase/.temp/
