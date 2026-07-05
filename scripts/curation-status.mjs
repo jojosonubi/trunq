@@ -8,7 +8,7 @@ dotenv.config({ path: '/Users/jojosonubi/trunq/.env.local' })
 
 const ORG = '2b557660-6bb3-4d41-9b49-71e860681b9c'
 const PATH = '_ops/curation-progress.json'
-const LOG = '/tmp/curation-rescore-overnight.log'
+const LOG = '/tmp/curation-rescore-b64.log'
 const s = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
 async function counts() {
@@ -23,7 +23,7 @@ async function counts() {
 function logInfo() {
   try {
     const lines = readFileSync(LOG, 'utf8').split('\n')
-    const batches = lines.filter((l) => l.includes('ingested —')).slice(-6).reverse()
+    const batches = lines.filter((l) => l.includes('ingested —') || l.includes('downloaded')).slice(-6).reverse()
       .map((l) => l.trim().replace(/^batch /, 'B'))
     const lastLine = lines.filter((l) => l.trim()).slice(-1)[0]?.trim().slice(0, 90) ?? ''
     const lastGood = batches[0]?.match(/scored=(\d+) failed=(\d+)/)

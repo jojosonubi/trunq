@@ -17,6 +17,7 @@
  */
 
 import dotenv from 'dotenv'
+import sharp from 'sharp'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
@@ -75,7 +76,7 @@ async function callWithRetry(params, tries = 3) {
 async function judge(candidates, keep, roundLabel) {
   const content = []
   candidates.forEach((c, i) => {
-    content.push({ type: 'image', source: { type: 'url', url: c.url } })
+    content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: c.b64 } })
     content.push({ type: 'text', text: `IMAGE ${i} — photographer: ${c.photographer ?? 'unknown'} · event: ${c.event_name ?? ''} · solo score: ${c.curation_score}` })
   })
   content.push({ type: 'text', text: `${CRITERIA}\n\nAbove are ${candidates.length} candidate photos (${roundLabel}). Select and rank the strongest ${keep}, strongest first, applying the diversity rules.` })
@@ -132,11 +133,22 @@ async function main() {
     if (candidates.length === 0) continue
     if (!GO) continue
 
-    // sign urls
-    const paths = candidates.map((c) => c.display_path)
-    const { data: signed } = await supabase.storage.from('media').createSignedUrls(paths, SIGN_TTL)
-    const urlByPath = new Map((signed ?? []).filter((s) => s.signedUrl && s.path).map((s) => [s.path, s.signedUrl]))
-    const withUrls = candidates.filter((c) => urlByPath.has(c.display_path)).map((c) => ({ ...c, url: urlByPath.get(c.display_path) }))
+    // download + resize locally, embed base64 (bypasses URL-fetch entirely)
+    const withUrls = []
+    let dlIdx = 0
+    await Promise.all(Array.from({ length: 5 }, async () => {
+      while (dlIdx < candidates.length) {
+        const c = candidates[dlIdx++]
+        try {
+          const { data, error } = await supabase.storage.from('media').download(c.display_path)
+          if (error || !data) throw new Error(error?.message ?? 'empty')
+          const b64 = (await sharp(Buffer.from(await data.arrayBuffer())).rotate()
+            .resize({ width: 1092, height: 1092, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 78 }).toBuffer()).toString('base64')
+          withUrls.push({ ...c, b64 })
+        } catch (e) { console.log(`  dl skip ${c.id.slice(0, 8)}: ${e.message.slice(0, 50)}`) }
+      }
+    }))
 
     let finalists
     if (withUrls.length <= FINAL_N) {

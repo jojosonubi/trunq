@@ -39,8 +39,9 @@ type PhotoRow = {
   thumbnail_url: string | null; folder_id: string | null
   photographer_id: string | null; photographer: string | null
   created_at: string; quality_score: number | null; event_id: string | null
+  curation_score: number | null; curation_rank: number | null
 }
-const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score, event_id'
+const SELECT = 'id, storage_path, display_path, thumbnail_url, folder_id, photographer_id, photographer, created_at, quality_score, event_id, curation_score, curation_rank'
 
 export async function GET(req: NextRequest) {
   const orgId = await resolvePublicOrgId(req.nextUrl.searchParams.get('org'))
@@ -191,7 +192,11 @@ export async function GET(req: NextRequest) {
       }
     }
     for (const bucket of matchedRowsByYear.values()) {
-      bucket.sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0) || (a.id < b.id ? 1 : -1))
+      // Query mode ranks by the curatorial score (rubric v2), legacy quality as tiebreak.
+      bucket.sort((a, b) =>
+        (b.curation_score ?? 0) - (a.curation_score ?? 0) ||
+        (b.quality_score ?? 0) - (a.quality_score ?? 0) ||
+        (a.id < b.id ? 1 : -1))
     }
   }
 
@@ -210,7 +215,8 @@ export async function GET(req: NextRequest) {
         rows = bucket.slice(0, TOP_N)
       } else {
         matches = null
-        const { data: topRows, error: topErr } = await supabase
+        // Preferred: the comparative per-summer ranking (curation_rank 1..N).
+        const { data: rankedRows, error: rankErr } = await supabase
           .from('media_files')
           .select(SELECT)
           .eq('organisation_id', orgId)
@@ -218,13 +224,32 @@ export async function GET(req: NextRequest) {
           .is('deleted_at', null)
           .eq('file_type', 'image')
           .in('event_id', eventIds)
-          .eq('score_status', 'complete')
-          .not('quality_score', 'is', null)
-          .order('quality_score', { ascending: false })
-          .order('id', { ascending: false })
+          .not('curation_rank', 'is', null)
+          .order('curation_rank', { ascending: true })
           .limit(TOP_N)
-        if (topErr) throw new Error(`top photos ${year}: ${topErr.message}`)
-        rows = (topRows ?? []) as PhotoRow[]
+        if (rankErr) throw new Error(`ranked photos ${year}: ${rankErr.message}`)
+        rows = (rankedRows ?? []) as PhotoRow[]
+
+        // Fallbacks: solo curation_score, then legacy quality_score.
+        if (rows.length === 0) {
+          for (const col of ['curation_score', 'quality_score'] as const) {
+            const { data: topRows, error: topErr } = await supabase
+              .from('media_files')
+              .select(SELECT)
+              .eq('organisation_id', orgId)
+              .eq('review_status', 'approved')
+              .is('deleted_at', null)
+              .eq('file_type', 'image')
+              .in('event_id', eventIds)
+              .not(col, 'is', null)
+              .order(col, { ascending: false })
+              .order('id', { ascending: false })
+              .limit(TOP_N)
+            if (topErr) throw new Error(`top photos ${year} (${col}): ${topErr.message}`)
+            rows = (topRows ?? []) as PhotoRow[]
+            if (rows.length > 0) break
+          }
+        }
       }
 
       const countQuery = () => supabase
@@ -286,6 +311,8 @@ export async function GET(req: NextRequest) {
       : { id: null,                name: row.photographer ?? 'Unknown',                              instagramHandle: null },
     createdAt:    row.created_at,
     qualityScore: row.quality_score ?? null,
+    curationScore: row.curation_score ?? null,
+    curationRank:  row.curation_rank ?? null,
     event_name:   row.event_id ? eventNameMap.get(row.event_id) ?? null : null,
     event_date:   row.event_id ? eventDateMap.get(row.event_id) ?? null : null,
   })

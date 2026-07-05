@@ -1,41 +1,30 @@
 /**
- * curation-rescore.mjs — FULL-ARCHIVE curation scoring (rubric v2, validated
- * on the 104-photo sample 2026-07-03 with user sign-off).
+ * curation-rescore-b64.mjs — base64 mode: bypasses Anthropic URL-fetch entirely
+ * (Supabase incident 2026-07-03/04 made URL-fetch batches fail 60-95%).
  *
- * Scores every live image (org recess) with curation_score IS NULL via the
- * Message Batches API and writes curation_score / curation_strength /
- * curation_flags / curation_reason (migration 041). NEVER touches
- * quality_score, tags, or any existing column. Idempotent: re-run picks up
- * only rows still missing curation_score.
+ * Same rubric v2 + columns as curation-rescore.mjs. Per chunk of 600 pending
+ * rows: download derivative locally, resize to 1092px JPEG q78 (sharp), embed
+ * base64 in the batch request, poll, ingest. Idempotent; failures stay NULL.
  *
- * SAFETY: dry run by default. Submits/writes ONLY with --go (billable, ~$200).
- *   node scripts/curation-rescore.mjs        # dry run
- *   node scripts/curation-rescore.mjs --go   # live
+ *   node scripts/curation-rescore-b64.mjs --go
  */
 
 import dotenv from "dotenv"
+import sharp from "sharp"
 import Anthropic from "@anthropic-ai/sdk"
 import { createClient } from "@supabase/supabase-js"
 
 dotenv.config({ path: ".env.local" })
 
-const GO           = process.argv.includes("--go")
-const ORG          = "2b557660-6bb3-4d41-9b49-71e860681b9c"   // recess
-const MEDIA_BUCKET = "media"
-const BATCH_SIZE   = 1500
-const SIGN_CHUNK   = 1000
-const SIGN_TTL     = 48 * 60 * 60
-const DB_CONC      = 20
-const POLL_MS      = 20_000
-const POLL_MAX     = 360
+const GO         = process.argv.includes("--go")
+const ORG        = "2b557660-6bb3-4d41-9b49-71e860681b9c"
+const CHUNK      = 600
+const DL_CONC    = 5
+const POLL_MS    = 20_000
+const POLL_MAX   = 360
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!SUPABASE_URL || !SERVICE_KEY) { console.error("Missing Supabase env"); process.exit(1) }
-if (GO && !process.env.ANTHROPIC_API_KEY) { console.error("Missing ANTHROPIC_API_KEY"); process.exit(1) }
-
-const supabase  = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
-const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null
+const supabase  = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const ts    = () => new Date().toISOString().slice(11, 19)
 
@@ -95,13 +84,13 @@ const SCORE_TOOL = {
 }
 
 
+
 async function withRetry(fn, label, tries = 8) {
   for (let i = 0; ; i++) {
     try { return await fn() }
     catch (err) {
       if (i >= tries - 1) throw err
-      const msg = err instanceof Error ? err.message.slice(0, 70) : String(err)
-      console.log("    [" + ts() + "] " + label + " retry " + (i + 1) + ": " + msg)
+      console.log("    [" + ts() + "] " + label + " retry " + (i + 1) + ": " + (err instanceof Error ? err.message.slice(0, 70) : err))
       await sleep(Math.min(120_000, 10_000 * 2 ** i))
     }
   }
@@ -110,14 +99,10 @@ async function withRetry(fn, label, tries = 8) {
 async function fetchPending() {
   const rows = []
   for (let f = 0; ; f += 1000) {
-    const { data, error } = await supabase
-      .from("media_files")
+    const { data, error } = await supabase.from("media_files")
       .select("id, storage_path, display_path")
-      .is("curation_score", null)
-      .eq("file_type", "image")
-      .is("deleted_at", null)
-      .eq("organisation_id", ORG)
-      .order("created_at", { ascending: true })
+      .is("curation_score", null).eq("file_type", "image").is("deleted_at", null)
+      .eq("organisation_id", ORG).order("created_at", { ascending: true })
       .range(f, f + 999)
     if (error) throw new Error("fetch failed: " + error.message)
     rows.push(...(data ?? []))
@@ -126,24 +111,12 @@ async function fetchPending() {
   return rows
 }
 
-async function signPaths(paths) {
-  const map = new Map()
-  for (let i = 0; i < paths.length; i += SIGN_CHUNK) {
-    const { data, error } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrls(paths.slice(i, i + SIGN_CHUNK), SIGN_TTL)
-    if (error) { console.error("  sign chunk failed:", error.message); continue }
-    for (const item of (data ?? [])) if (item.signedUrl && item.path) map.set(item.path, item.signedUrl)
-  }
-  return map
-}
-
-async function waitForEnd(batchId) {
-  for (let i = 0; i < POLL_MAX; i++) {
-    const b = await withRetry(() => anthropic.messages.batches.retrieve(batchId), "poll")
-    if (b.processing_status === "ended") return
-    if (i % 3 === 0) console.log(`    [${ts()}] ${b.processing_status} — processing:${b.request_counts.processing} ok:${b.request_counts.succeeded} err:${b.request_counts.errored}`)
-    await sleep(POLL_MS)
-  }
-  throw new Error("batch " + batchId + " did not end in time")
+async function downloadB64(row) {
+  const path = row.display_path ?? row.storage_path
+  const { data, error } = await withRetry(() => supabase.storage.from("media").download(path), "dl", 3)
+  if (error || !data) throw new Error(error?.message ?? "empty")
+  const buf = Buffer.from(await data.arrayBuffer())
+  return (await sharp(buf).rotate().resize({ width: 1092, height: 1092, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 78 }).toBuffer()).toString("base64")
 }
 
 async function runConc(items, conc, fn) {
@@ -151,6 +124,16 @@ async function runConc(items, conc, fn) {
   await Promise.all(Array.from({ length: Math.min(conc, items.length) }, async () => {
     while (idx < items.length) { const i = idx++; await fn(items[i]) }
   }))
+}
+
+async function waitForEnd(batchId) {
+  for (let i = 0; i < POLL_MAX; i++) {
+    const b = await withRetry(() => anthropic.messages.batches.retrieve(batchId), "poll")
+    if (b.processing_status === "ended") return
+    if (i % 6 === 0) console.log("    [" + ts() + "] processing:" + b.request_counts.processing + " ok:" + b.request_counts.succeeded + " err:" + b.request_counts.errored)
+    await sleep(POLL_MS)
+  }
+  throw new Error("batch timeout " + batchId)
 }
 
 async function ingest(batchId) {
@@ -170,71 +153,51 @@ async function ingest(batchId) {
     })
   }
   let ok = 0
-  await runConc(updates, DB_CONC, async (u) => {
+  await runConc(updates, 20, async (u) => {
     const { id, ...fields } = u
     const { error } = await supabase.from("media_files").update(fields).eq("id", id)
-    if (error) { failed++; console.error("    update failed " + id + ": " + error.message) } else ok++
+    if (error) { failed++ } else ok++
   })
   return { ok, failed }
 }
 
 async function main() {
-  const ingestIdx = process.argv.indexOf("--ingest")
-  if (ingestIdx !== -1) {
-    const batchId = process.argv[ingestIdx + 1]
-    if (!batchId?.startsWith("msgbatch_")) { console.error("usage: --ingest <msgbatch_id>"); process.exit(1) }
-    console.log("Ingesting orphaned batch " + batchId + " …")
-    await waitForEnd(batchId)
-    const { ok, failed } = await ingest(batchId)
-    console.log("ingested — scored=" + ok + " failed=" + failed)
-    return
-  }
-  console.log(GO ? "*** LIVE RUN (--go): full-archive curation scoring, billable (~$200) ***"
-                 : "--- DRY RUN: no submissions, no DB writes. Re-run with --go. ---")
-  console.log("Writes ONLY curation_score/strength/flags/reason. quality_score and tags untouched.\n")
-
+  if (!GO) { const rows = await fetchPending(); console.log("DRY: pending=" + rows.length + " → " + Math.ceil(rows.length / CHUNK) + " chunks of " + CHUNK); return }
   const rows = await fetchPending()
-  const noDisplay = rows.filter((r) => !r.display_path).length
-  console.log(`Pending (curation_score IS NULL, recess live images): ${rows.length}`)
-  console.log(`Missing display derivative (will send original): ${noDisplay}`)
-  console.log(`Plan: ${Math.ceil(rows.length / BATCH_SIZE)} sequential batch(es) of up to ${BATCH_SIZE}.`)
-  if (rows.length === 0) { console.log("Nothing to do."); return }
-  if (!GO) { console.log("\nDry run complete."); return }
+  const nChunks = Math.ceil(rows.length / CHUNK)
+  console.log("BASE64 MODE: pending=" + rows.length + " → " + nChunks + " chunks of " + CHUNK)
 
   let okTotal = 0, failTotal = 0
-  const nBatches = Math.ceil(rows.length / BATCH_SIZE)
-  for (let i = 0, idx = 1; i < rows.length; i += BATCH_SIZE, idx++) {
-    const chunk = rows.slice(i, i + BATCH_SIZE)
-    const urlMap = await signPaths(chunk.map((r) => r.display_path ?? r.storage_path))
-    const requests = chunk.map((row) => ({
-      custom_id: row.id,
+  for (let i = 0, idx = 1; i < rows.length; i += CHUNK, idx++) {
+    const chunk = rows.slice(i, i + CHUNK)
+    const loaded = []
+    let dlFail = 0
+    await runConc(chunk, DL_CONC, async (row) => {
+      try { loaded.push({ id: row.id, b64: await downloadB64(row) }) }
+      catch { dlFail++ }
+    })
+    console.log("  chunk " + idx + "/" + nChunks + ": [" + ts() + "] downloaded " + loaded.length + "/" + chunk.length + (dlFail ? " (dl failed " + dlFail + ")" : ""))
+    if (!loaded.length) continue
+
+    const requests = loaded.map((r) => ({
+      custom_id: r.id,
       params: {
-        model: "claude-sonnet-4-6",
-        max_tokens: 512,
-        tools: [SCORE_TOOL],
-        tool_choice: { type: "tool", name: "curate_image" },
+        model: "claude-sonnet-4-6", max_tokens: 512,
+        tools: [SCORE_TOOL], tool_choice: { type: "tool", name: "curate_image" },
         messages: [{ role: "user", content: [
-          { type: "image", source: { type: "url", url: urlMap.get(row.display_path ?? row.storage_path) ?? "" } },
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: r.b64 } },
           { type: "text", text: RUBRIC },
         ] }],
       },
     }))
     const batch = await withRetry(() => anthropic.messages.batches.create({ requests }), "submit")
-    console.log(`  batch ${idx}/${nBatches}: [${ts()}] submitted ${batch.id} (${chunk.length} reqs) — waiting…`)
+    console.log("  chunk " + idx + "/" + nChunks + ": [" + ts() + "] submitted " + batch.id)
     await waitForEnd(batch.id)
     const { ok, failed } = await ingest(batch.id)
-    okTotal += ok; failTotal += failed
-    console.log(`  batch ${idx}/${nBatches}: [${ts()}] ingested — scored=${ok} failed=${failed}`)
-    if (i + BATCH_SIZE < rows.length) {
-      // Supabase storage throttles after heavy egress days: back off 45 min
-      // after a majority-failure batch (waiting out the throttle), 10 min
-      // otherwise (staying under the URL-fetch rate limit).
-      const cooldown = failed > ok ? 2_700_000 : 600_000
-      console.log(`    cooling down ${cooldown / 60000} min before next batch`)
-      await sleep(cooldown)
-    }
+    okTotal += ok; failTotal += failed + dlFail
+    console.log("  chunk " + idx + "/" + nChunks + ": [" + ts() + "] ingested — scored=" + ok + " failed=" + (failed + dlFail))
   }
-  console.log(`\nDONE. scored=${okTotal} failed=${failTotal}. Re-run with --go to retry failures.`)
+  console.log("\nDONE. scored=" + okTotal + " failed=" + failTotal + ". Re-run for stragglers.")
 }
 
 main().catch((err) => { console.error("FATAL:", err); process.exit(1) })
