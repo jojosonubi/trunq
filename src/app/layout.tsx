@@ -16,7 +16,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('trunq-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');})();` }} />
+        {/* Dark is the base theme; light only when explicitly chosen */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var t=localStorage.getItem('trunq-theme');if(t!=='light')document.documentElement.setAttribute('data-theme','dark');})();` }} />
       </head>
       <body className={`${inter.className} min-h-screen`} style={{ background: 'var(--surface-0)', color: 'var(--text-primary)' }}>
         <EventModeProvider>

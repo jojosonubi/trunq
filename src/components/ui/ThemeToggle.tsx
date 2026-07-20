@@ -23,11 +23,11 @@ const MoonIcon = () => (
 )
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
 
   useEffect(() => {
     const stored = localStorage.getItem('trunq-theme') as 'light' | 'dark' | null
-    const resolved = stored ?? 'light'
+    const resolved = stored ?? 'dark'
     setTheme(resolved)
     document.documentElement.setAttribute('data-theme', resolved)
   }, [])
