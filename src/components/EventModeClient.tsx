@@ -157,12 +157,12 @@ export default function EventModeClient({ event, profile }: Props) {
           className="flex items-center gap-1 text-[#888] hover:text-white transition-colors"
         >
           <ChevronLeft size={18} />
-          <span className="text-sm">Archive</span>
+          <span className="text-base">Archive</span>
         </Link>
 
         <div className="text-center">
-          <p className="text-white text-sm font-semibold truncate max-w-[180px]">{event.name}</p>
-          <p className="text-[#555] text-xs">{totalCount} photos total</p>
+          <p className="text-white text-base font-semibold truncate max-w-[180px]">{event.name}</p>
+          <p className="text-[#555] text-sm">{totalCount} photos total</p>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -181,9 +181,9 @@ export default function EventModeClient({ event, profile }: Props) {
         >
           <Camera size={52} className="text-[#0a0a0a]" />
         </button>
-        <p className="text-[#555] text-sm mb-1">Tap to upload photos</p>
+        <p className="text-[#555] text-base mb-1">Tap to upload photos</p>
         {sessionDone > 0 && (
-          <p className="text-green-500 text-xs font-medium">✓ {sessionDone} uploaded this session</p>
+          <p className="text-green-500 text-sm font-medium">✓ {sessionDone} uploaded this session</p>
         )}
 
         {/* Send to Live Feed toggle — admin only */}
@@ -200,7 +200,7 @@ export default function EventModeClient({ event, profile }: Props) {
               <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#555] rounded-full transition-all peer-checked:translate-x-4 peer-checked:bg-white" />
             </div>
             <span className={clsx(
-              'text-xs flex items-center gap-1.5 transition-colors',
+              'text-sm flex items-center gap-1.5 transition-colors',
               sendToFeed ? 'text-red-400' : 'text-[#555]'
             )}>
               <Radio size={12} className={sendToFeed ? 'animate-pulse' : ''} />
@@ -228,7 +228,7 @@ export default function EventModeClient({ event, profile }: Props) {
               >
                 <img src={upload.previewUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-xs truncate mb-1.5">{upload.file.name}</p>
+                  <p className="text-white text-sm truncate mb-1.5">{upload.file.name}</p>
                   <div className="h-1 bg-surface-2 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-white rounded-full transition-all duration-200"
@@ -236,7 +236,7 @@ export default function EventModeClient({ event, profile }: Props) {
                     />
                   </div>
                 </div>
-                <span className="text-[#555] text-xs tabular-nums shrink-0">{upload.progress}%</span>
+                <span className="text-[#555] text-sm tabular-nums shrink-0">{upload.progress}%</span>
               </div>
             ))}
           </div>
@@ -247,7 +247,7 @@ export default function EventModeClient({ event, profile }: Props) {
           <div className="w-full mt-8">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <p className="text-[#555] text-xs uppercase tracking-widest">Recent uploads</p>
+              <p className="text-[#555] text-sm uppercase tracking-widest">Recent uploads</p>
             </div>
             <div className="grid grid-cols-3 gap-0.5">
               {recentPhotos.map((photo) => (
@@ -260,7 +260,7 @@ export default function EventModeClient({ event, profile }: Props) {
                   />
                   {photo.photographer && (
                     <div className="absolute bottom-0 left-0 right-0 px-1.5 py-1 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-white text-[9px] truncate">{photo.photographer}</p>
+                      <p className="text-white text-[11px] truncate">{photo.photographer}</p>
                     </div>
                   )}
                 </div>

@@ -152,16 +152,16 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
         {/* ── Header row ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white text-sm font-medium">
+            <p className="text-white text-base font-medium">
               {performers.length} performer{performers.length !== 1 ? 's' : ''}
             </p>
-            <p className="text-[#555] text-xs mt-0.5">
+            <p className="text-[#555] text-sm mt-0.5">
               Tag reference photos to auto-identify people across the archive
             </p>
           </div>
           <button
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all"
+            className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all"
           >
             <UserPlus size={13} />
             Add performer
@@ -171,7 +171,7 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
         {/* ── Add form ───────────────────────────────────────────────────── */}
         {adding && (
           <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 space-y-3">
-            <p className="text-white text-sm font-medium">New performer</p>
+            <p className="text-white text-base font-medium">New performer</p>
             <div className="flex gap-2">
               <input
                 autoFocus
@@ -179,28 +179,28 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
                 onChange={(e) => setDraftName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') submitAdd(); if (e.key === 'Escape') setAdding(false) }}
                 placeholder="Name (e.g. DJ Lag)"
-                className="flex-1 bg-surface-0 border border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
+                className="flex-1 bg-surface-0 border border-[#2a2a2a] text-white text-base px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
               />
               <input
                 value={draftRole}
                 onChange={(e) => setDraftRole(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') submitAdd(); if (e.key === 'Escape') setAdding(false) }}
                 placeholder="Role (e.g. Headliner)"
-                className="w-44 bg-surface-0 border border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
+                className="w-44 bg-surface-0 border border-[#2a2a2a] text-white text-base px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
               />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={submitAdd}
                 disabled={!draftName.trim() || savingNew}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-40 transition-all"
+                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-40 transition-all"
               >
                 {savingNew ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                 Add
               </button>
               <button
                 onClick={() => { setAdding(false); setDraftName(''); setDraftRole('') }}
-                className="text-xs text-[#555] hover:text-white transition-colors"
+                className="text-sm text-[#555] hover:text-white transition-colors"
               >
                 Cancel
               </button>
@@ -236,26 +236,26 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{performer.name}</p>
+                    <p className="text-white text-base font-medium truncate">{performer.name}</p>
                     {performer.role && (
-                      <p className="text-[#555] text-xs mt-0.5 truncate">{performer.role}</p>
+                      <p className="text-[#555] text-sm mt-0.5 truncate">{performer.role}</p>
                     )}
                     <div className="flex items-center gap-3 mt-2">
-                      <span className="text-[#444] text-xs tabular-nums">
+                      <span className="text-[#444] text-sm tabular-nums">
                         {count} photo{count !== 1 ? 's' : ''}
                       </span>
                       {/* Set reference photo */}
                       <button
                         onClick={() => setPickingFor(performer)}
                         disabled={isUploading}
-                        className="inline-flex items-center gap-1 text-[10px] text-[#555] hover:text-white transition-colors disabled:opacity-40"
+                        className="inline-flex items-center gap-1 text-xs text-[#555] hover:text-white transition-colors disabled:opacity-40"
                       >
                         <Camera size={10} />
                         {performer.reference_url ? 'Change photo' : 'Set photo'}
                       </button>
                     </div>
                     {!performer.reference_url && (
-                      <p className="text-amber-400/70 text-[10px] mt-1.5 flex items-center gap-1">
+                      <p className="text-amber-400/70 text-xs mt-1.5 flex items-center gap-1">
                         <AlertTriangle size={9} />
                         Reference photo needed for scanning
                       </p>
@@ -279,8 +279,8 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
         {performers.length === 0 && !adding && (
           <div className="flex flex-col items-center justify-center py-16 border border-dashed border-[#1f1f1f] rounded-lg text-center">
             <User size={28} className="text-[#333] mb-3" />
-            <p className="text-[#555] text-sm">No performers added yet</p>
-            <p className="text-[#3a3a3a] text-xs mt-1">Add a performer then set a reference photo to start face matching</p>
+            <p className="text-[#555] text-base">No performers added yet</p>
+            <p className="text-[#3a3a3a] text-sm mt-1">Add a performer then set a reference photo to start face matching</p>
           </div>
         )}
 
@@ -289,8 +289,8 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
           <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-white text-sm font-medium">Scan for performers</p>
-                <p className="text-[#555] text-xs mt-1">
+                <p className="text-white text-base font-medium">Scan for performers</p>
+                <p className="text-[#555] text-sm mt-1">
                   {unscannedFiles.length > 0
                     ? `${unscannedFiles.length} photo${unscannedFiles.length !== 1 ? 's' : ''} not yet scanned`
                     : 'All photos have been scanned'}
@@ -303,7 +303,7 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
               {scanState.phase !== 'scanning' && unscannedFiles.length > 0 && (
                 <button
                   onClick={startScan}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
                 >
                   <Scan size={13} />
                   Scan now
@@ -321,11 +321,11 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
                       style={{ width: `${Math.round((scanState.done / scanState.total) * 100)}%` }}
                     />
                   </div>
-                  <span className="text-[#555] text-xs tabular-nums shrink-0">
+                  <span className="text-[#555] text-sm tabular-nums shrink-0">
                     {scanState.done}/{scanState.total}
                   </span>
                 </div>
-                <p className="text-[#444] text-xs">
+                <p className="text-[#444] text-sm">
                   Scanning {scanState.done} of {scanState.total} photos
                   {scanState.tagsFound > 0 && <span className="text-emerald-400 ml-2">· {scanState.tagsFound} matches so far</span>}
                 </p>

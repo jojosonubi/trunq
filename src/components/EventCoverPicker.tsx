@@ -76,7 +76,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f] shrink-0">
-          <h2 className="text-white text-sm font-semibold">Change cover</h2>
+          <h2 className="text-white text-base font-semibold">Change cover</h2>
           <button
             onClick={onClose}
             disabled={saving}
@@ -92,7 +92,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors capitalize ${
+              className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors capitalize ${
                 tab === t
                   ? 'bg-white/8 text-white'
                   : 'text-[#555] hover:text-[#888]'
@@ -115,7 +115,7 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
               {!loading && photos.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <ImageIcon size={28} className="text-[#333] mb-3" />
-                  <p className="text-[#555] text-sm">No photos in this event yet.</p>
+                  <p className="text-[#555] text-base">No photos in this event yet.</p>
                 </div>
               )}
               {!loading && photos.length > 0 && (
@@ -178,8 +178,8 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
                   className="w-full border-2 border-dashed border-[#2a2a2a] hover:border-[#444] rounded-xl py-16 flex flex-col items-center gap-3 transition-colors"
                 >
                   <Upload size={22} className="text-[#444]" />
-                  <span className="text-[#555] text-sm">Click to choose an image</span>
-                  <span className="text-[#333] text-xs">JPG, PNG, WebP</span>
+                  <span className="text-[#555] text-base">Click to choose an image</span>
+                  <span className="text-[#333] text-sm">JPG, PNG, WebP</span>
                 </button>
               )}
             </div>
@@ -191,14 +191,14 @@ export default function EventCoverPicker({ eventId, onClose }: Props) {
           <button
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 text-sm text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-colors disabled:opacity-40"
+            className="px-4 py-2 text-base text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-colors disabled:opacity-40"
           >
             Cancel
           </button>
           <button
             onClick={save}
             disabled={!canSave || saving}
-            className="px-4 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-base font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {saving && <Loader2 size={13} className="animate-spin" />}
             {saving ? 'Saving…' : 'Set as cover'}

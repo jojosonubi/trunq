@@ -108,8 +108,8 @@ function SectionHead({ id, icon: Icon, title, subtitle }: { id: string; icon: Re
         <Icon size={14} style={{ color: 'var(--text-muted)' }} />
       </div>
       <div>
-        <h2 className="text-sm font-semibold track-heading" style={{ color: 'var(--text-primary)' }}>{title}</h2>
-        {subtitle && <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
+        <h2 className="text-base font-semibold track-heading" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+        {subtitle && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>}
       </div>
     </div>
   )
@@ -487,12 +487,12 @@ export default function SettingsClient({
             <Card>
               {/* Avatar row */}
               <div className="flex items-center gap-4 px-5 py-5 border-b border-[#1a1a1a]">
-                <div className="w-14 h-14 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white text-lg font-semibold select-none shrink-0">
+                <div className="w-14 h-14 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white text-xl font-semibold select-none shrink-0">
                   {initials(currentProfile)}
                 </div>
                 <div className="min-w-0">
                   <p style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, margin: 0, overflowWrap: 'break-word', wordBreak: 'break-all' }}>{currentProfile.full_name ?? currentProfile.email.split('@')[0]}</p>
-                  <p className="text-[#555] text-xs mt-0.5" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }}>{currentProfile.email}</p>
+                  <p className="text-[#555] text-sm mt-0.5" style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }}>{currentProfile.email}</p>
                   <span className="inline-block mt-1.5">
                     <Pill variant="ghost">{currentProfile.role}</Pill>
                   </span>
@@ -501,7 +501,7 @@ export default function SettingsClient({
 
               {/* Display name */}
               <div className="px-5 py-4 border-b border-[#1a1a1a]">
-                <p className="text-[#555] text-xs uppercase tracking-wider mb-2">Display name</p>
+                <p className="text-[#555] text-sm uppercase tracking-wider mb-2">Display name</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -509,12 +509,12 @@ export default function SettingsClient({
                     onChange={(e) => setNameValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && saveName()}
                     placeholder="Your name"
-                    className="flex-1 bg-surface-0 border border-[#222] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                    className="flex-1 bg-surface-0 border border-[#222] rounded-lg px-3 py-2 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                   />
                   <button
                     onClick={saveName}
                     disabled={nameSaving || nameValue === (currentProfile.full_name ?? '')}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-40"
                   >
                     {nameSaving ? <Loader2 size={12} className="animate-spin" /> : nameSaved ? <Check size={12} className="text-emerald-500" /> : <Pencil size={12} />}
                     {nameSaved ? 'Saved' : 'Save'}
@@ -524,24 +524,24 @@ export default function SettingsClient({
 
               {/* Email */}
               <div className="px-5 py-4 border-b border-[#1a1a1a]">
-                <p className="text-[#555] text-xs uppercase tracking-wider mb-2">Email</p>
-                <p className="text-[#888] text-sm font-mono">{currentProfile.email}</p>
-                <p className="text-[#333] text-xs mt-1">Email address cannot be changed here</p>
+                <p className="text-[#555] text-sm uppercase tracking-wider mb-2">Email</p>
+                <p className="text-[#888] text-base font-mono">{currentProfile.email}</p>
+                <p className="text-[#333] text-sm mt-1">Email address cannot be changed here</p>
               </div>
 
               {/* Password */}
               <div className="px-5 py-4">
-                <p className="text-[#555] text-xs uppercase tracking-wider mb-3">Password</p>
+                <p className="text-[#555] text-sm uppercase tracking-wider mb-3">Password</p>
                 {!showPassForm ? (
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setShowPassForm(true)}
-                      className="text-xs px-3 py-2 border border-[#222] text-[#888] hover:text-white hover:border-[#444] rounded-lg transition-colors"
+                      className="text-sm px-3 py-2 border border-[#222] text-[#888] hover:text-white hover:border-[#444] rounded-lg transition-colors"
                     >
                       Change password
                     </button>
                     {passSuccess && (
-                      <span className="text-emerald-400 text-xs flex items-center gap-1">
+                      <span className="text-emerald-400 text-sm flex items-center gap-1">
                         <Check size={11} /> Password updated
                       </span>
                     )}
@@ -554,7 +554,7 @@ export default function SettingsClient({
                         value={newPass}
                         onChange={(e) => setNewPass(e.target.value)}
                         placeholder="New password"
-                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                       />
                       <button onClick={() => setShowNew((v) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888]">
                         {showNew ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -567,25 +567,25 @@ export default function SettingsClient({
                         onChange={(e) => setConfirmPass(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && changePassword()}
                         placeholder="Confirm new password"
-                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
+                        className="w-full bg-surface-0 border border-[#222] rounded-lg px-3 py-2 pr-9 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#333] transition-colors"
                       />
                       <button onClick={() => setShowConfirm((v) => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888]">
                         {showConfirm ? <EyeOff size={13} /> : <Eye size={13} />}
                       </button>
                     </div>
-                    {passError && <p className="text-red-400 text-xs">{passError}</p>}
+                    {passError && <p className="text-red-400 text-sm">{passError}</p>}
                     <div className="flex gap-2">
                       <button
                         onClick={changePassword}
                         disabled={passSaving || !newPass || !confirmPass}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-40"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors disabled:opacity-40"
                       >
                         {passSaving && <Loader2 size={11} className="animate-spin" />}
                         {passSaving ? 'Updating…' : 'Update password'}
                       </button>
                       <button
                         onClick={() => { setShowPassForm(false); setNewPass(''); setConfirmPass(''); setPassError('') }}
-                        className="px-3 py-2 text-xs text-[#555] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
+                        className="px-3 py-2 text-sm text-[#555] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
                       >
                         Cancel
                       </button>
@@ -620,21 +620,21 @@ export default function SettingsClient({
                         marginBottom: i < users.length - 1 ? 4 : 0,
                       }}
                     >
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 select-none"
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 select-none"
                         style={{ background: 'var(--surface-3)', color: 'var(--text-primary)' }}>
                         {initials(u)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                        <p className="text-base truncate" style={{ color: 'var(--text-primary)' }}>
                           {u.full_name ?? <span style={{ color: 'var(--text-secondary)' }}>No name</span>}
                           {u.id === currentProfile.id && (
-                            <span className="text-xs ml-2" style={{ color: 'var(--text-dim)' }}>(you)</span>
+                            <span className="text-sm ml-2" style={{ color: 'var(--text-dim)' }}>(you)</span>
                           )}
                         </p>
-                        <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{u.email}</p>
+                        <p className="text-sm truncate" style={{ color: 'var(--text-secondary)' }}>{u.email}</p>
                       </div>
                       <Pill variant="ghost">{u.role}</Pill>
-                      <p className="text-[#333] text-xs shrink-0 hidden sm:block tabular-nums">{formatDate(u.created_at)}</p>
+                      <p className="text-[#333] text-sm shrink-0 hidden sm:block tabular-nums">{formatDate(u.created_at)}</p>
                       {u.id !== currentProfile.id && (
                         <button
                           onClick={() => removeMember(u.id)}
@@ -659,7 +659,7 @@ export default function SettingsClient({
                     <select
                       value={newRole}
                       onChange={(e) => setNewRole(e.target.value as typeof newRole)}
-                      className="bg-surface-0 border border-[#1f1f1f] text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] transition-colors appearance-none cursor-pointer"
+                      className="bg-surface-0 border border-[#1f1f1f] text-white text-base rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] transition-colors appearance-none cursor-pointer"
                     >
                       <option value="photographer">Photographer</option>
                       <option value="producer">Producer</option>
@@ -680,15 +680,15 @@ export default function SettingsClient({
                     <Card>
                       {activeInvites.map((inv, i) => (
                         <div key={inv.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-[#161616]' : ''}`}>
-                          <code className="text-[#888] text-xs font-mono flex-1 truncate">{inv.code}</code>
+                          <code className="text-[#888] text-sm font-mono flex-1 truncate">{inv.code}</code>
                           <Pill variant="ghost">{inv.role}</Pill>
-                          <span className="text-[#333] text-xs shrink-0 hidden sm:flex items-center gap-1">
+                          <span className="text-[#333] text-sm shrink-0 hidden sm:flex items-center gap-1">
                             <Clock size={10} />
                             {formatDate(inv.expires_at)}
                           </span>
                           <button
                             onClick={() => copyInviteLink(inv)}
-                            className="shrink-0 flex items-center gap-1 text-xs text-[#555] hover:text-white px-2 py-1 border border-[#1f1f1f] hover:border-[#333] rounded-lg transition-colors"
+                            className="shrink-0 flex items-center gap-1 text-sm text-[#555] hover:text-white px-2 py-1 border border-[#1f1f1f] hover:border-[#333] rounded-lg transition-colors"
                           >
                             {copiedId === inv.id
                               ? <><Check size={11} className="text-emerald-400" /> Copied</>
@@ -707,10 +707,10 @@ export default function SettingsClient({
                     </Card>
                   )}
                   {activeInvites.length === 0 && (
-                    <p className="text-[#333] text-sm">No active invites. Generate one above.</p>
+                    <p className="text-[#333] text-base">No active invites. Generate one above.</p>
                   )}
                   {(usedInvites.length > 0 || expiredInvites.length > 0) && (
-                    <p className="text-[#2a2a2a] text-xs mt-3">
+                    <p className="text-[#2a2a2a] text-sm mt-3">
                       {usedInvites.length} used · {expiredInvites.length} expired
                     </p>
                   )}
@@ -753,11 +753,11 @@ export default function SettingsClient({
                             {allGood
                               ? <CheckCircle2 size={13} className="text-emerald-400" />
                               : <AlertCircle  size={13} style={{ color: 'var(--accent)' }} />}
-                            <span style={{ fontSize: 13, fontWeight: 500, color: allGood ? undefined : 'var(--accent)' }} className={allGood ? 'text-sm font-medium' : ''}>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: allGood ? undefined : 'var(--accent)' }} className={allGood ? 'text-base font-medium' : ''}>
                               {allGood ? 'All files backed up' : `${coverage}% coverage`}
                             </span>
                           </div>
-                          <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>{localStats.backed_up} / {localStats.total}</span>
+                          <span className="text-sm tabular-nums" style={{ color: 'var(--text-muted)' }}>{localStats.backed_up} / {localStats.total}</span>
                         </div>
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
                           <div
@@ -771,7 +771,7 @@ export default function SettingsClient({
                       {localStats.missing > 0 && (
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <p className="text-[#888] text-xs">
+                            <p className="text-[#888] text-sm">
                               {localStats.missing} missing backup{localStats.missing !== 1 ? 's' : ''}
                               {localStats.missing > localStats.missing_files.length && ` (showing ${localStats.missing_files.length})`}
                             </p>
@@ -789,8 +789,8 @@ export default function SettingsClient({
                             {(backupsExpanded ? localStats.missing_files : localStats.missing_files.slice(0, 3)).map((file) => (
                               <Card key={file.id} className="flex items-center gap-4 px-4 py-3">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-[#888] text-sm truncate">{file.filename}</p>
-                                  <p className="text-[#333] text-xs mt-0.5 font-mono truncate">
+                                  <p className="text-[#888] text-base truncate">{file.filename}</p>
+                                  <p className="text-[#333] text-sm mt-0.5 font-mono truncate">
                                     {file.storage_path.length > 20 ? `…${file.storage_path.slice(-17)}` : file.storage_path}
                                   </p>
                                 </div>
@@ -808,7 +808,7 @@ export default function SettingsClient({
                             {localStats.missing_files.length > 3 && (
                               <button
                                 onClick={() => setBackupsExpanded((p) => !p)}
-                                className="w-full text-center text-xs py-2 transition-colors"
+                                className="w-full text-center text-sm py-2 transition-colors"
                                 style={{ color: 'var(--text-muted)' }}
                               >
                                 {backupsExpanded
@@ -849,13 +849,13 @@ export default function SettingsClient({
                           ? <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
                           : <XCircle      size={14} className="text-red-400 shrink-0" />
                         }
-                        <span className="text-white text-sm font-medium">
+                        <span className="text-white text-base font-medium">
                           {verifyResult.invalid === 0
                             ? `All ${verifyResult.checked} files verified — checksums match`
                             : `${verifyResult.invalid} mismatch${verifyResult.invalid !== 1 ? 'es' : ''} found across ${verifyResult.checked} files checked`
                           }
                         </span>
-                        <span className="text-[#444] text-xs ml-auto tabular-nums">
+                        <span className="text-[#444] text-sm ml-auto tabular-nums">
                           {verifyResult.valid} / {verifyResult.checked} OK
                         </span>
                       </div>
@@ -865,29 +865,29 @@ export default function SettingsClient({
                             <div key={m.id} className="flex items-start gap-2">
                               <AlertCircle size={12} className="text-red-400 shrink-0 mt-0.5" />
                               <div className="min-w-0">
-                                <p className="text-[#888] text-xs truncate">{m.filename}</p>
+                                <p className="text-[#888] text-sm truncate">{m.filename}</p>
                                 {m.error
-                                  ? <p className="text-red-400/70 text-[11px]">{m.error}</p>
-                                  : <p className="text-[#444] text-[11px] font-mono truncate">expected {m.expected?.slice(0, 16)}… got {m.actual?.slice(0, 16)}…</p>
+                                  ? <p className="text-red-400/70 text-xs">{m.error}</p>
+                                  : <p className="text-[#444] text-xs font-mono truncate">expected {m.expected?.slice(0, 16)}… got {m.actual?.slice(0, 16)}…</p>
                                 }
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
-                      <p className="text-[#2a2a2a] text-[11px] mt-3">Checked the {verifyResult.checked} oldest files with stored hashes</p>
+                      <p className="text-[#2a2a2a] text-xs mt-3">Checked the {verifyResult.checked} oldest files with stored hashes</p>
                     </Card>
                   )}
                 </div>
 
                 {/* Photographers directory */}
                 <div>
-                  <p className="text-[#444] text-xs uppercase tracking-wider mb-3">Photographers</p>
+                  <p className="text-[#444] text-sm uppercase tracking-wider mb-3">Photographers</p>
                   {photographers.length === 0 ? (
                     <Card className="flex flex-col items-center justify-center py-12 text-center">
                       <Camera size={24} className="text-[#333] mb-3" />
-                      <p className="text-[#555] text-sm">No photographers yet</p>
-                      <p className="text-[#3a3a3a] text-xs mt-1">They appear when added to events</p>
+                      <p className="text-[#555] text-base">No photographers yet</p>
+                      <p className="text-[#3a3a3a] text-sm mt-1">They appear when added to events</p>
                     </Card>
                   ) : (
                     <Card className="overflow-hidden">
@@ -900,9 +900,9 @@ export default function SettingsClient({
                           <div className="w-7 h-7 rounded-full bg-surface-0 border border-[#2a2a2a] flex items-center justify-center shrink-0">
                             <Camera size={12} className="text-[#555]" />
                           </div>
-                          <span className="text-white text-sm flex-1 group-hover:underline underline-offset-2">{p.name}</span>
-                          <span className="text-[#444] text-xs tabular-nums">{p.photoCount} photo{p.photoCount !== 1 ? 's' : ''}</span>
-                          <span className="text-[#333] text-xs tabular-nums">{p.eventCount} project{p.eventCount !== 1 ? 's' : ''}</span>
+                          <span className="text-white text-base flex-1 group-hover:underline underline-offset-2">{p.name}</span>
+                          <span className="text-[#444] text-sm tabular-nums">{p.photoCount} photo{p.photoCount !== 1 ? 's' : ''}</span>
+                          <span className="text-[#333] text-sm tabular-nums">{p.eventCount} project{p.eventCount !== 1 ? 's' : ''}</span>
                         </Link>
                       ))}
                     </Card>
@@ -919,13 +919,13 @@ export default function SettingsClient({
                 {tEvents.length === 0 && tPhotos.length === 0 ? (
                   <Card className="flex flex-col items-center justify-center py-16 text-center">
                     <Trash2 size={22} className="text-[#333] mb-3" />
-                    <p className="text-[#555] text-sm">Trash is empty</p>
+                    <p className="text-[#555] text-base">Trash is empty</p>
                   </Card>
                 ) : (
                   <div className="space-y-8">
                     {tEvents.length > 0 && (
                       <div>
-                        <p className="text-[#444] text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <p className="text-[#444] text-sm uppercase tracking-wider mb-3 flex items-center gap-1.5">
                           <Calendar size={11} />
                           Projects ({tEvents.length})
                         </p>
@@ -933,8 +933,8 @@ export default function SettingsClient({
                           {tEvents.map((event) => (
                             <Card key={event.id} className="flex items-center gap-4 px-4 py-3">
                               <div className="flex-1 min-w-0">
-                                <p className="text-white text-sm font-medium truncate">{event.name}</p>
-                                <p className="text-[#555] text-xs mt-0.5">
+                                <p className="text-white text-base font-medium truncate">{event.name}</p>
+                                <p className="text-[#555] text-sm mt-0.5">
                                   {formatDate(event.date)}
                                   {event.deleted_at && (
                                     <> · {daysUntilPurge(event.deleted_at)}d until auto-delete</>
@@ -945,7 +945,7 @@ export default function SettingsClient({
                                 <button
                                   onClick={() => trashRestore('event', event.id)}
                                   disabled={trashBusy === event.id}
-                                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                                 >
                                   <RotateCcw size={11} />
                                   {trashBusy === event.id ? '…' : 'Restore'}
@@ -953,7 +953,7 @@ export default function SettingsClient({
                                 <button
                                   onClick={() => trashDelete('event', event.id)}
                                   disabled={trashBusy === event.id}
-                                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
+                                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
                                 >
                                   <Trash2 size={11} />
                                   Delete forever
@@ -967,7 +967,7 @@ export default function SettingsClient({
 
                     {tPhotos.length > 0 && (
                       <div>
-                        <p className="text-[#444] text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                        <p className="text-[#444] text-sm uppercase tracking-wider mb-3 flex items-center gap-1.5">
                           <ImageIcon size={11} />
                           Photos ({tPhotos.length})
                         </p>
@@ -987,18 +987,18 @@ export default function SettingsClient({
                                   </div>
                                 )}
                                 {photo.deleted_at && (
-                                  <div className="absolute top-2 right-2 text-[10px] bg-black/70 text-[#888] px-1.5 py-0.5 rounded">
+                                  <div className="absolute top-2 right-2 text-xs bg-black/70 text-[#888] px-1.5 py-0.5 rounded">
                                     {daysUntilPurge(photo.deleted_at)}d
                                   </div>
                                 )}
                               </div>
                               <div className="p-3">
-                                <p className="text-[#888] text-xs truncate mb-2">{photo.filename}</p>
+                                <p className="text-[#888] text-sm truncate mb-2">{photo.filename}</p>
                                 <div className="flex gap-1.5">
                                   <button
                                     onClick={() => trashRestore('photo', photo.id)}
                                     disabled={trashBusy === photo.id}
-                                    className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                                    className="flex-1 inline-flex items-center justify-center gap-1 text-xs px-2 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                                   >
                                     <RotateCcw size={9} />
                                     {trashBusy === photo.id ? '…' : 'Restore'}
@@ -1006,7 +1006,7 @@ export default function SettingsClient({
                                   <button
                                     onClick={() => trashDelete('photo', photo.id)}
                                     disabled={trashBusy === photo.id}
-                                    className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
+                                    className="flex-1 inline-flex items-center justify-center gap-1 text-xs px-2 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
                                   >
                                     <Trash2 size={9} />
                                     Delete
@@ -1032,12 +1032,12 @@ export default function SettingsClient({
                   {/* Summary pills */}
                   <div className="flex flex-wrap gap-3">
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--flagged-bg)', border: '0.5px solid var(--flagged-border)' }}>
-                      <span className="text-xs" style={{ color: 'var(--flagged-fg)' }}>Unlicensed</span>
-                      <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--flagged-fg)' }}>{unlicensedPhotos.length}</span>
+                      <span className="text-sm" style={{ color: 'var(--flagged-fg)' }}>Unlicensed</span>
+                      <span className="text-base font-semibold tabular-nums" style={{ color: 'var(--flagged-fg)' }}>{unlicensedPhotos.length}</span>
                     </div>
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#fef9e6', border: '0.5px solid #f0dca0' }}>
-                      <span className="text-xs" style={{ color: '#b8860b' }}>Expiring soon</span>
-                      <span className="text-sm font-semibold tabular-nums" style={{ color: '#b8860b' }}>{expiringRights.length}</span>
+                      <span className="text-sm" style={{ color: '#b8860b' }}>Expiring soon</span>
+                      <span className="text-base font-semibold tabular-nums" style={{ color: '#b8860b' }}>{expiringRights.length}</span>
                     </div>
                   </div>
 
@@ -1045,14 +1045,14 @@ export default function SettingsClient({
                   {expiringRights.length > 0 && (
                     <Card>
                       <div className="px-5 py-3 border-b border-[#1a1a1a]">
-                        <p className="text-[#888] text-xs font-medium uppercase tracking-wider">Expiring within 30 days</p>
+                        <p className="text-[#888] text-sm font-medium uppercase tracking-wider">Expiring within 30 days</p>
                       </div>
                       <div className="divide-y divide-[#111]">
                         {expiringRights.map((f) => (
                           <div key={f.id} className="px-5 py-3 flex items-center justify-between gap-4">
                             <div className="min-w-0">
-                              <p className="text-white text-xs truncate font-mono">{f.filename}</p>
-                              <p className="text-[#555] text-[11px] mt-0.5">
+                              <p className="text-white text-sm truncate font-mono">{f.filename}</p>
+                              <p className="text-[#555] text-xs mt-0.5">
                                 Expires {f.usage_expires_at ? new Date(f.usage_expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                               </p>
                             </div>
@@ -1069,10 +1069,10 @@ export default function SettingsClient({
                   {unlicensedPhotos.length > 0 && (
                     <Card>
                       <div className="px-5 py-3 border-b border-[#1a1a1a]">
-                        <p className="text-[#888] text-xs font-medium uppercase tracking-wider">Photos without usage rights set</p>
+                        <p className="text-[#888] text-sm font-medium uppercase tracking-wider">Photos without usage rights set</p>
                       </div>
                       <div className="px-5 py-4">
-                        <p className="text-[#555] text-xs leading-relaxed">
+                        <p className="text-[#555] text-sm leading-relaxed">
                           {unlicensedPhotos.length} photo{unlicensedPhotos.length !== 1 ? 's' : ''} have no usage rights assigned. Open each photo in its project to set rights.
                         </p>
                       </div>
@@ -1083,8 +1083,8 @@ export default function SettingsClient({
                     <Card>
                       <div className="px-5 py-8 flex flex-col items-center text-center">
                         <ShieldCheck size={20} className="text-emerald-400 mb-2" />
-                        <p className="text-white text-sm font-medium">All rights accounted for</p>
-                        <p className="text-[#555] text-xs mt-1">No expiring or unlicensed media found.</p>
+                        <p className="text-white text-base font-medium">All rights accounted for</p>
+                        <p className="text-[#555] text-sm mt-1">No expiring or unlicensed media found.</p>
                       </div>
                     </Card>
                   )}
@@ -1104,7 +1104,7 @@ export default function SettingsClient({
                     <select
                       value={auditActionFilter}
                       onChange={(e) => setAuditActionFilter(e.target.value)}
-                      className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:border-[#333] appearance-none cursor-pointer"
+                      className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-sm rounded-lg pl-7 pr-3 py-2 focus:outline-none focus:border-[#333] appearance-none cursor-pointer"
                     >
                       <option value="">All actions</option>
                       {uniqueActions.map((a) => (
@@ -1117,24 +1117,24 @@ export default function SettingsClient({
                     value={auditDateFrom}
                     onChange={(e) => setAuditDateFrom(e.target.value)}
                     placeholder="From"
-                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
                   />
                   <input
                     type="date"
                     value={auditDateTo}
                     onChange={(e) => setAuditDateTo(e.target.value)}
                     placeholder="To"
-                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
+                    className="bg-surface-0 border border-[#1f1f1f] text-[#888] text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-[#333] [color-scheme:dark]"
                   />
                   {(auditActionFilter || auditDateFrom || auditDateTo) && (
                     <button
                       onClick={() => { setAuditActionFilter(''); setAuditDateFrom(''); setAuditDateTo('') }}
-                      className="text-xs text-[#555] hover:text-white px-2 py-1 border border-[#1f1f1f] hover:border-[#333] rounded-lg transition-colors"
+                      className="text-sm text-[#555] hover:text-white px-2 py-1 border border-[#1f1f1f] hover:border-[#333] rounded-lg transition-colors"
                     >
                       Clear
                     </button>
                   )}
-                  <span className="text-[#333] text-xs self-center ml-auto tabular-nums">
+                  <span className="text-[#333] text-sm self-center ml-auto tabular-nums">
                     {filteredLogs.length} entr{filteredLogs.length !== 1 ? 'ies' : 'y'}
                   </span>
                 </div>
@@ -1142,12 +1142,12 @@ export default function SettingsClient({
                 {filteredLogs.length === 0 ? (
                   <Card className="flex flex-col items-center justify-center py-12 text-center">
                     <History size={20} className="text-[#333] mb-2" />
-                    <p className="text-[#555] text-sm">No audit entries{auditActionFilter || auditDateFrom || auditDateTo ? ' match your filters' : ' yet'}</p>
+                    <p className="text-[#555] text-base">No audit entries{auditActionFilter || auditDateFrom || auditDateTo ? ' match your filters' : ' yet'}</p>
                   </Card>
                 ) : (
                   <Card className="overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
+                      <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-[#1a1a1a]">
                             <th className="text-left text-[#444] font-medium px-4 py-2.5 whitespace-nowrap">Time</th>
@@ -1206,7 +1206,7 @@ export default function SettingsClient({
                       <div className="px-4 py-2.5 border-t border-[#111]">
                         <button
                           onClick={() => setAuditExpanded((p) => !p)}
-                          className="text-[11px] transition-colors"
+                          className="text-xs transition-colors"
                           style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
                         >
                           {auditExpanded ? 'Show less' : `Show all ${filteredLogs.length}`}
@@ -1214,7 +1214,7 @@ export default function SettingsClient({
                       </div>
                     )}
                     {auditLogs.length === 500 && (
-                      <div className="px-4 py-2.5 border-t border-[#111] text-[#2a2a2a] text-[11px]">
+                      <div className="px-4 py-2.5 border-t border-[#111] text-[#2a2a2a] text-xs">
                         Showing the most recent 500 entries
                       </div>
                     )}
@@ -1230,12 +1230,12 @@ export default function SettingsClient({
                 <Card>
                   <div className="flex items-center justify-between px-5 py-4">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Tag all untagged images</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      <p className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>Tag all untagged images</p>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         Queues every untagged image across all projects for AI tagging &amp; scoring. Runs server-side — you can close this page.
                       </p>
                       {tagAllState === 'queued' && (
-                        <p className="text-xs mt-1.5 text-purple-400">
+                        <p className="text-sm mt-1.5 text-purple-400">
                           {tagAllCount && tagAllCount > 0
                             ? `${tagAllCount} image${tagAllCount !== 1 ? 's' : ''} queued — progress shown bottom-right`
                             : 'Nothing to tag — all images are already processed.'}
@@ -1245,7 +1245,7 @@ export default function SettingsClient({
                     <button
                       onClick={tagAllUntagged}
                       disabled={tagAllState !== 'idle'}
-                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                       style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit', cursor: tagAllState !== 'idle' ? 'not-allowed' : 'pointer' }}
                     >
                       <RefreshCw size={11} className={tagAllState === 'queuing' ? 'animate-spin' : ''} />
@@ -1258,12 +1258,12 @@ export default function SettingsClient({
                   <div className="px-5 py-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Re-score all media</p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                        <p className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>Re-score all media</p>
+                        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
                           Re-runs AI scoring on every image using the current criteria. Tags are preserved.
                         </p>
                         {rescoreState === 'queued' && (
-                          <p className="text-xs mt-1.5 text-purple-400">
+                          <p className="text-sm mt-1.5 text-purple-400">
                             {rescoreCount && rescoreCount > 0
                               ? `${rescoreCount} image${rescoreCount !== 1 ? 's' : ''} queued — progress shown bottom-right`
                               : 'Nothing to rescore.'}
@@ -1273,7 +1273,7 @@ export default function SettingsClient({
                       <button
                         onClick={() => rescoreState === 'idle' ? setRescoreState('confirming') : undefined}
                         disabled={rescoreState === 'queuing' || rescoreState === 'queued'}
-                        className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded shrink-0 ml-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit', cursor: (rescoreState === 'queuing' || rescoreState === 'queued') ? 'not-allowed' : 'pointer' }}
                       >
                         <RefreshCw size={11} className={rescoreState === 'queuing' ? 'animate-spin' : ''} />
@@ -1284,20 +1284,20 @@ export default function SettingsClient({
                     {/* Inline confirm */}
                     {rescoreState === 'confirming' && (
                       <div className="mt-3 pt-3 border-t flex items-center justify-between gap-3" style={{ borderColor: 'var(--border-rule)' }}>
-                        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                           This will re-score every image in your archive. Tags will not change.
                         </p>
                         <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={() => setRescoreState('idle')}
-                            className="text-xs px-3 py-1.5 rounded"
+                            className="text-sm px-3 py-1.5 rounded"
                             style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-muted)', fontFamily: 'inherit', cursor: 'pointer' }}
                           >
                             Cancel
                           </button>
                           <button
                             onClick={rescoreAll}
-                            className="text-xs px-3 py-1.5 rounded"
+                            className="text-sm px-3 py-1.5 rounded"
                             style={{ background: 'var(--accent)', color: '#fff', border: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                           >
                             Re-score all
@@ -1318,13 +1318,13 @@ export default function SettingsClient({
                 <Card>
                   <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Export all data</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Download a full archive of all events and media</p>
+                      <p className="text-base font-medium" style={{ color: 'var(--text-primary)' }}>Export all data</p>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Download a full archive of all events and media</p>
                     </div>
                     <button
                       disabled
                       title="Coming soon"
-                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded cursor-not-allowed opacity-40"
+                      className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded cursor-not-allowed opacity-40"
                       style={{ background: 'var(--surface-2)', border: 'var(--border-rule)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
                     >
                       Coming soon
@@ -1332,13 +1332,13 @@ export default function SettingsClient({
                   </div>
                   <div className="flex items-center justify-between px-5 py-4">
                     <div>
-                      <p className="text-sm font-medium" style={{ color: 'var(--flagged-fg)' }}>Delete account</p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Permanently remove your account and all associated data</p>
+                      <p className="text-base font-medium" style={{ color: 'var(--flagged-fg)' }}>Delete account</p>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Permanently remove your account and all associated data</p>
                     </div>
                     <button
                       disabled
                       title="Contact support to delete your account"
-                      className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded cursor-not-allowed opacity-50"
+                      className="inline-flex items-center gap-1.5 text-sm px-3 py-2 rounded cursor-not-allowed opacity-50"
                       style={{ background: 'var(--flagged-bg)', border: '0.5px solid var(--flagged-border)', color: 'var(--flagged-fg)', fontFamily: 'inherit' }}
                     >
                       Contact support

@@ -167,8 +167,8 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="px-4 py-3.5 border-b border-[#1a1a1a] flex items-center justify-between gap-2">
         <div>
-          <p className="text-white text-sm font-medium">Social Export</p>
-          <p className="text-[#555] text-[11px] mt-0.5">
+          <p className="text-white text-base font-medium">Social Export</p>
+          <p className="text-[#555] text-xs mt-0.5">
             {isEmpty ? 'No images selected' : `${selectedFiles.length} selected`}
           </p>
         </div>
@@ -189,7 +189,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
               key={p.id}
               onClick={() => setPlatform(p.id)}
               className={clsx(
-                'flex-1 py-1.5 rounded-md text-[11px] font-medium transition-all',
+                'flex-1 py-1.5 rounded-md text-xs font-medium transition-all',
                 platform === p.id
                   ? 'bg-white text-black'
                   : 'text-[#555] hover:text-[#999] hover:bg-white/5',
@@ -199,7 +199,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
             </button>
           ))}
         </div>
-        <p className="text-[#333] text-[10px] mt-1.5 text-center">
+        <p className="text-[#333] text-xs mt-1.5 text-center">
           {PLATFORM_EXPORT[platform].w} × {PLATFORM_EXPORT[platform].h}px
           {' · '}
           {platform === 'instagram' ? '4∶5' : platform === 'x' ? '16∶9' : '9∶16'}
@@ -213,8 +213,8 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
             <div className="w-10 h-10 rounded-full bg-surface-0 flex items-center justify-center mb-3">
               <Download size={18} className="text-[#444]" />
             </div>
-            <p className="text-[#555] text-sm">No images selected</p>
-            <p className="text-[#333] text-xs mt-1">Click images in the gallery to add them</p>
+            <p className="text-[#555] text-base">No images selected</p>
+            <p className="text-[#333] text-sm mt-1">Click images in the gallery to add them</p>
           </div>
         ) : (
           <div className="px-4 py-4 space-y-4">
@@ -229,10 +229,10 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
               </button>
 
               <div className="text-center">
-                <p className="text-white text-xs font-medium truncate max-w-[160px]">
+                <p className="text-white text-sm font-medium truncate max-w-[160px]">
                   {currentFile?.filename}
                 </p>
-                <p className="text-[#444] text-[10px]">
+                <p className="text-[#444] text-xs">
                   {safeIndex + 1} of {selectedFiles.length}
                 </p>
               </div>
@@ -262,7 +262,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
               onClick={handleExport}
               disabled={exporting || !currentCrop}
               className={clsx(
-                'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all',
+                'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-base font-medium transition-all',
                 justExported
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                   : 'bg-white/8 hover:bg-white/12 border border-[#2a2a2a] hover:border-[#3a3a3a] text-white',
@@ -324,7 +324,7 @@ export default function SocialPanel({ selectedFiles, onDeselect, onExit }: Props
           <button
             onClick={handleExportAll}
             disabled={exportingAll}
-            className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2 bg-white text-black text-base font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
           >
             {exportingAll ? (
               <><Sparkles size={13} className="animate-pulse" /> Exporting…</>

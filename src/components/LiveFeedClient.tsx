@@ -51,20 +51,20 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
     <div className="min-h-screen bg-surface-0">
       <header className="sticky top-0 z-20 bg-surface-0/95 backdrop-blur border-b border-[#1a1a1a]">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href={`/projects/${event.id}`} className="text-[#888] text-sm hover:text-white transition-colors">
+          <Link href={`/projects/${event.id}`} className="text-[#888] text-base hover:text-white transition-colors">
             ← {event.name}
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-[#555] text-xs tabular-nums">{photos.length} photos</span>
+            <span className="text-[#555] text-sm tabular-nums">{photos.length} photos</span>
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 rounded-full transition-colors ${isConnected ? 'bg-red-500 animate-pulse' : 'bg-surface-3'}`} />
-              <span className="text-xs text-[#555]">{isConnected ? 'Live' : 'Connecting...'}</span>
+              <span className="text-sm text-[#555]">{isConnected ? 'Live' : 'Connecting...'}</span>
             </div>
           </div>
         </div>
       </header>
       {pendingCount > 0 && (
-        <button onClick={() => window.location.reload()} className="w-full bg-white text-black text-sm font-semibold py-3 text-center hover:bg-[#eee] transition-colors sticky top-14 z-10">
+        <button onClick={() => window.location.reload()} className="w-full bg-white text-black text-base font-semibold py-3 text-center hover:bg-[#eee] transition-colors sticky top-14 z-10">
           ↑ {pendingCount} new photo{pendingCount !== 1 ? 's' : ''} — tap to load
         </button>
       )}
@@ -72,8 +72,8 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
         {photos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-48 text-center">
             <Radio size={40} className="text-[#2a2a2a] mb-5" />
-            <p className="text-[#666] text-sm">Waiting for the first upload...</p>
-            <p className="text-[#444] text-xs mt-1.5">Photos appear here in real time as photographers shoot</p>
+            <p className="text-[#666] text-base">Waiting for the first upload...</p>
+            <p className="text-[#444] text-sm mt-1.5">Photos appear here in real time as photographers shoot</p>
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 xl:columns-5 gap-1.5 space-y-1.5">
@@ -82,7 +82,7 @@ export default function LiveFeedClient({ event, initialPhotos }: Props) {
                 <img src={photo.signed_url ?? photo.public_url} alt="" className="w-full h-auto block" loading="lazy" />
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-2">
                   <div>
-                    {photo.photographer && <p className="text-white text-xs font-medium">{photo.photographer}</p>}
+                    {photo.photographer && <p className="text-white text-sm font-medium">{photo.photographer}</p>}
                     {photo.quality_score != null && (
                       <Pill variant="score">{photo.quality_score}</Pill>
                     )}

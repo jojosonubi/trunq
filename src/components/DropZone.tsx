@@ -139,7 +139,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-[#444] text-[10px] uppercase tracking-wider shrink-0">
+      <span className="flex items-center gap-1 text-[#444] text-xs uppercase tracking-wider shrink-0">
         <FolderIcon size={10} />
         Folder
       </span>
@@ -149,7 +149,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
         disabled={disabled}
         onClick={() => onSelect(null)}
         className={clsx(
-          'text-xs px-2.5 py-1 rounded-full border transition-all',
+          'text-sm px-2.5 py-1 rounded-full border transition-all',
           selectedId === null
             ? 'bg-white/10 border-white/25 text-white'
             : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#888]',
@@ -166,7 +166,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
           disabled={disabled}
           onClick={() => onSelect(folder.id)}
           className={clsx(
-            'text-xs px-2.5 py-1 rounded-full border transition-all',
+            'text-sm px-2.5 py-1 rounded-full border transition-all',
             selectedId === folder.id
               ? 'bg-white/10 border-white/25 text-white'
               : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#888]',
@@ -190,7 +190,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
                 if (e.key === 'Escape') { setCreating(false); setDraftName('') }
               }}
               placeholder="Folder name…"
-              className="bg-surface-0 border border-[#333] text-white text-xs px-2 py-1 rounded-full w-32 placeholder:text-[#444] focus:outline-none focus:border-[#555]"
+              className="bg-surface-0 border border-[#333] text-white text-sm px-2 py-1 rounded-full w-32 placeholder:text-[#444] focus:outline-none focus:border-[#555]"
             />
             <button
               onClick={submit}
@@ -211,7 +211,7 @@ function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: Fol
         ) : (
           <button
             onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-dashed border-[#2a2a2a] text-[#444] hover:border-[#444] hover:text-[#888] transition-all"
+            className="inline-flex items-center gap-1 text-sm px-2.5 py-1 rounded-full border border-dashed border-[#2a2a2a] text-[#444] hover:border-[#444] hover:text-[#888] transition-all"
           >
             <Plus size={10} />
             New folder
@@ -684,7 +684,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
         <div className="flex-1 min-w-0">
           {isUploading ? (
             <>
-              <p className="text-xs font-medium text-left" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-medium text-left" style={{ color: 'var(--text-primary)' }}>
                 Uploading {doneCount + errorCount + 1} of {uploadCount}…
               </p>
               <div className="h-1 bg-[#1f1f1f] rounded-full overflow-hidden mt-1.5">
@@ -695,7 +695,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
               </div>
             </>
           ) : (
-            <p className="text-xs font-medium text-left flex items-center gap-1.5" style={{ color: doneCount > 0 ? '#1D9E75' : 'var(--text-secondary)' }}>
+            <p className="text-sm font-medium text-left flex items-center gap-1.5" style={{ color: doneCount > 0 ? '#1D9E75' : 'var(--text-secondary)' }}>
               {doneCount > 0 && <CheckCircle2 size={12} />}
               {[
                 doneCount  > 0 && `${doneCount} uploaded`,
@@ -708,7 +708,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
         {/* Speed + ETA */}
         {isUploading && overallSpeedBps !== null && (
-          <span className="text-[#555] text-[11px] tabular-nums shrink-0 text-right leading-tight">
+          <span className="text-[#555] text-xs tabular-nums shrink-0 text-right leading-tight">
             {fmtSpeed(overallSpeedBps)}
             {etaSec !== null && fmtETA(etaSec) && (
               <><br /><span style={{ fontSize: 10 }}>{fmtETA(etaSec)}</span></>
@@ -750,7 +750,7 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
       {/* Slow-connection warning */}
       {footerExpanded && slowConnection && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 text-amber-400 text-xs">
+        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 text-amber-400 text-sm">
           <AlertTriangle size={12} className="shrink-0" />
           Large upload — keep this tab open
         </div>
@@ -786,10 +786,10 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
               <li key={item.id} className="px-4 py-2.5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <StatusIcon status={item.status} />
-                  <span className="text-xs font-medium truncate flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-sm font-medium truncate flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>
                     {item.file.name}
                   </span>
-                  <span className="text-[10px] tabular-nums shrink-0" style={{ color: rightColor }}>
+                  <span className="text-xs tabular-nums shrink-0" style={{ color: rightColor }}>
                     {rightText}
                   </span>
                   {item.status === 'error' && (
@@ -862,11 +862,11 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
                   <UploadCloud size={22} className={isDragActive ? 'text-white' : 'text-[#888]'} />
                 </div>
                 {isDragActive ? (
-                  <p className="text-white text-sm font-medium">Drop to upload</p>
+                  <p className="text-white text-base font-medium">Drop to upload</p>
                 ) : (
                   <>
-                    <p className="text-white text-sm font-medium">Drop files here</p>
-                    <p className="text-[#888888] text-xs">
+                    <p className="text-white text-base font-medium">Drop files here</p>
+                    <p className="text-[#888888] text-sm">
                       or <span className="text-white underline underline-offset-2">browse</span>
                       {' '}— images &amp; videos accepted
                     </p>

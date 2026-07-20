@@ -56,10 +56,10 @@ export default function UserMenu({ profile }: Props) {
         className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
         aria-label="Account menu"
       >
-        <div className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white text-[11px] font-semibold shrink-0 select-none">
+        <div className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white text-xs font-semibold shrink-0 select-none">
           {avatar}
         </div>
-        <span className="text-[#666] text-xs hidden sm:block max-w-[120px] truncate">
+        <span className="text-[#666] text-sm hidden sm:block max-w-[120px] truncate">
           {displayName}
         </span>
         <ChevronDown size={12} className="text-[#444]" />
@@ -69,8 +69,8 @@ export default function UserMenu({ profile }: Props) {
         <div className="absolute top-full right-0 mt-2 w-56 bg-surface-0 border border-[#222] rounded-xl shadow-2xl py-1 z-50">
           {/* Profile info */}
           <div className="px-3.5 py-3 border-b border-[#1a1a1a]">
-            <p className="text-white text-xs font-medium truncate">{profile.full_name ?? displayName}</p>
-            <p className="text-[#555] text-[11px] mt-0.5 truncate">{profile.email}</p>
+            <p className="text-white text-sm font-medium truncate">{profile.full_name ?? displayName}</p>
+            <p className="text-[#555] text-xs mt-0.5 truncate">{profile.email}</p>
             <span className="inline-block mt-2">
               <Pill variant="ghost">{profile.role}</Pill>
             </span>
@@ -79,7 +79,7 @@ export default function UserMenu({ profile }: Props) {
           <Link
             href="/settings"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-sm text-[#888] hover:text-white hover:bg-white/4 transition-colors"
+            className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-base text-[#888] hover:text-white hover:bg-white/4 transition-colors"
           >
             <Settings size={13} className="shrink-0" />
             Settings
@@ -87,7 +87,7 @@ export default function UserMenu({ profile }: Props) {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm text-[#888] hover:text-white hover:bg-white/4 transition-colors"
+            className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-base text-[#888] hover:text-white hover:bg-white/4 transition-colors"
           >
             <LogOut size={13} className="shrink-0" />
             Sign out

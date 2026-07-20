@@ -99,84 +99,84 @@ export default function EditProjectPage() {
     <div className="min-h-screen bg-surface-0">
       <header className="border-b border-[#1f1f1f] px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <span className="font-mono tracking-widest text-sm text-white uppercase">Archive</span>
+          <span className="font-mono tracking-widest text-base text-white uppercase">Archive</span>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-12">
         <Link
           href={`/projects/${id}`}
-          className="inline-flex items-center gap-2 text-[#888888] text-sm hover:text-white transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-[#888888] text-base hover:text-white transition-colors mb-8"
         >
           <ArrowLeft size={14} />
           Back to project
         </Link>
 
-        <h1 className="text-white text-xl font-semibold mb-8">Edit Project</h1>
+        <h1 className="text-white text-2xl font-semibold mb-8">Edit Project</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="name">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="name">
               Project Name <span className="text-white">*</span>
             </label>
             <input
               id="name" name="name" type="text"
               value={form.name} onChange={handleChange}
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="date">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="date">
               Date <span className="text-white">*</span>
             </label>
             <input
               id="date" name="date" type="date"
               value={form.date} onChange={handleChange}
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="location">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="location">
               Location
             </label>
             <input
               id="location" name="location" type="text"
               value={form.location} onChange={handleChange}
               placeholder="e.g. Hackney, London"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="venue">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="venue">
               Venue
             </label>
             <input
               id="venue" name="venue" type="text"
               value={form.venue} onChange={handleChange}
               placeholder="e.g. Fabric, Egg London, Fold"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="description">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="description">
               Description
             </label>
             <textarea
               id="description" name="description"
               value={form.description} onChange={handleChange}
               rows={3}
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5">
+            <label className="block text-base text-[#888888] mb-1.5">
               Photographers
             </label>
             <PhotographerInput
@@ -186,19 +186,19 @@ export default function EditProjectPage() {
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-400 text-base">{error}</p>}
 
           <div className="flex gap-3 pt-1">
             <Link
               href={`/projects/${id}`}
-              className="flex-1 inline-flex items-center justify-center text-sm text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] py-2.5 rounded transition-colors"
+              className="flex-1 inline-flex items-center justify-center text-base text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] py-2.5 rounded transition-colors"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-black text-sm font-medium py-2.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-black text-base font-medium py-2.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <><Loader2 size={14} className="animate-spin" /> Saving…</>

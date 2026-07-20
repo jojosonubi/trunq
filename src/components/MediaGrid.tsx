@@ -287,7 +287,7 @@ async function saveUsage() {
           </button>
         )}
 
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs tabular-nums">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-sm tabular-nums">
           {index + 1} / {files.length}
         </div>
 
@@ -621,7 +621,7 @@ function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () 
       style={style}
       className="min-w-[160px] bg-surface-0 border border-[#2a2a2a] rounded-lg shadow-2xl py-1 overflow-hidden"
     >
-      <p className="px-3 py-1.5 text-[10px] text-[#444] uppercase tracking-wider font-medium">
+      <p className="px-3 py-1.5 text-xs text-[#444] uppercase tracking-wider font-medium">
         Move to folder
       </p>
       {folders.map((folder) => (
@@ -629,7 +629,7 @@ function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () 
           key={folder.id}
           onClick={() => { onAssign(folder.id); onClose() }}
           className={clsx(
-            'flex items-center gap-2.5 w-full text-left px-3 py-2 text-sm transition-colors',
+            'flex items-center gap-2.5 w-full text-left px-3 py-2 text-base transition-colors',
             currentFolderId === folder.id
               ? 'text-white bg-white/8'
               : 'text-[#888] hover:text-white hover:bg-white/4'
@@ -643,7 +643,7 @@ function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () 
       {currentFolderId !== null && (
         <button
           onClick={() => { onAssign(null); onClose() }}
-          className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-sm text-[#666] hover:text-white hover:bg-white/4 transition-colors border-t border-[#222] mt-1"
+          className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-base text-[#666] hover:text-white hover:bg-white/4 transition-colors border-t border-[#222] mt-1"
         >
           <FolderInput size={13} className="shrink-0" />
           Remove from folder
@@ -768,7 +768,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
         {/* TOP-LEFT: hollow ring for recommended-but-deselected (selection mode only) */}
         {inSelectionMode && !isSelected && isRecommended && (
           <div className="absolute top-2 left-2 z-20 w-5 h-5 rounded-full border border-amber-400/50 flex items-center justify-center">
-            <span className="text-amber-400/60 text-[9px] leading-none">✦</span>
+            <span className="text-amber-400/60 text-[11px] leading-none">✦</span>
           </div>
         )}
 

@@ -145,7 +145,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
                 <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
               </svg>
             </div>
-            <span className="font-semibold text-white text-sm tracking-tight truncate max-w-[200px]">
+            <span className="font-semibold text-white text-base tracking-tight truncate max-w-[200px]">
               {event.name}
             </span>
           </div>
@@ -155,7 +155,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
             {profile.role === 'admin' && (
               <Link
                 href={`/events/${event.id}/live`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2a2a2a] text-[#888] text-xs hover:text-white hover:border-[#444] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#2a2a2a] text-[#888] text-sm hover:text-white hover:border-[#444] transition-colors"
               >
                 <Smartphone size={12} />
                 Event Mode
@@ -170,7 +170,7 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
         {/* Back link */}
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 text-[#888888] text-sm hover:text-white transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-[#888888] text-base hover:text-white transition-colors mb-8"
         >
           <ArrowLeft size={14} />
           All events
@@ -205,8 +205,8 @@ export default async function EventDetailPage({ params, searchParams }: Props) {
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">
               <ImageIcon size={32} className="text-[#333] mb-4" />
-              <p className="text-[#888888] text-sm">No media uploaded yet.</p>
-              <p className="text-[#555] text-sm mt-1">Drop files above to get started.</p>
+              <p className="text-[#888888] text-base">No media uploaded yet.</p>
+              <p className="text-[#555] text-base mt-1">Drop files above to get started.</p>
             </div>
           )}
         </div>

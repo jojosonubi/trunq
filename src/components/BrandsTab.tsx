@@ -133,16 +133,16 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white text-sm font-medium">
+          <p className="text-white text-base font-medium">
             {brands.length} brand{brands.length !== 1 ? 's' : ''}
           </p>
-          <p className="text-[#555] text-xs mt-0.5">
+          <p className="text-[#555] text-sm mt-0.5">
             Upload logos to track brand visibility across event photos
           </p>
         </div>
         <button
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all"
+          className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all"
         >
           <Plus size={13} />
           Add brand
@@ -152,7 +152,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
       {/* Add form */}
       {adding && (
         <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4 space-y-3">
-          <p className="text-white text-sm font-medium">New brand</p>
+          <p className="text-white text-base font-medium">New brand</p>
           <input
             autoFocus
             value={draftName}
@@ -162,20 +162,20 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
               if (e.key === 'Escape') { setAdding(false); setDraftName('') }
             }}
             placeholder="Brand name (e.g. Red Bull, Nike)"
-            className="w-full bg-surface-0 border border-[#2a2a2a] text-white text-sm px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
+            className="w-full bg-surface-0 border border-[#2a2a2a] text-white text-base px-3 py-2 rounded-lg placeholder:text-[#444] focus:outline-none focus:border-[#444] transition-colors"
           />
           <div className="flex items-center gap-2">
             <button
               onClick={submitAdd}
               disabled={!draftName.trim() || saving}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-40 transition-all"
+              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 disabled:opacity-40 transition-all"
             >
               {saving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
               Add
             </button>
             <button
               onClick={() => { setAdding(false); setDraftName('') }}
-              className="text-xs text-[#555] hover:text-white transition-colors"
+              className="text-sm text-[#555] hover:text-white transition-colors"
             >
               Cancel
             </button>
@@ -203,22 +203,22 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{brand.name}</p>
+                  <p className="text-white text-base font-medium truncate">{brand.name}</p>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-[#444] text-xs tabular-nums">
+                    <span className="text-[#444] text-sm tabular-nums">
                       {count} photo{count !== 1 ? 's' : ''}
                     </span>
                     <button
                       onClick={() => openLogoUpload(brand.id)}
                       disabled={isUploading}
-                      className="inline-flex items-center gap-1 text-[10px] text-[#555] hover:text-white transition-colors disabled:opacity-40"
+                      className="inline-flex items-center gap-1 text-xs text-[#555] hover:text-white transition-colors disabled:opacity-40"
                     >
                       <Upload size={10} />
                       {brand.reference_url ? 'Change logo' : 'Upload logo'}
                     </button>
                   </div>
                   {!brand.reference_url && (
-                    <p className="text-orange-400/70 text-[10px] mt-1.5 flex items-center gap-1">
+                    <p className="text-orange-400/70 text-xs mt-1.5 flex items-center gap-1">
                       <AlertTriangle size={9} />
                       Logo needed for scanning
                     </p>
@@ -241,8 +241,8 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
       {brands.length === 0 && !adding && (
         <div className="flex flex-col items-center justify-center py-16 border border-dashed border-[#1f1f1f] rounded-lg text-center">
           <TagIcon size={28} className="text-[#333] mb-3" />
-          <p className="text-[#555] text-sm">No brands added yet</p>
-          <p className="text-[#3a3a3a] text-xs mt-1">Add a brand then upload its logo to start scanning</p>
+          <p className="text-[#555] text-base">No brands added yet</p>
+          <p className="text-[#3a3a3a] text-sm mt-1">Add a brand then upload its logo to start scanning</p>
         </div>
       )}
 
@@ -251,8 +251,8 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
         <div className="bg-surface-0 border border-[#1f1f1f] rounded-lg p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-white text-sm font-medium">Scan for brands</p>
-              <p className="text-[#555] text-xs mt-1">
+              <p className="text-white text-base font-medium">Scan for brands</p>
+              <p className="text-[#555] text-sm mt-1">
                 {unscannedFiles.length > 0
                   ? `${unscannedFiles.length} photo${unscannedFiles.length !== 1 ? 's' : ''} not yet scanned`
                   : 'All photos have been scanned'}
@@ -266,7 +266,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
             {scanState.phase !== 'scanning' && unscannedFiles.length > 0 && (
               <button
                 onClick={startScan}
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
               >
                 <Scan size={13} />
                 Scan now
@@ -283,11 +283,11 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
                     style={{ width: `${Math.round((scanState.done / scanState.total) * 100)}%` }}
                   />
                 </div>
-                <span className="text-[#555] text-xs tabular-nums shrink-0">
+                <span className="text-[#555] text-sm tabular-nums shrink-0">
                   {scanState.done}/{scanState.total}
                 </span>
               </div>
-              <p className="text-[#444] text-xs">
+              <p className="text-[#444] text-sm">
                 Scanning {scanState.done} of {scanState.total} photos
                 {scanState.tagsFound > 0 && (
                   <span className="text-orange-400 ml-2">· {scanState.tagsFound} matches so far</span>

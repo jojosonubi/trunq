@@ -173,8 +173,8 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center" style={{ border: 'var(--border-subtle)', borderStyle: 'dashed', borderRadius: 4 }}>
                 <ImageIcon size={32} className="mb-4" style={{ color: 'var(--text-dim)' }} />
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No media uploaded yet.</p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Drop files above to get started.</p>
+                <p className="text-base" style={{ color: 'var(--text-secondary)' }}>No media uploaded yet.</p>
+                <p className="text-base mt-1" style={{ color: 'var(--text-muted)' }}>Drop files above to get started.</p>
               </div>
             )}
           </div>

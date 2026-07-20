@@ -23,7 +23,7 @@ function TrunqLogo() {
           <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
         </svg>
       </div>
-      <span className="text-white font-semibold text-xl tracking-tight">Trunq</span>
+      <span className="text-white font-semibold text-2xl tracking-tight">Trunq</span>
     </div>
   )
 }
@@ -121,7 +121,7 @@ export default function SignupForm({ initialCode }: Props) {
               onChange={(e) => handleCodeChange(e.target.value)}
               placeholder="Invite code"
               required
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors pr-28"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors pr-28"
             />
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {validating && (
@@ -130,11 +130,11 @@ export default function SignupForm({ initialCode }: Props) {
               {!validating && codeState?.valid && (
                 <>
                   <Check size={12} className="text-emerald-400" />
-                  <span className="text-emerald-400 text-[11px] font-medium">{roleLabel}</span>
+                  <span className="text-emerald-400 text-xs font-medium">{roleLabel}</span>
                 </>
               )}
               {!validating && codeState && !codeState.valid && (
-                <span className="text-red-400 text-[11px]">Invalid</span>
+                <span className="text-red-400 text-xs">Invalid</span>
               )}
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function SignupForm({ initialCode }: Props) {
             placeholder="Full name"
             required
             autoComplete="name"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
           <input
             type="email"
@@ -155,7 +155,7 @@ export default function SignupForm({ initialCode }: Props) {
             placeholder="Email address"
             required
             autoComplete="email"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
           <input
             type="password"
@@ -165,11 +165,11 @@ export default function SignupForm({ initialCode }: Props) {
             required
             minLength={8}
             autoComplete="new-password"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-sm placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3 text-white text-base placeholder:text-[#333] focus:outline-none focus:border-[#2e2e2e] transition-colors"
           />
 
           {error && (
-            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-2 text-red-400 text-base bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
               <AlertCircle size={14} className="shrink-0" />
               {error}
             </div>
@@ -178,7 +178,7 @@ export default function SignupForm({ initialCode }: Props) {
           <button
             type="submit"
             disabled={loading || !codeState?.valid}
-            className="w-full bg-white text-black text-sm font-semibold py-3 rounded-xl hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+            className="w-full bg-white text-black text-base font-semibold py-3 rounded-xl hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
           >
             {loading
               ? <Loader2 size={16} className="animate-spin mx-auto" />
@@ -186,7 +186,7 @@ export default function SignupForm({ initialCode }: Props) {
           </button>
         </form>
 
-        <p className="text-center text-[#3a3a3a] text-xs mt-8">
+        <p className="text-center text-[#3a3a3a] text-sm mt-8">
           Already have an account?{' '}
           <Link href="/login" className="text-[#666] hover:text-white transition-colors">
             Sign in

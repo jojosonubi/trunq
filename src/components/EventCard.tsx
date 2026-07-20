@@ -99,7 +99,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
           {role === 'admin' && (
             <button
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCoverPickerOpen(true) }}
-              className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-black/65 backdrop-blur-sm text-white/80 hover:text-white text-[11px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 bg-black/65 backdrop-blur-sm text-white/80 hover:text-white text-xs font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <ImagePlus size={10} />
               Change cover
@@ -108,7 +108,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
 
           {/* File count badge */}
           {event.media_count > 0 && (
-            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 bg-black/65 backdrop-blur-sm text-white/80 text-[11px] font-medium px-2 py-1 rounded-md">
+            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 bg-black/65 backdrop-blur-sm text-white/80 text-xs font-medium px-2 py-1 rounded-md">
               <ImageIcon size={10} />
               {event.media_count.toLocaleString()}
             </div>
@@ -117,11 +117,11 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
 
         {/* Card body */}
         <div className="p-4">
-          <h3 className="text-sm font-semibold truncate mb-2.5 leading-snug" style={{ color: 'var(--text-primary)' }}>
+          <h3 className="text-base font-semibold truncate mb-2.5 leading-snug" style={{ color: 'var(--text-primary)' }}>
             {event.name}
           </h3>
 
-          <div className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <div className="flex flex-col gap-1 text-sm" style={{ color: 'var(--text-muted)' }}>
             <div className="flex items-center gap-2">
               <Calendar size={11} className="shrink-0" />
               <span style={{ color: 'var(--text-secondary)' }}>{formatDate(event.date)}</span>
@@ -158,7 +158,7 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
           </div>
 
           {/* Footer: relative timestamp */}
-          <div className="mt-3 pt-3 flex items-center gap-1 text-[10px]" style={{ borderTop: 'var(--border-rule)', color: 'var(--text-dim)' }}>
+          <div className="mt-3 pt-3 flex items-center gap-1 text-xs" style={{ borderTop: 'var(--border-rule)', color: 'var(--text-dim)' }}>
             <Clock size={9} className="shrink-0" />
             <span>{formatRelative(event.created_at)}</span>
           </div>
@@ -180,14 +180,14 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
             <Link
               href={`/projects/${event.id}/edit`}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-[#888] hover:text-white hover:bg-white/4 transition-colors"
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-base text-[#888] hover:text-white hover:bg-white/4 transition-colors"
             >
               <Pencil size={13} className="shrink-0" />
               Edit project
             </Link>
             <button
               onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}
-              className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-white/4 transition-colors"
+              className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-base text-red-400/80 hover:text-red-400 hover:bg-white/4 transition-colors"
             >
               <Trash2 size={13} className="shrink-0" />
               Delete project
@@ -212,22 +212,22 @@ export default function EventCard({ event, photoCount = 0, folderCount = 0, role
             style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-white text-base font-semibold mb-2">Move to trash?</h2>
-            <p className="text-[#888] text-sm leading-relaxed mb-5">
+            <h2 className="text-white text-lg font-semibold mb-2">Move to trash?</h2>
+            <p className="text-[#888] text-base leading-relaxed mb-5">
               <span className="text-white font-medium">{event.name}</span> will be moved to trash. You can restore it from Settings within 30 days.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="px-4 py-2 text-sm text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-colors disabled:opacity-40"
+                className="px-4 py-2 text-base text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-colors disabled:opacity-40"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium bg-red-500/90 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-base font-medium bg-red-500/90 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
               >
                 {deleting ? 'Moving…' : 'Move to trash'}
               </button>

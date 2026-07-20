@@ -181,11 +181,11 @@ export default function ProjectsPageClient({
             </div>
           </div>
 
-          <h2 className="text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Welcome to Trunq</h2>
-          <p className="text-sm mb-2 max-w-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <h2 className="text-2xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Welcome to Trunq</h2>
+          <p className="text-base mb-2 max-w-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Your media archive. Upload photos from any photographer, review and approve selects, then deliver to clients — all in one place.
           </p>
-          <p className="text-xs mb-10" style={{ color: 'var(--text-muted)' }}>Start by creating your first project.</p>
+          <p className="text-sm mb-10" style={{ color: 'var(--text-muted)' }}>Start by creating your first project.</p>
 
           <button
             onClick={() => setModalOpen(true)}
@@ -204,8 +204,8 @@ export default function ProjectsPageClient({
             ].map((f) => (
               <div key={f.title} className="space-y-1.5">
                 <div className="w-5 h-px bg-surface-2" />
-                <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{f.title}</p>
-                <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.body}</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{f.title}</p>
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{f.body}</p>
               </div>
             ))}
           </div>

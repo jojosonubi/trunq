@@ -204,8 +204,8 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a] shrink-0">
           <div>
-            <p className="text-white text-sm font-medium">Set reference photo</p>
-            <p className="text-[#555] text-xs mt-0.5">{performerName}</p>
+            <p className="text-white text-base font-medium">Set reference photo</p>
+            <p className="text-[#555] text-sm mt-0.5">{performerName}</p>
           </div>
           <button onClick={onCancel} className="text-[#555] hover:text-white transition-colors">
             <X size={18} />
@@ -224,8 +224,8 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                 <Images size={20} className="text-[#888]" />
               </div>
               <div className="text-center">
-                <p className="text-white text-sm font-medium">Pick from archive</p>
-                <p className="text-[#555] text-xs mt-1">Select a photo and draw a box around their face</p>
+                <p className="text-white text-base font-medium">Pick from archive</p>
+                <p className="text-[#555] text-sm mt-1">Select a photo and draw a box around their face</p>
               </div>
             </button>
 
@@ -240,8 +240,8 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                 <Upload size={20} className="text-[#888]" />
               </div>
               <div className="text-center">
-                <p className="text-white text-sm font-medium">Upload reference photo</p>
-                <p className="text-[#555] text-xs mt-1">Drop an image or click to browse</p>
+                <p className="text-white text-base font-medium">Upload reference photo</p>
+                <p className="text-[#555] text-sm mt-1">Drop an image or click to browse</p>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
             </div>
@@ -251,7 +251,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
         {/* ── Mode: archive browse ──────────────────────────────────────── */}
         {mode === 'archive-browse' && (
           <div className="flex-1 overflow-y-auto p-4">
-            <p className="text-[#555] text-xs mb-3">Click a photo to continue, then draw a box around the performer&apos;s face</p>
+            <p className="text-[#555] text-sm mb-3">Click a photo to continue, then draw a box around the performer&apos;s face</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
               {imageFiles.map((file) => (
                 <button
@@ -275,7 +275,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
           <>
             <div className="flex-1 overflow-hidden relative bg-[#080808] flex items-center justify-center p-4">
               {/* Instruction */}
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/60 text-white/70 text-xs px-3 py-1.5 rounded-full pointer-events-none">
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-black/60 text-white/70 text-sm px-3 py-1.5 rounded-full pointer-events-none">
                 Click and drag to select the face area — or skip to use the full photo
               </div>
 
@@ -348,7 +348,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
             <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-4 border-t border-[#1a1a1a]">
               <button
                 onClick={() => { setMode('choose'); setImageSrc(null); setCropRect(null) }}
-                className="text-[#555] hover:text-white text-sm transition-colors"
+                className="text-[#555] hover:text-white text-base transition-colors"
               >
                 ← Back
               </button>
@@ -358,7 +358,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                 <button
                   onClick={() => extractAndConfirm(true)}
                   disabled={extracting}
-                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 text-base px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                 >
                   <CornerDownRight size={13} />
                   Use full photo
@@ -368,7 +368,7 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
                 <button
                   onClick={() => extractAndConfirm(false)}
                   disabled={!hasCrop || extracting}
-                  className="inline-flex items-center gap-1.5 text-sm px-4 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 text-base px-4 py-1.5 bg-white text-black font-medium rounded-lg hover:bg-white/90 transition-all disabled:opacity-40"
                 >
                   <Check size={13} />
                   {extracting ? 'Saving…' : hasCrop ? 'Use this crop' : 'Draw a selection first'}

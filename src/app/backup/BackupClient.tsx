@@ -64,9 +64,9 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
           { label: 'Missing',      value: stats.missing,   sub: 'not yet copied'   },
         ].map(({ label, value, sub }) => (
           <div key={label} className="bg-surface-0 border border-[#1f1f1f] rounded-xl px-5 py-4">
-            <p className="text-white text-2xl font-semibold tabular-nums">{value.toLocaleString()}</p>
-            <p className="text-white text-xs font-medium mt-1">{label}</p>
-            <p className="text-[#444] text-[11px] mt-0.5">{sub}</p>
+            <p className="text-white text-3xl font-semibold tabular-nums">{value.toLocaleString()}</p>
+            <p className="text-white text-sm font-medium mt-1">{label}</p>
+            <p className="text-[#444] text-xs mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
@@ -78,11 +78,11 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
             {allGood
               ? <CheckCircle2 size={14} className="text-emerald-400" />
               : <AlertCircle  size={14} className="text-amber-400"   />}
-            <span className="text-white text-sm font-medium">
+            <span className="text-white text-base font-medium">
               {allGood ? 'All files backed up' : `${coverage}% coverage`}
             </span>
           </div>
-          <span className="text-[#555] text-xs tabular-nums">{stats.backed_up} / {stats.total}</span>
+          <span className="text-[#555] text-sm tabular-nums">{stats.backed_up} / {stats.total}</span>
         </div>
         <div className="h-1.5 bg-surface-0 rounded-full overflow-hidden">
           <div
@@ -98,11 +98,11 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
       {stats.missing > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white text-sm font-semibold flex items-center gap-2">
+            <h2 className="text-white text-base font-semibold flex items-center gap-2">
               <HardDrive size={14} className="text-[#555]" />
               Missing backups
               {stats.missing > stats.missing_files.length && (
-                <span className="text-[#555] text-xs font-normal">
+                <span className="text-[#555] text-sm font-normal">
                   (showing {stats.missing_files.length} of {stats.missing})
                 </span>
               )}
@@ -110,7 +110,7 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
             <button
               onClick={retryAll}
               disabled={retryingAll}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
             >
               <RefreshCw size={11} className={retryingAll ? 'animate-spin' : ''} />
               {retryingAll ? 'Retrying all…' : `Retry all (${stats.missing_files.length})`}
@@ -124,14 +124,14 @@ export default function BackupClient({ stats }: { stats: BackupStats }) {
                 className="flex items-center gap-4 bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[#888] text-sm truncate">{file.filename}</p>
-                  <p className="text-[#444] text-xs mt-0.5 font-mono truncate">{file.storage_path}</p>
-                  <p className="text-[#333] text-xs mt-0.5">Uploaded {formatDate(file.created_at)}</p>
+                  <p className="text-[#888] text-base truncate">{file.filename}</p>
+                  <p className="text-[#444] text-sm mt-0.5 font-mono truncate">{file.storage_path}</p>
+                  <p className="text-[#333] text-sm mt-0.5">Uploaded {formatDate(file.created_at)}</p>
                 </div>
                 <button
                   onClick={() => retryOne(file.id)}
                   disabled={retrying.has(file.id) || retryingAll}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40 shrink-0"
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40 shrink-0"
                 >
                   <RefreshCw size={11} className={retrying.has(file.id) ? 'animate-spin' : ''} />
                   {retrying.has(file.id) ? 'Copying…' : 'Retry backup'}

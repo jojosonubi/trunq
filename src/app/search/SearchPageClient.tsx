@@ -186,7 +186,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
       onChange={(e) => setFilter(key, e.target.value)}
       placeholder={placeholder}
       className={clsx(
-        'w-full bg-surface-0 border border-[#1f1f1f] rounded-lg px-3 py-2 text-white text-xs placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors',
+        'w-full bg-surface-0 border border-[#1f1f1f] rounded-lg px-3 py-2 text-white text-sm placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors',
         type === 'date' && '[color-scheme:dark]'
       )}
     />
@@ -219,7 +219,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
               onKeyDown={handleSearchKey}
               placeholder="Search photos, projects, tags…"
               autoComplete="off"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-8 py-2.5 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none focus:border-[#333] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-8 py-2.5 text-white text-base placeholder:text-[#2a2a2a] focus:outline-none focus:border-[#333] transition-colors"
             />
             {query && (
               <button
@@ -236,7 +236,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
           <button
             onClick={() => setFiltersOpen((v) => !v)}
             className={clsx(
-              'shrink-0 inline-flex items-center gap-1.5 px-3 py-2 border text-xs rounded-lg transition-all',
+              'shrink-0 inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
               hasActiveFilters || filtersOpen
                 ? 'border-white/30 text-white bg-white/8'
                 : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
@@ -259,7 +259,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
             {activeFilterKeys.map((key) => (
               <span
                 key={key}
-                className="inline-flex items-center gap-1.5 bg-white/8 border border-white/15 text-white text-xs px-2.5 py-1 rounded-full"
+                className="inline-flex items-center gap-1.5 bg-white/8 border border-white/15 text-white text-sm px-2.5 py-1 rounded-full"
               >
                 <span className="text-[#888]">{FILTER_LABELS[key]}:</span>
                 {key === 'colour' ? (
@@ -278,7 +278,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
             ))}
             <button
               onClick={clearAll}
-              className="text-xs text-[#555] hover:text-white transition-colors ml-1"
+              className="text-sm text-[#555] hover:text-white transition-colors ml-1"
             >
               Clear all
             </button>
@@ -292,27 +292,27 @@ export default function SearchPageClient({ initialQuery }: Props) {
             <aside className="w-56 shrink-0 space-y-5">
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Project name</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Project name</p>
                 {inputField('event_name', 'e.g. Recessland')}
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Venue</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Venue</p>
                 {inputField('venue', 'e.g. Fabric')}
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Photographer</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Photographer</p>
                 {inputField('photographer', 'Name…')}
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Location</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Location</p>
                 {inputField('location', 'e.g. London')}
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Date range</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Date range</p>
                 <div className="space-y-1.5">
                   {inputField('date_from', 'From', 'date')}
                   {inputField('date_to',   'To',   'date')}
@@ -320,7 +320,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">Colour</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">Colour</p>
                 <div className="flex flex-wrap gap-2">
                   {COLOUR_SWATCHES.map((s) => {
                     const isActive = filters.colour === s.name
@@ -346,19 +346,19 @@ export default function SearchPageClient({ initialQuery }: Props) {
                   })}
                 </div>
                 {filters.colour && (
-                  <p className="text-[#555] text-xs mt-1.5 capitalize">{filters.colour}</p>
+                  <p className="text-[#555] text-sm mt-1.5 capitalize">{filters.colour}</p>
                 )}
               </div>
 
               <div>
-                <p className="text-[#444] text-[10px] uppercase tracking-wider mb-2">File type</p>
+                <p className="text-[#444] text-xs uppercase tracking-wider mb-2">File type</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {(['image', 'video', 'graphic'] as const).map((ft) => (
                     <button
                       key={ft}
                       onClick={() => setFilter('file_type', filters.file_type === ft ? '' : ft)}
                       className={clsx(
-                        'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
+                        'text-sm px-2.5 py-1 rounded-full border transition-all capitalize',
                         filters.file_type === ft
                           ? 'bg-white/10 border-white/20 text-white'
                           : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]',
@@ -373,7 +373,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
               {hasActiveFilters && (
                 <button
                   onClick={clearAll}
-                  className="text-xs text-[#555] hover:text-white transition-colors"
+                  className="text-sm text-[#555] hover:text-white transition-colors"
                 >
                   Clear all filters
                 </button>
@@ -389,7 +389,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
               {loading ? (
                 <Loader2 size={14} className="text-[#444] animate-spin" />
               ) : total !== null ? (
-                <p className="text-[#555] text-sm">
+                <p className="text-[#555] text-base">
                   <span className="text-white font-medium tabular-nums">{total}</span>
                   {' '}result{total !== 1 ? 's' : ''}
                   {query.trim() && (
@@ -397,7 +397,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
                   )}
                 </p>
               ) : (
-                <p className="text-[#333] text-sm">Type a search query to get started</p>
+                <p className="text-[#333] text-base">Type a search query to get started</p>
               )}
             </div>
 
@@ -414,11 +414,11 @@ export default function SearchPageClient({ initialQuery }: Props) {
             {!loading && total === 0 && (
               <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-[#1f1f1f] rounded-lg">
                 <Search size={28} className="text-[#333] mb-3" />
-                <p className="text-[#555] text-sm">No results found</p>
+                <p className="text-[#555] text-base">No results found</p>
                 {hasActiveFilters && (
                   <button
                     onClick={clearAll}
-                    className="mt-2 text-xs text-[#444] hover:text-white transition-colors underline underline-offset-2"
+                    className="mt-2 text-sm text-[#444] hover:text-white transition-colors underline underline-offset-2"
                   >
                     Clear filters
                   </button>
@@ -467,10 +467,10 @@ function PhotoCard({ photo, onOpen }: { photo: FullPhotoResult; onOpen: () => vo
         </div>
       )}
       <div className="px-2.5 py-2">
-        <p className="text-white text-xs font-medium truncate group-hover:underline underline-offset-1">
+        <p className="text-white text-sm font-medium truncate group-hover:underline underline-offset-1">
           {photo.event_name}
         </p>
-        <p className="text-[#555] text-[10px] mt-0.5 tabular-nums">
+        <p className="text-[#555] text-xs mt-0.5 tabular-nums">
           {fmtDate(photo.event_date)}
         </p>
       </div>
@@ -538,7 +538,7 @@ function SearchLightbox({
         )}
 
         {/* Counter */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs tabular-nums">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-sm tabular-nums">
           {index + 1} / {photos.length}
         </div>
 
@@ -565,12 +565,12 @@ function SearchLightbox({
 
           {/* Event */}
           <div>
-            <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Event</p>
-            <p className="text-white text-sm font-medium leading-snug">{photo.event_name}</p>
+            <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Event</p>
+            <p className="text-white text-base font-medium leading-snug">{photo.event_name}</p>
             {photo.event_date && (
               <div className="flex items-center gap-1.5 mt-1">
                 <Calendar size={11} className="text-[#555] shrink-0" />
-                <p className="text-[#666] text-xs tabular-nums">{fmtDate(photo.event_date)}</p>
+                <p className="text-[#666] text-sm tabular-nums">{fmtDate(photo.event_date)}</p>
               </div>
             )}
           </div>
@@ -578,10 +578,10 @@ function SearchLightbox({
           {/* Photographer */}
           {photo.photographer && (
             <div>
-              <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Photographer</p>
+              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Photographer</p>
               <div className="flex items-center gap-1.5">
                 <Camera size={11} className="text-[#555] shrink-0" />
-                <p className="text-white text-sm">{photo.photographer}</p>
+                <p className="text-white text-base">{photo.photographer}</p>
               </div>
             </div>
           )}
@@ -589,16 +589,16 @@ function SearchLightbox({
           {/* Description */}
           {photo.description && (
             <div>
-              <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Description</p>
-              <p className="text-[#888] text-xs leading-relaxed">{photo.description}</p>
+              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Description</p>
+              <p className="text-[#888] text-sm leading-relaxed">{photo.description}</p>
             </div>
           )}
 
           {/* Matched tag */}
           {photo.matched_tag && (
             <div>
-              <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Matched tag</p>
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-white/8 border border-white/10 text-[#aaa]">
+              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Matched tag</p>
+              <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-full bg-white/8 border border-white/10 text-[#aaa]">
                 <Tag size={9} />
                 {photo.matched_tag}
               </span>
@@ -608,13 +608,13 @@ function SearchLightbox({
           {/* Dominant colours */}
           {photo.dominant_colours?.length > 0 && (
             <div>
-              <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Colours</p>
+              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Colours</p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <Palette size={11} className="text-[#555] shrink-0" />
                 {photo.dominant_colours.map((c) => (
                   <span
                     key={c}
-                    className="text-xs text-[#666] capitalize bg-white/5 px-1.5 py-px rounded"
+                    className="text-sm text-[#666] capitalize bg-white/5 px-1.5 py-px rounded"
                   >
                     {c}
                   </span>
@@ -625,8 +625,8 @@ function SearchLightbox({
 
           {/* File type */}
           <div>
-            <p className="text-[#444] text-[10px] uppercase tracking-wider mb-1.5">Type</p>
-            <p className="text-[#555] text-xs uppercase tracking-wide">{photo.file_type}</p>
+            <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Type</p>
+            <p className="text-[#555] text-sm uppercase tracking-wide">{photo.file_type}</p>
           </div>
         </div>
 
@@ -634,7 +634,7 @@ function SearchLightbox({
         <div className="mt-auto border-t border-[#1a1a1a] px-5 py-4">
           <Link
             href={`/projects/${photo.event_id}?photo=${photo.id}`}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs text-[#888] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
+            className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-[#888] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
             onClick={onClose}
           >
             <ExternalLink size={12} />

@@ -63,7 +63,7 @@ export default function EventsPageClient({
         <section className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <Clock size={13} className="text-[#444]" />
-            <h2 className="text-[#888] text-xs font-medium uppercase tracking-wider">Recently viewed</h2>
+            <h2 className="text-[#888] text-sm font-medium uppercase tracking-wider">Recently viewed</h2>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {recentEvents.map((event) => (
@@ -86,15 +86,15 @@ export default function EventsPageClient({
         {years.length > 1 && (
           <aside className="w-24 shrink-0">
             <div className="sticky top-20 space-y-0.5">
-              <p className="text-[#333] text-[10px] uppercase tracking-wider mb-2 font-medium">Years</p>
+              <p className="text-[#333] text-xs uppercase tracking-wider mb-2 font-medium">Years</p>
               {years.map((year) => (
                 <button
                   key={year}
                   onClick={() => scrollToYear(year)}
-                  className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors text-xs"
+                  className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-[#555] hover:text-white hover:bg-white/5 transition-colors text-sm"
                 >
                   <span className="font-medium">{year}</span>
-                  <span className="text-[#333] tabular-nums text-[10px]">{byYear[year].length}</span>
+                  <span className="text-[#333] tabular-nums text-xs">{byYear[year].length}</span>
                 </button>
               ))}
             </div>
@@ -117,10 +117,10 @@ export default function EventsPageClient({
                   onClick={() => toggleYear(year)}
                   className="flex items-center gap-2 mb-5 group/year"
                 >
-                  <h2 className="text-white text-lg font-semibold group-hover/year:text-white/80 transition-colors">
+                  <h2 className="text-white text-xl font-semibold group-hover/year:text-white/80 transition-colors">
                     {year}
                   </h2>
-                  <span className="text-[#333] text-xs tabular-nums">
+                  <span className="text-[#333] text-sm tabular-nums">
                     {eventsForYear.length} event{eventsForYear.length !== 1 ? 's' : ''}
                   </span>
                   {isCollapsed

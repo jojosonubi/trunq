@@ -157,7 +157,7 @@ export default function TaggingProgress() {
       >
         <div className="flex-1 min-w-0">
           {done ? (
-            <p className="text-xs font-medium text-left flex items-center gap-1.5 text-emerald-400">
+            <p className="text-sm font-medium text-left flex items-center gap-1.5 text-emerald-400">
               <CheckCircle2 size={12} />
               {job.mode === 'rescore'
                 ? `${processed} image${processed !== 1 ? 's' : ''} re-scored`
@@ -165,11 +165,11 @@ export default function TaggingProgress() {
             </p>
           ) : (
             <>
-              <p className="text-xs font-medium text-left" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-medium text-left" style={{ color: 'var(--text-primary)' }}>
                 {job.mode === 'rescore' ? 'Re-scoring' : 'Tagging'} in progress
               </p>
               {counts && (
-                <p className="text-[11px] text-left mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs text-left mt-0.5 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
                   <span>{counts.complete} of {job.total} complete</span>
                   {counts.processing > 0 && (
                     <>
@@ -196,7 +196,7 @@ export default function TaggingProgress() {
         </div>
 
         {eta && !done && (
-          <span className="text-[#555] text-[10px] tabular-nums shrink-0">{eta}</span>
+          <span className="text-[#555] text-xs tabular-nums shrink-0">{eta}</span>
         )}
 
         <div className="flex items-center gap-1 shrink-0">
@@ -225,11 +225,11 @@ export default function TaggingProgress() {
       {expanded && !done && counts && (
         <div className="border-t border-[#1a1a1a] px-4 py-3 space-y-1">
           {counts.failed > 0 && (
-            <p className="text-[11px]" style={{ color: 'var(--flagged-fg)' }}>
+            <p className="text-xs" style={{ color: 'var(--flagged-fg)' }}>
               {counts.failed} failed
             </p>
           )}
-          <p className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
             You can navigate away — this runs server-side.
           </p>
         </div>

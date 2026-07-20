@@ -234,7 +234,7 @@ export default function CropTool({ file, platform, savedCrop, onCropChange }: Pr
       {/* ── Live preview ───────────────────────────────────────────────────── */}
       {cropPx && renderedImg && (
         <div className="flex items-center gap-3">
-          <span className="text-[#444] text-[10px] uppercase tracking-wider shrink-0">Preview</span>
+          <span className="text-[#444] text-xs uppercase tracking-wider shrink-0">Preview</span>
           <div
             className="rounded overflow-hidden bg-black shrink-0 border border-[#1a1a1a]"
             style={{ width: prevW, height: PREV_H }}
@@ -256,7 +256,7 @@ export default function CropTool({ file, platform, savedCrop, onCropChange }: Pr
               />
             </div>
           </div>
-          <span className="text-[#333] text-[10px] leading-snug">
+          <span className="text-[#333] text-xs leading-snug">
             {PLATFORM_EXPORT[platform].w}×{PLATFORM_EXPORT[platform].h}<br />
             <span className="text-[#2a2a2a]">export px</span>
           </span>

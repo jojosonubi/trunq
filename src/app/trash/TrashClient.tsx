@@ -63,7 +63,7 @@ export default function TrashClient({
         <div className="w-16 h-16 rounded-full bg-surface-0 border border-[#1f1f1f] flex items-center justify-center mb-4">
           <Trash2 size={22} className="text-[#333]" />
         </div>
-        <p className="text-[#555] text-sm">Trash is empty</p>
+        <p className="text-[#555] text-base">Trash is empty</p>
       </div>
     )
   }
@@ -73,7 +73,7 @@ export default function TrashClient({
       {/* ── Trashed events ──────────────────────────────────────────────────── */}
       {trashedEvents.length > 0 && (
         <section>
-          <h2 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
+          <h2 className="text-white text-base font-semibold mb-4 flex items-center gap-2">
             <Calendar size={14} className="text-[#555]" />
             Events ({trashedEvents.length})
           </h2>
@@ -84,8 +84,8 @@ export default function TrashClient({
                 className="flex items-center gap-4 bg-surface-0 border border-[#1f1f1f] rounded-xl px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{event.name}</p>
-                  <p className="text-[#555] text-xs mt-0.5">
+                  <p className="text-white text-base font-medium truncate">{event.name}</p>
+                  <p className="text-[#555] text-sm mt-0.5">
                     {formatDate(event.date)}
                     {event.deleted_at && (
                       <> · Trashed {formatDate(event.deleted_at)} · {daysUntilPurge(event.deleted_at)}d until auto-delete</>
@@ -96,7 +96,7 @@ export default function TrashClient({
                   <button
                     onClick={() => restore('event', event.id)}
                     disabled={busy === event.id}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                   >
                     <RotateCcw size={11} />
                     {busy === event.id ? 'Restoring…' : 'Restore'}
@@ -104,7 +104,7 @@ export default function TrashClient({
                   <button
                     onClick={() => permanentDelete('event', event.id)}
                     disabled={busy === event.id}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
                   >
                     <Trash2 size={11} />
                     Delete forever
@@ -119,7 +119,7 @@ export default function TrashClient({
       {/* ── Trashed photos ──────────────────────────────────────────────────── */}
       {trashedPhotos.length > 0 && (
         <section>
-          <h2 className="text-white text-sm font-semibold mb-4 flex items-center gap-2">
+          <h2 className="text-white text-base font-semibold mb-4 flex items-center gap-2">
             <ImageIcon size={14} className="text-[#555]" />
             Photos ({trashedPhotos.length})
           </h2>
@@ -148,7 +148,7 @@ export default function TrashClient({
 
                   {/* Countdown badge */}
                   {photo.deleted_at && (
-                    <div className="absolute top-2 right-2 text-[10px] bg-black/70 text-[#888] px-1.5 py-0.5 rounded">
+                    <div className="absolute top-2 right-2 text-xs bg-black/70 text-[#888] px-1.5 py-0.5 rounded">
                       {daysUntilPurge(photo.deleted_at)}d
                     </div>
                   )}
@@ -156,12 +156,12 @@ export default function TrashClient({
 
                 {/* Info + actions */}
                 <div className="p-3">
-                  <p className="text-[#888] text-xs truncate mb-2">{photo.filename}</p>
+                  <p className="text-[#888] text-sm truncate mb-2">{photo.filename}</p>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => restore('photo', photo.id)}
                       disabled={busy === photo.id}
-                      className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                      className="flex-1 inline-flex items-center justify-center gap-1 text-xs px-2 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                     >
                       <RotateCcw size={9} />
                       {busy === photo.id ? '…' : 'Restore'}
@@ -169,7 +169,7 @@ export default function TrashClient({
                     <button
                       onClick={() => permanentDelete('photo', photo.id)}
                       disabled={busy === photo.id}
-                      className="flex-1 inline-flex items-center justify-center gap-1 text-[10px] px-2 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
+                      className="flex-1 inline-flex items-center justify-center gap-1 text-xs px-2 py-1.5 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40 rounded-lg transition-all disabled:opacity-40"
                     >
                       <Trash2 size={9} />
                       Delete

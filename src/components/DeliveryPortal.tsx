@@ -78,11 +78,11 @@ export default function DeliveryPortal({ event, files }: Props) {
       <header style={{ borderBottom: 'var(--border-rule)' }}>
         <div className="max-w-6xl mx-auto page-px py-4 flex items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[10px] uppercase track-label mb-2" style={{ color: 'var(--text-dim)' }}>
+            <p className="font-mono text-xs uppercase track-label mb-2" style={{ color: 'var(--text-dim)' }}>
               Archive · Photo Delivery
             </p>
-            <h1 className="text-xl font-semibold track-heading mb-2" style={{ color: 'var(--text-primary)' }}>{event.name}</h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <h1 className="text-2xl font-semibold track-heading mb-2" style={{ color: 'var(--text-primary)' }}>{event.name}</h1>
+            <div className="flex flex-wrap items-center gap-4 text-base" style={{ color: 'var(--text-muted)' }}>
               {event.date && (
                 <span className="inline-flex items-center gap-2">
                   <Calendar size={12} />
@@ -105,7 +105,7 @@ export default function DeliveryPortal({ event, files }: Props) {
             <button
               onClick={downloadAll}
               disabled={downloading}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded transition-opacity disabled:opacity-60 shrink-0"
+              className="inline-flex items-center gap-2 px-4 py-2 text-base font-medium rounded transition-opacity disabled:opacity-60 shrink-0"
               style={{ background: 'var(--accent)', color: 'var(--text-primary)' }}
             >
               <Archive size={14} />
@@ -121,8 +121,8 @@ export default function DeliveryPortal({ event, files }: Props) {
       <main className="max-w-6xl mx-auto page-px py-8">
         {files.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No photos available yet.</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Check back soon.</p>
+            <p className="text-base" style={{ color: 'var(--text-muted)' }}>No photos available yet.</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-dim)' }}>Check back soon.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -146,7 +146,7 @@ export default function DeliveryPortal({ event, files }: Props) {
                   {file.usage_type === 'restricted' ? (
                     <div className="flex flex-col items-center gap-1">
                       <ShieldOff size={18} className="text-red-400" />
-                      <span className="text-red-400 text-[10px] font-medium">Restricted</span>
+                      <span className="text-red-400 text-xs font-medium">Restricted</span>
                     </div>
                   ) : (
                     <a
@@ -216,11 +216,11 @@ export default function DeliveryPortal({ event, files }: Props) {
 
             {/* Download + counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
-              <span className="text-white/30 text-xs tabular-nums">
+              <span className="text-white/30 text-sm tabular-nums">
                 {lightboxIndex + 1} / {files.length}
               </span>
               {lightboxFile.usage_type === 'restricted' ? (
-                <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
+                <span className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg">
                   <ShieldOff size={12} />
                   Restricted — download unavailable
                 </span>
@@ -229,7 +229,7 @@ export default function DeliveryPortal({ event, files }: Props) {
                   href={downloadUrl(lightboxFile)}
                   download={lightboxFile.filename}
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all"
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black rounded-lg hover:bg-white/90 transition-all"
                 >
                   <Download size={12} />
                   Download

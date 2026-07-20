@@ -52,7 +52,7 @@ export default function BulkRetag({ untaggedImages, eventId }: Props) {
 
   if (state === 'queued') {
     return (
-      <span className="flex items-center gap-1.5 text-purple-400 text-sm">
+      <span className="flex items-center gap-1.5 text-purple-400 text-base">
         <CheckCircle2 size={13} />
         Queued — running in background
       </span>
@@ -63,12 +63,12 @@ export default function BulkRetag({ untaggedImages, eventId }: Props) {
     <button
       onClick={handleStart}
       disabled={state === 'queuing'}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-[#2a2a2a] hover:border-[#444] text-white text-sm rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-[#2a2a2a] hover:border-[#444] text-white text-base rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {icon}
       {state === 'queuing' ? 'Queuing…' : label}
       {state === 'idle' && (
-        <span className="text-[#666] text-xs">
+        <span className="text-[#666] text-sm">
           {untaggedImages.length} image{untaggedImages.length !== 1 ? 's' : ''}
         </span>
       )}

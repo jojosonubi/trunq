@@ -124,14 +124,14 @@ export default async function EventsPage() {
                 <rect x="8" y="8" width="5" height="5" rx="1" fill="#0a0a0a" opacity="0.35" />
               </svg>
             </div>
-            <span className="font-semibold text-white text-sm tracking-tight">Trunq</span>
+            <span className="font-semibold text-white text-base tracking-tight">Trunq</span>
           </div>
 
           <div className="flex items-center gap-2">
             {profile.role === 'admin' && latestEventId && (
               <Link
                 href={`/events/${latestEventId}/live`}
-                className="inline-flex items-center gap-1.5 text-[#555] hover:text-white text-xs px-2.5 py-2 rounded-lg border border-[#1f1f1f] hover:border-[#333] hover:bg-white/5 transition-colors"
+                className="inline-flex items-center gap-1.5 text-[#555] hover:text-white text-sm px-2.5 py-2 rounded-lg border border-[#1f1f1f] hover:border-[#333] hover:bg-white/5 transition-colors"
               >
                 <Smartphone size={13} />
                 Event Mode
@@ -140,7 +140,7 @@ export default async function EventsPage() {
             {profile.role !== 'photographer' && (
               <Link
                 href="/events/new"
-                className="inline-flex items-center gap-1.5 bg-white text-black text-xs font-semibold px-3.5 py-2 rounded-lg hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-1.5 bg-white text-black text-sm font-semibold px-3.5 py-2 rounded-lg hover:bg-white/90 transition-colors"
               >
                 <Plus size={13} />
                 New event
@@ -161,8 +161,8 @@ export default async function EventsPage() {
                   <Icon size={13} className="text-[#555]" />
                 </div>
                 <div>
-                  <p className="text-white text-base font-semibold tabular-nums leading-none">{value}</p>
-                  <p className="text-[#555] text-[10px] uppercase tracking-wider mt-1">{label}</p>
+                  <p className="text-white text-lg font-semibold tabular-nums leading-none">{value}</p>
+                  <p className="text-[#555] text-xs uppercase tracking-wider mt-1">{label}</p>
                 </div>
               </div>
             ))}
@@ -184,15 +184,15 @@ export default async function EventsPage() {
                 </div>
               </div>
 
-              <h2 className="text-white text-xl font-semibold mb-3">Welcome to Trunq</h2>
-              <p className="text-[#666] text-sm mb-2 max-w-sm leading-relaxed">
+              <h2 className="text-white text-2xl font-semibold mb-3">Welcome to Trunq</h2>
+              <p className="text-[#666] text-base mb-2 max-w-sm leading-relaxed">
                 Your event media archive. Upload photos from any photographer, review and approve selects, then deliver to clients — all in one place.
               </p>
-              <p className="text-[#444] text-xs mb-10">Start by creating your first event.</p>
+              <p className="text-[#444] text-sm mb-10">Start by creating your first event.</p>
 
               <Link
                 href="/events/new"
-                className="inline-flex items-center gap-2 bg-white text-black text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 bg-white text-black text-base font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors"
               >
                 <Plus size={15} />
                 Create your first event
@@ -206,8 +206,8 @@ export default async function EventsPage() {
                 ].map((f) => (
                   <div key={f.title} className="space-y-1.5">
                     <div className="w-5 h-px bg-surface-2" />
-                    <p className="text-white text-xs font-medium">{f.title}</p>
-                    <p className="text-[#444] text-[11px] leading-relaxed">{f.body}</p>
+                    <p className="text-white text-sm font-medium">{f.title}</p>
+                    <p className="text-[#444] text-xs leading-relaxed">{f.body}</p>
                   </div>
                 ))}
               </div>

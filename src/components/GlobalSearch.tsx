@@ -17,7 +17,7 @@ function formatDate(dateStr: string): string {
 function SectionHeader({ label, hasBorder }: { label: string; hasBorder: boolean }) {
   return (
     <div className={hasBorder ? 'border-t border-[#161616] pt-1' : ''}>
-      <p className="px-4 pt-3 pb-1.5 text-[10px] text-[#444] uppercase tracking-wider font-medium">
+      <p className="px-4 pt-3 pb-1.5 text-xs text-[#444] uppercase tracking-wider font-medium">
         {label}
       </p>
     </div>
@@ -36,8 +36,8 @@ function EventRow({ event, onClick }: { event: EventResult; onClick: () => void 
         <Calendar size={13} className="text-[#555]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm truncate group-hover/row:text-white/90">{event.name}</p>
-        <p className="text-[#555] text-xs mt-0.5 truncate">
+        <p className="text-white text-base truncate group-hover/row:text-white/90">{event.name}</p>
+        <p className="text-[#555] text-sm mt-0.5 truncate">
           {formatDate(event.date)}
           {event.venue ? ` · ${event.venue}` : ''}
           {event.location ? ` · ${event.location}` : ''}
@@ -64,8 +64,8 @@ function PhotoRow({ photo, onClick }: { photo: PhotoResult; onClick: () => void 
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm truncate group-hover/row:text-white/90">{photo.event_name}</p>
-        <p className="text-[#555] text-xs mt-0.5 truncate">
+        <p className="text-white text-base truncate group-hover/row:text-white/90">{photo.event_name}</p>
+        <p className="text-[#555] text-sm mt-0.5 truncate">
           {photo.event_date ? formatDate(photo.event_date) : ''}
         </p>
       </div>
@@ -94,8 +94,8 @@ function PerformerRow({ performer, onClick }: { performer: PerformerResult; onCl
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm truncate group-hover/row:text-white/90">{performer.name}</p>
-        <p className="text-[#555] text-xs mt-0.5 truncate">
+        <p className="text-white text-base truncate group-hover/row:text-white/90">{performer.name}</p>
+        <p className="text-[#555] text-sm mt-0.5 truncate">
           {performer.role ? `${performer.role} · ` : ''}{performer.event_name}
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function GlobalSearch({ upward = false }: { upward?: boolean }) {
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => { if (e.key === 'Enter') goToFullResults() }}
           placeholder="Search across all projects, photos, tags…"
-          className="w-full bg-surface-0 border border-[#1a1a1a] focus:border-[#2a2a2a] rounded-xl pl-11 pr-10 py-3 text-white text-sm placeholder:text-[#2a2a2a] focus:outline-none transition-colors"
+          className="w-full bg-surface-0 border border-[#1a1a1a] focus:border-[#2a2a2a] rounded-xl pl-11 pr-10 py-3 text-white text-base placeholder:text-[#2a2a2a] focus:outline-none transition-colors"
           autoComplete="off"
         />
         <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
@@ -233,10 +233,10 @@ export default function GlobalSearch({ upward = false }: { upward?: boolean }) {
           {isEmpty && (
             <div className="flex flex-col items-center py-10 px-6 text-center">
               <Search size={22} className="text-[#222] mb-3" />
-              <p className="text-[#555] text-sm">
+              <p className="text-[#555] text-base">
                 No results for <span className="text-[#888]">"{query}"</span>
               </p>
-              <p className="text-[#333] text-xs mt-1.5 max-w-xs leading-relaxed">
+              <p className="text-[#333] text-sm mt-1.5 max-w-xs leading-relaxed">
                 Try an event name, location, photographer, AI tag, or performer name
               </p>
             </div>
@@ -297,7 +297,7 @@ export default function GlobalSearch({ upward = false }: { upward?: boolean }) {
             <div className="border-t border-[#161616]">
               <button
                 onClick={goToFullResults}
-                className="w-full text-left px-4 py-3 text-xs text-[#555] hover:text-white hover:bg-white/4 transition-colors flex items-center gap-2"
+                className="w-full text-left px-4 py-3 text-sm text-[#555] hover:text-white hover:bg-white/4 transition-colors flex items-center gap-2"
               >
                 <Search size={11} />
                 See all results for <span className="text-white font-medium">"{query.trim()}"</span>

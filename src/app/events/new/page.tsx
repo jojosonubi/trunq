@@ -94,78 +94,78 @@ export default function NewEventPage() {
     <div className="min-h-screen bg-surface-0">
       <header className="border-b border-[#1f1f1f] px-6 py-4">
         <div className="max-w-7xl mx-auto">
-          <span className="font-mono tracking-widest text-sm text-white uppercase">Archive</span>
+          <span className="font-mono tracking-widest text-base text-white uppercase">Archive</span>
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-12">
         <Link
           href="/events"
-          className="inline-flex items-center gap-2 text-[#888888] text-sm hover:text-white transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-[#888888] text-base hover:text-white transition-colors mb-8"
         >
           <ArrowLeft size={14} />
           Back to events
         </Link>
 
-        <h1 className="text-white text-xl font-semibold mb-8">New Event</h1>
+        <h1 className="text-white text-2xl font-semibold mb-8">New Event</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Name */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="name">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="name">
               Event Name <span className="text-white">*</span>
             </label>
             <input
               id="name" name="name" type="text"
               value={form.name} onChange={handleChange}
               placeholder="e.g. Summer Festival 2024"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
               required
             />
           </div>
 
           {/* Date */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="date">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="date">
               Date <span className="text-white">*</span>
             </label>
             <input
               id="date" name="date" type="date"
               value={form.date} onChange={handleChange}
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base focus:outline-none focus:border-[#444] transition-colors [color-scheme:dark]"
               required
             />
           </div>
 
           {/* Location */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="location">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="location">
               Location
             </label>
             <input
               id="location" name="location" type="text"
               value={form.location} onChange={handleChange}
               placeholder="e.g. Hackney, London"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
           {/* Venue */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="venue">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="venue">
               Venue
             </label>
             <input
               id="venue" name="venue" type="text"
               value={form.venue} onChange={handleChange}
               placeholder="e.g. Fabric, Egg London, Fold"
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5" htmlFor="description">
+            <label className="block text-base text-[#888888] mb-1.5" htmlFor="description">
               Description
             </label>
             <textarea
@@ -173,13 +173,13 @@ export default function NewEventPage() {
               value={form.description} onChange={handleChange}
               placeholder="Brief description of the event…"
               rows={3}
-              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
+              className="w-full bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2.5 text-white text-base placeholder-[#555] focus:outline-none focus:border-[#444] transition-colors resize-none"
             />
           </div>
 
           {/* Photographers */}
           <div>
-            <label className="block text-sm text-[#888888] mb-1.5">
+            <label className="block text-base text-[#888888] mb-1.5">
               Photographers
             </label>
             <PhotographerInput
@@ -201,7 +201,7 @@ export default function NewEventPage() {
                 <div className="w-9 h-5 bg-surface-0 border border-[#2a2a2a] rounded-full peer-checked:bg-white transition-colors" />
                 <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#555] rounded-full transition-all peer-checked:translate-x-4 peer-checked:bg-black" />
               </div>
-              <span className="text-sm text-[#888888] group-hover:text-white transition-colors select-none flex items-center gap-1.5">
+              <span className="text-base text-[#888888] group-hover:text-white transition-colors select-none flex items-center gap-1.5">
                 <CalendarDays size={13} />
                 Multi-day event?
               </span>
@@ -209,7 +209,7 @@ export default function NewEventPage() {
 
             {multiDay && (
               <div className="flex items-center gap-3 pl-12">
-                <label className="text-sm text-[#888888] shrink-0">
+                <label className="text-base text-[#888888] shrink-0">
                   How many days?
                 </label>
                 <input
@@ -218,10 +218,10 @@ export default function NewEventPage() {
                   max={14}
                   value={dayCount}
                   onChange={(e) => setDayCount(Math.max(2, Math.min(14, parseInt(e.target.value) || 2)))}
-                  className="w-20 bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-[#444] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  className="w-20 bg-surface-0 border border-[#1f1f1f] rounded px-3 py-2 text-white text-base text-center focus:outline-none focus:border-[#444] transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 {photographers.length > 0 && (
-                  <p className="text-[#444] text-xs">
+                  <p className="text-[#444] text-sm">
                     Creates {dayCount * photographers.length} folders
                     {' '}(Day 1–{dayCount} × {photographers.length} photographer{photographers.length !== 1 ? 's' : ''})
                   </p>
@@ -230,12 +230,12 @@ export default function NewEventPage() {
             )}
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-red-400 text-base">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full inline-flex items-center justify-center gap-2 bg-white text-black text-sm font-medium py-2.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full inline-flex items-center justify-center gap-2 bg-white text-black text-base font-medium py-2.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <><Loader2 size={14} className="animate-spin" /> Creating…</>

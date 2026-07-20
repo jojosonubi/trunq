@@ -475,8 +475,8 @@ export default function GalleryWithSearch({
       <div>
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-white text-sm font-medium">Move to folder</p>
-            <p className="text-[#555] text-xs mt-0.5">
+            <p className="text-white text-base font-medium">Move to folder</p>
+            <p className="text-[#555] text-sm mt-0.5">
               {folderSelectedIds.size === 0
                 ? 'Click photos to select them'
                 : `${folderSelectedIds.size} selected`}
@@ -485,7 +485,7 @@ export default function GalleryWithSearch({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))}
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
+              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
             >
               <CheckSquare size={12} />
               Select all
@@ -497,7 +497,7 @@ export default function GalleryWithSearch({
                     key={folder.id}
                     onClick={() => doAssignFolder(folder.id)}
                     disabled={assigningFolder}
-                    className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                   >
                     <FolderInput size={12} />
                     {folder.name}
@@ -506,7 +506,7 @@ export default function GalleryWithSearch({
                 <button
                   onClick={() => doAssignFolder(null)}
                   disabled={assigningFolder}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                 >
                   <X size={12} />
                   Remove from folder
@@ -515,7 +515,7 @@ export default function GalleryWithSearch({
             )}
             <button
               onClick={exitFolderSelectMode}
-              className="inline-flex items-center gap-1.5 text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
+              className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
             >
               <X size={12} />
               Cancel
@@ -547,8 +547,8 @@ export default function GalleryWithSearch({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-white text-sm font-medium">Pick for social media</p>
-              <p className="text-[#555] text-xs mt-0.5">
+              <p className="text-white text-base font-medium">Pick for social media</p>
+              <p className="text-[#555] text-sm mt-0.5">
                 Sorted by quality score · {selectedIds.size} selected
               </p>
             </div>
@@ -557,7 +557,7 @@ export default function GalleryWithSearch({
                 <button
                   onClick={() => downloadFiles(selectedFiles)}
                   disabled={!!downloadState}
-                  className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
                 >
                   <Download size={12} />
                   {downloadState
@@ -567,7 +567,7 @@ export default function GalleryWithSearch({
               )}
               <button
                 onClick={exitSelectionMode}
-                className="inline-flex items-center gap-1.5 text-xs text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
+                className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
               >
                 <X size={12} />
                 Exit
@@ -607,7 +607,7 @@ export default function GalleryWithSearch({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tags and descriptions…"
-            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-9 py-2 text-white text-sm placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors"
+            className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-9 py-2 text-white text-base placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors"
           />
           {query && (
             <button
@@ -630,7 +630,7 @@ export default function GalleryWithSearch({
                 <button
                   onClick={() => setFilterOpen((v) => !v)}
                   className={clsx(
-                    'inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
+                    'inline-flex items-center gap-1.5 px-3 py-2 border text-base rounded-lg transition-all',
                     hasActiveFilters
                       ? 'border-white/30 text-white bg-white/8'
                       : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
@@ -639,7 +639,7 @@ export default function GalleryWithSearch({
                   <SlidersHorizontal size={14} />
                   Filters
                   {activeFilterCount > 0 && (
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[9px] font-medium leading-none">
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-white text-[11px] font-medium leading-none">
                       {activeFilterCount}
                     </span>
                   )}
@@ -649,14 +649,14 @@ export default function GalleryWithSearch({
                   <div className="absolute top-full left-0 mt-1.5 w-64 bg-surface-0 border border-[#2a2a2a] rounded-xl shadow-2xl p-3 z-30 space-y-3">
                     {/* Tag chips */}
                     <div>
-                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">Tags</p>
+                      <p className="text-[#444] text-xs uppercase tracking-wider font-medium mb-2">Tags</p>
                       <div className="flex flex-wrap gap-1.5">
                         {QUICK_PILLS.map((pill) => (
                           <button
                             key={pill}
                             onClick={() => togglePill(pill)}
                             className={clsx(
-                              'text-xs px-2.5 py-1 rounded-full border transition-all',
+                              'text-sm px-2.5 py-1 rounded-full border transition-all',
                               activePills.has(pill)
                                 ? 'bg-white/10 border-white/25 text-white'
                                 : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
@@ -670,14 +670,14 @@ export default function GalleryWithSearch({
 
                     {/* File type */}
                     <div>
-                      <p className="text-[#444] text-[10px] uppercase tracking-wider font-medium mb-2">File type</p>
+                      <p className="text-[#444] text-xs uppercase tracking-wider font-medium mb-2">File type</p>
                       <div className="flex gap-1.5">
                         {(['image', 'video', 'graphic'] as const).map((ft) => (
                           <button
                             key={ft}
                             onClick={() => setActiveFileType((prev) => prev === ft ? null : ft)}
                             className={clsx(
-                              'text-xs px-2.5 py-1 rounded-full border transition-all capitalize',
+                              'text-sm px-2.5 py-1 rounded-full border transition-all capitalize',
                               activeFileType === ft
                                 ? 'bg-white/10 border-white/20 text-white'
                                 : 'border-[#2a2a2a] text-[#555] hover:border-[#444] hover:text-[#888]'
@@ -692,7 +692,7 @@ export default function GalleryWithSearch({
                     {hasActiveFilters && (
                       <button
                         onClick={() => { setActiveFileType(null); setActivePills(new Set()) }}
-                        className="text-xs text-[#555] hover:text-white transition-colors"
+                        className="text-sm text-[#555] hover:text-white transition-colors"
                       >
                         Clear all filters
                       </button>
@@ -710,7 +710,7 @@ export default function GalleryWithSearch({
             onClick={() => downloadFiles(downloadableFiles)}
             disabled={!!downloadState}
             title={`Download ${downloadableFiles.length} photo${downloadableFiles.length !== 1 ? 's' : ''} as zip`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40 shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-[#1f1f1f] text-[#555] text-base hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40 shrink-0"
           >
             <Download size={14} />
             {downloadState
@@ -722,7 +722,7 @@ export default function GalleryWithSearch({
         {selectionFiles.length > 0 && (
           <button
             onClick={enterSelectionMode}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-base hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
           >
             <Share2 size={14} />
             Pick for social
@@ -732,7 +732,7 @@ export default function GalleryWithSearch({
         {folders && folders.length > 0 && onAssignFolder && (
           <button
             onClick={enterFolderSelectMode}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-base hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
           >
             <FolderInput size={14} />
             Move
@@ -742,7 +742,7 @@ export default function GalleryWithSearch({
         {displayFiles.length > 0 && (
           <button
             onClick={selectAllVisible}
-            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-sm hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-base hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
           >
             <CheckSquare size={14} />
             Select all
@@ -771,7 +771,7 @@ export default function GalleryWithSearch({
               style={{ width: `${Math.round((downloadState.done / downloadState.total) * 100)}%` }}
             />
           </div>
-          <span className="text-[#555] text-xs tabular-nums shrink-0 whitespace-nowrap">
+          <span className="text-[#555] text-sm tabular-nums shrink-0 whitespace-nowrap">
             Preparing {downloadState.done}/{downloadState.total}…
           </span>
         </div>
@@ -784,7 +784,7 @@ export default function GalleryWithSearch({
           <button
             onClick={() => setShowStarredOnly((v) => !v)}
             className={clsx(
-              'inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full border transition-all',
+              'inline-flex items-center gap-1.5 text-sm px-3 py-1 rounded-full border transition-all',
               showStarredOnly
                 ? 'bg-amber-400/15 border-amber-400/40 text-amber-400'
                 : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
@@ -800,7 +800,7 @@ export default function GalleryWithSearch({
           <button
             key={pill}
             onClick={() => togglePill(pill)}
-            className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full border border-white/25 bg-white/10 text-white transition-all"
+            className="inline-flex items-center gap-1 text-sm px-3 py-1 rounded-full border border-white/25 bg-white/10 text-white transition-all"
           >
             {pill}
             <X size={9} />
@@ -810,14 +810,14 @@ export default function GalleryWithSearch({
         {isFiltered && activePills.size === 0 && !filterOpen && (
           <button
             onClick={clearAll}
-            className="text-xs px-3 py-1 rounded-full border border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999] transition-all"
+            className="text-sm px-3 py-1 rounded-full border border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999] transition-all"
           >
             Clear
           </button>
         )}
 
         {/* File count */}
-        <span className="ml-auto text-[#444] text-xs tabular-nums shrink-0">
+        <span className="ml-auto text-[#444] text-sm tabular-nums shrink-0">
           {isFiltered
             ? `${displayFiles.length}${hasMore ? '+' : ''} file${displayFiles.length !== 1 ? 's' : ''}`
             : `${totalCount} file${totalCount !== 1 ? 's' : ''}`}
@@ -829,7 +829,7 @@ export default function GalleryWithSearch({
       {/* ── Row 3: photographer filter ────────────────────────────────────── */}
       {uniquePhotographers.length > 0 && (
         <div className="flex items-center gap-2 mb-5 flex-wrap">
-          <span className="flex items-center gap-1 text-[#444] text-[10px] uppercase tracking-wider shrink-0">
+          <span className="flex items-center gap-1 text-[#444] text-xs uppercase tracking-wider shrink-0">
             <User size={10} />
             By
           </span>
@@ -838,7 +838,7 @@ export default function GalleryWithSearch({
               key={name}
               onClick={() => setActivePhotographer((prev) => (prev === name ? null : name))}
               className={clsx(
-                'text-xs px-3 py-1 rounded-full border transition-all',
+                'text-sm px-3 py-1 rounded-full border transition-all',
                 activePhotographer === name
                   ? 'bg-white/10 border-white/25 text-white'
                   : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
@@ -859,7 +859,7 @@ export default function GalleryWithSearch({
         if (!visiblePerformers.length) return null
         return (
           <div className="flex items-center gap-2 mb-5 flex-wrap">
-            <span className="flex items-center gap-1 text-[#444] text-[10px] uppercase tracking-wider shrink-0">
+            <span className="flex items-center gap-1 text-[#444] text-xs uppercase tracking-wider shrink-0">
               <Users size={10} />
               Performers
             </span>
@@ -868,7 +868,7 @@ export default function GalleryWithSearch({
                 key={p.id}
                 onClick={() => setActivePerformerId((prev) => (prev === p.id ? null : p.id))}
                 className={clsx(
-                  'text-xs px-3 py-1 rounded-full border transition-all',
+                  'text-sm px-3 py-1 rounded-full border transition-all',
                   activePerformerId === p.id
                     ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
                     : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
@@ -890,7 +890,7 @@ export default function GalleryWithSearch({
         if (!visibleBrands.length) return null
         return (
           <div className="flex items-center gap-2 mb-5 flex-wrap">
-            <span className="flex items-center gap-1 text-[#444] text-[10px] uppercase tracking-wider shrink-0">
+            <span className="flex items-center gap-1 text-[#444] text-xs uppercase tracking-wider shrink-0">
               <TagIcon size={10} />
               Brands
             </span>
@@ -899,7 +899,7 @@ export default function GalleryWithSearch({
                 key={b.id}
                 onClick={() => setActiveBrandId((prev) => (prev === b.id ? null : b.id))}
                 className={clsx(
-                  'text-xs px-3 py-1 rounded-full border transition-all',
+                  'text-sm px-3 py-1 rounded-full border transition-all',
                   activeBrandId === b.id
                     ? 'bg-orange-500/20 border-orange-500/40 text-orange-300'
                     : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#999]'
@@ -915,7 +915,7 @@ export default function GalleryWithSearch({
       {/* ── Row 6: colour filter swatches ────────────────────────────────── */}
       {loadedFiles.some((f) => (f.dominant_colours ?? []).length > 0) && (
         <div className="flex items-center gap-2 mb-5 flex-wrap">
-          <span className="text-[#444] text-[10px] uppercase tracking-wider shrink-0">Colour</span>
+          <span className="text-[#444] text-xs uppercase tracking-wider shrink-0">Colour</span>
           {COLOUR_SWATCHES.map((swatch) => {
             const isActive = activeColour === swatch.name
             return (
@@ -934,7 +934,7 @@ export default function GalleryWithSearch({
             )
           })}
           {activeColour && (
-            <span className="text-[#555] text-xs ml-1 capitalize">{activeColour}</span>
+            <span className="text-[#555] text-sm ml-1 capitalize">{activeColour}</span>
           )}
         </div>
       )}
@@ -973,10 +973,10 @@ export default function GalleryWithSearch({
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-[#1f1f1f] rounded-lg">
           <ImageIcon size={28} className="text-[#333] mb-3" />
-          <p className="text-[#666] text-sm">No files match your search.</p>
+          <p className="text-[#666] text-base">No files match your search.</p>
           <button
             onClick={clearAll}
-            className="mt-2 text-xs text-[#444] hover:text-white transition-colors underline underline-offset-2"
+            className="mt-2 text-sm text-[#444] hover:text-white transition-colors underline underline-offset-2"
           >
             Clear filters
           </button>

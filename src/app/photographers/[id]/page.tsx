@@ -82,14 +82,14 @@ export default async function PhotographerProfilePage({ params }: Props) {
     <div className="min-h-screen bg-surface-0">
       <header className="border-b border-[#1f1f1f] px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <span className="font-mono tracking-widest text-sm text-white uppercase">Archive</span>
+          <span className="font-mono tracking-widest text-base text-white uppercase">Archive</span>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-12">
         <Link
           href="/photographers"
-          className="inline-flex items-center gap-2 text-[#888888] text-sm hover:text-white transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-[#888888] text-base hover:text-white transition-colors mb-8"
         >
           <ArrowLeft size={14} />
           All photographers
@@ -101,8 +101,8 @@ export default async function PhotographerProfilePage({ params }: Props) {
             <Camera size={22} className="text-[#555]" />
           </div>
           <div>
-            <h1 className="text-white text-2xl font-semibold">{photographer.name}</h1>
-            <div className="flex items-center gap-6 mt-2 text-sm text-[#555]">
+            <h1 className="text-white text-3xl font-semibold">{photographer.name}</h1>
+            <div className="flex items-center gap-6 mt-2 text-base text-[#555]">
               <span className="flex items-center gap-1.5">
                 <Images size={13} />
                 {signedFiles.length} photo{signedFiles.length !== 1 ? 's' : ''}
@@ -124,20 +124,20 @@ export default async function PhotographerProfilePage({ params }: Props) {
         {signedFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 border border-dashed border-[#1f1f1f] rounded-lg text-center">
             <Images size={28} className="text-[#333] mb-3" />
-            <p className="text-[#555] text-sm">No photos yet</p>
+            <p className="text-[#555] text-base">No photos yet</p>
           </div>
         ) : (
           <div className="space-y-10">
             {/* Events breakdown */}
             {eventsSorted.length > 0 && (
               <div>
-                <h2 className="text-[#555] text-xs uppercase tracking-wider mb-3">Projects</h2>
+                <h2 className="text-[#555] text-sm uppercase tracking-wider mb-3">Projects</h2>
                 <div className="flex flex-wrap gap-2">
                   {eventsSorted.map((ev) => (
                     <Link
                       key={ev.id}
                       href={`/projects/${ev.id}`}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-0 border border-[#1f1f1f] rounded-lg text-xs text-[#888] hover:text-white hover:border-[#333] transition-all"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-0 border border-[#1f1f1f] rounded-lg text-sm text-[#888] hover:text-white hover:border-[#333] transition-all"
                     >
                       {ev.name}
                       <span className="text-[#444] tabular-nums">{ev.count}</span>
@@ -149,7 +149,7 @@ export default async function PhotographerProfilePage({ params }: Props) {
 
             {/* Photo grid */}
             <div>
-              <h2 className="text-[#555] text-xs uppercase tracking-wider mb-3">Photos</h2>
+              <h2 className="text-[#555] text-sm uppercase tracking-wider mb-3">Photos</h2>
               <div className="columns-2 sm:columns-3 lg:columns-4 gap-2 space-y-2">
                 {signedFiles.map((f) => (
                   <div key={f.id} className="break-inside-avoid overflow-hidden rounded-lg bg-surface-0">
