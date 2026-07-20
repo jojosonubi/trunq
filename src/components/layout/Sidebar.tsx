@@ -20,7 +20,8 @@ type NavDivider = { kind: 'divider' }
 type NavEntry   = NavLink | NavDivider
 
 const NAV: NavEntry[] = [
-  { kind: 'link',    label: 'Projects',  href: '/projects',       matchPrefix: '/projects'  },
+  { kind: 'link',    label: 'Projects',    href: '/projects',    matchPrefix: '/projects'    },
+  { kind: 'link',    label: 'Collections', href: '/collections', matchPrefix: '/collections' },
   { kind: 'divider' },
 { kind: 'link',    label: 'Delivery',  href: '/delivery/manage', matchPrefix: '/delivery' },
   { kind: 'divider' },

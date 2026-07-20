@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   Search, X, Loader2, ImageIcon, SlidersHorizontal, ArrowLeft,
   ChevronLeft, ChevronRight, ExternalLink, Tag, Calendar, Camera, Palette,
+  Check, Plus, FolderPlus,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { FullPhotoResult } from '@/app/api/search/full/route'
@@ -91,6 +92,8 @@ export default function SearchPageClient({ initialQuery }: Props) {
   const [loading, setLoading] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [collectModalOpen, setCollectModalOpen] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
@@ -142,6 +145,25 @@ export default function SearchPageClient({ initialQuery }: Props) {
 
   const activeFilterKeys = (Object.keys(filters) as (keyof Filters)[]).filter((k) => filters[k] !== '')
   const hasActiveFilters = activeFilterKeys.length > 0
+
+  // ── Selection (persists across searches so picks can be gathered from several queries) ──
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectAllResults() {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      for (const p of photos) next.add(p.id)
+      return next
+    })
+  }
 
   // ── Lightbox keyboard nav ─────────────────────────────────────────────────────
 
@@ -405,7 +427,14 @@ export default function SearchPageClient({ initialQuery }: Props) {
             {photos.length > 0 && (
               <div className="columns-2 sm:columns-3 lg:columns-4 gap-2 space-y-2">
                 {photos.map((photo, i) => (
-                  <PhotoCard key={photo.id} photo={photo} onOpen={() => setLightboxIndex(i)} />
+                  <PhotoCard
+                    key={photo.id}
+                    photo={photo}
+                    onOpen={() => setLightboxIndex(i)}
+                    selected={selected.has(photo.id)}
+                    selectionActive={selected.size > 0}
+                    onToggleSelect={() => toggleSelect(photo.id)}
+                  />
                 ))}
               </div>
             )}
@@ -438,27 +467,249 @@ export default function SearchPageClient({ initialQuery }: Props) {
           onNavigate={setLightboxIndex}
         />
       )}
+
+      {/* ── Selection action bar ─────────────────────────────────────────────── */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#111] border border-[#2a2a2a] rounded-full pl-5 pr-2 py-2 shadow-2xl">
+          <span className="text-white text-base font-medium tabular-nums whitespace-nowrap">
+            {selected.size} selected
+          </span>
+          {photos.some((p) => !selected.has(p.id)) && (
+            <button
+              onClick={selectAllResults}
+              className="text-sm text-[#888] hover:text-white transition-colors whitespace-nowrap"
+            >
+              Select all {photos.length}
+            </button>
+          )}
+          <button
+            onClick={() => setSelected(new Set())}
+            className="text-sm text-[#888] hover:text-white transition-colors"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => setCollectModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-white text-black text-base font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-colors whitespace-nowrap"
+          >
+            <FolderPlus size={15} />
+            Add to collection
+          </button>
+        </div>
+      )}
+
+      {/* ── Add-to-collection modal ──────────────────────────────────────────── */}
+      {collectModalOpen && (
+        <AddToCollectionModal
+          mediaIds={[...selected]}
+          onClose={() => setCollectModalOpen(false)}
+          onAdded={() => setSelected(new Set())}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── Add-to-collection modal ──────────────────────────────────────────────────
+
+interface CollectionRow { id: string; name: string; item_count: number }
+
+function AddToCollectionModal({
+  mediaIds,
+  onClose,
+  onAdded,
+}: {
+  mediaIds: string[]
+  onClose: () => void
+  onAdded: () => void
+}) {
+  const [collections, setCollections] = useState<CollectionRow[] | null>(null)
+  const [newName, setNewName]         = useState('')
+  const [busy, setBusy]               = useState(false)
+  const [error, setError]             = useState<string | null>(null)
+  const [done, setDone]               = useState<{ id: string; name: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/collections')
+      .then((r) => r.json())
+      .then((d) => setCollections(d.collections ?? []))
+      .catch(() => setCollections([]))
+  }, [])
+
+  async function addTo(collectionId: string, name: string) {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/collections/${collectionId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_ids: mediaIds }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to add')
+      setDone({ id: collectionId, name })
+      onAdded()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to add')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function createAndAdd() {
+    const name = newName.trim()
+    if (!name) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to create')
+      const { collection } = await res.json() as { collection: CollectionRow }
+      await addTo(collection.id, collection.name)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
+      <div
+        className="w-full max-w-sm mx-4 rounded-xl bg-[#111] border border-[#2a2a2a] p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {done ? (
+          <>
+            <h2 className="text-white text-lg font-semibold mb-1.5">Added</h2>
+            <p className="text-[#888] text-base mb-5">
+              {mediaIds.length} photo{mediaIds.length !== 1 ? 's' : ''} added to{' '}
+              <span className="text-white font-medium">{done.name}</span>.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-base text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <Link
+                href={`/collections/${done.id}`}
+                className="px-4 py-2 text-base font-semibold bg-white text-black rounded-lg hover:bg-white/90 transition-colors"
+              >
+                View collection
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-white text-lg font-semibold mb-4">
+              Add {mediaIds.length} photo{mediaIds.length !== 1 ? 's' : ''} to collection
+            </h2>
+
+            {/* Existing collections */}
+            {collections === null ? (
+              <div className="flex justify-center py-6">
+                <Loader2 size={16} className="text-[#444] animate-spin" />
+              </div>
+            ) : collections.length > 0 ? (
+              <div className="max-h-56 overflow-y-auto -mx-2 mb-4">
+                {collections.map((c) => (
+                  <button
+                    key={c.id}
+                    disabled={busy}
+                    onClick={() => addTo(c.id, c.name)}
+                    className="flex items-center justify-between w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors disabled:opacity-40"
+                  >
+                    <span className="text-white text-base truncate">{c.name}</span>
+                    <span className="text-[#555] text-sm tabular-nums shrink-0 ml-3">
+                      {c.item_count} photo{c.item_count !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#555] text-base mb-4">No collections yet — create your first below.</p>
+            )}
+
+            {/* New collection */}
+            <div className="flex gap-2 pt-3" style={{ borderTop: '1px solid #222' }}>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') createAndAdd() }}
+                placeholder="New collection name…"
+                disabled={busy}
+                className="flex-1 min-w-0 bg-surface-0 border border-[#1f1f1f] rounded-lg px-3 py-2 text-white text-base placeholder:text-[#3a3a3a] focus:outline-none focus:border-[#333] transition-colors"
+              />
+              <button
+                onClick={createAndAdd}
+                disabled={busy || !newName.trim()}
+                className="inline-flex items-center gap-1.5 bg-white text-black text-base font-semibold px-3.5 py-2 rounded-lg hover:bg-white/90 transition-colors disabled:opacity-40 shrink-0"
+              >
+                {busy ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Create
+              </button>
+            </div>
+
+            {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+          </>
+        )}
+      </div>
     </div>
   )
 }
 
 // ─── Photo card ───────────────────────────────────────────────────────────────
 
-function PhotoCard({ photo, onOpen }: { photo: FullPhotoResult; onOpen: () => void }) {
+function PhotoCard({
+  photo,
+  onOpen,
+  selected,
+  selectionActive,
+  onToggleSelect,
+}: {
+  photo: FullPhotoResult
+  onOpen: () => void
+  selected: boolean
+  selectionActive: boolean
+  onToggleSelect: () => void
+}) {
   const imgSrc = photo.signed_url ?? photo.public_url
 
   return (
     <div
-      className="break-inside-avoid overflow-hidden rounded-lg bg-surface-0 border border-[#1a1a1a] cursor-pointer hover:border-[#333] transition-colors group"
-      onClick={onOpen}
+      className={clsx(
+        'relative break-inside-avoid overflow-hidden rounded-lg bg-surface-0 border cursor-pointer transition-colors group',
+        selected ? 'border-white/70' : 'border-[#1a1a1a] hover:border-[#333]'
+      )}
+      onClick={selectionActive ? onToggleSelect : onOpen}
     >
+      {/* Select toggle — visible on hover, or always while a selection is active */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleSelect() }}
+        aria-label={selected ? 'Deselect photo' : 'Select photo'}
+        aria-pressed={selected}
+        className={clsx(
+          'absolute top-2 left-2 z-10 w-6 h-6 rounded-full border flex items-center justify-center transition-all',
+          selected
+            ? 'bg-white border-white text-black opacity-100'
+            : 'bg-black/50 border-white/40 text-transparent opacity-0 group-hover:opacity-100 hover:border-white',
+          selectionActive && 'opacity-100'
+        )}
+      >
+        <Check size={13} strokeWidth={3} />
+      </button>
       {imgSrc ? (
         <Image
           src={imgSrc}
           alt={photo.description ?? ''}
           width={400}
           height={300}
-          className="w-full h-auto object-cover"
+          className={clsx('w-full h-auto object-cover', selected && 'opacity-80')}
           unoptimized
         />
       ) : (
