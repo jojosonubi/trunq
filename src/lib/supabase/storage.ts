@@ -109,13 +109,15 @@ export async function signStoragePathThumbnail(
       transform: {
         width:   options.width   ?? 600,
         // Only include height when explicitly provided.
-        // Omitting it lets Supabase scale to the width constraint while preserving
-        // the image's natural aspect ratio — no cropping for portrait or landscape.
         // Callers that want a square crop (aspect:'square') pass height:width explicitly
         // via signStoragePathsSized, so those are unaffected.
         ...(options.height != null ? { height: options.height } : {}),
         quality: options.quality ?? 75,
-        resize:  options.resize  ?? 'cover',
+        // Width-only + 'cover' does NOT preserve aspect ratio: Supabase keeps the
+        // original height and crops a width-px-wide full-height slice (verified:
+        // 3089x2048 source → 800x2048). Width-only must use 'contain', which
+        // scales to the width and preserves aspect (→ 800x530).
+        resize:  options.height != null ? (options.resize ?? 'cover') : 'contain',
       },
     })
   if (error || !data?.signedUrl) {
