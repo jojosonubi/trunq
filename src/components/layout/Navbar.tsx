@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react'
 import type { UserProfile } from '@/lib/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import GlobalSearch from '@/components/GlobalSearch'
+import UserMenu from '@/components/UserMenu'
 import { useEventMode } from '@/context/EventModeContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -81,26 +82,6 @@ const rightArea: CSSProperties = {
   flexShrink: 0,
 }
 
-function avatarCircle(): CSSProperties {
-  return {
-    width:          26,
-    height:         26,
-    borderRadius:   '50%',
-    background:     'var(--surface-2)',
-    border:         'var(--border-subtle)',
-    display:        'flex',
-    alignItems:     'center',
-    justifyContent: 'center',
-    fontSize:       9,
-    fontWeight:     600,
-    color:          'var(--text-primary)',
-    flexShrink:     0,
-    cursor:         'pointer',
-    userSelect:     'none' as const,
-    textDecoration: 'none',
-  }
-}
-
 const statBar: CSSProperties = {
   display:    'flex',
   flexWrap:   'nowrap' as const,
@@ -144,14 +125,6 @@ const statSub: CSSProperties = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function initials(profile: UserProfile): string {
-  if (profile.full_name) {
-    const parts = profile.full_name.trim().split(/\s+/)
-    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
-  }
-  return profile.email[0].toUpperCase()
-}
-
 function isActive(matchPrefix: string, pathname: string): boolean {
   return pathname === matchPrefix || pathname.startsWith(matchPrefix + '/')
 }
@@ -160,7 +133,6 @@ function isActive(matchPrefix: string, pathname: string): boolean {
 
 export default function Navbar({ profile, stats }: Props) {
   const pathname  = usePathname()
-  const avatar    = initials(profile)
   const { eventMode } = useEventMode()
 
   return (
@@ -181,9 +153,7 @@ export default function Navbar({ profile, stats }: Props) {
         {/* Right side */}
         <div style={rightArea}>
           <ThemeToggle />
-          <Link href="/settings" style={avatarCircle()} aria-label="Account settings">
-            {avatar}
-          </Link>
+          <UserMenu profile={profile} />
         </div>
       </div>
 
