@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth'
-import { signStoragePathsThumbnail } from '@/lib/supabase/storage'
+import { signStoragePathsSized } from '@/lib/supabase/storage'
+import { fetchAllMediaRows } from '@/lib/supabase/media'
 import Navbar from '@/components/layout/Navbar'
 import ProjectsPageClient from './ProjectsPageClient'
 import type { Event } from '@/types'
@@ -13,25 +14,21 @@ export default async function ProjectsPage() {
   const profile = await requireAuth()
   const supabase = createClient()
 
-  const [eventsResult, mediaResult, foldersResult] = await Promise.all([
+  const [eventsResult, mediaRows, foldersResult] = await Promise.all([
     supabase.from('events').select('*').is('deleted_at', null).order('date', { ascending: false }),
-    supabase
-      .from('media_files')
-      .select('event_id, file_size, storage_path')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-      .limit(20000),
+    fetchAllMediaRows(supabase),
     supabase.from('folders').select('event_id'),
   ])
 
   if (eventsResult.error) console.error('Failed to fetch projects:', eventsResult.error)
 
   const rawEvents: Event[] = eventsResult.data ?? []
-  const mediaRows          = mediaResult.data ?? []
 
   const fallbackCoverPathMap: Record<string, string> = {}
   const photoCountMap: Record<string, number> = {}
+  const displayPathByStoragePath = new Map<string, string | null>()
   for (const f of mediaRows) {
+    if (f.storage_path) displayPathByStoragePath.set(f.storage_path, f.display_path)
     if (!f.event_id) continue
     photoCountMap[f.event_id] = (photoCountMap[f.event_id] ?? 0) + 1
     if (f.storage_path && !fallbackCoverPathMap[f.event_id]) {
@@ -45,8 +42,13 @@ export default async function ProjectsPage() {
     if (path) coverPathMap[e.id] = path
   }
 
-  const coverPaths = Object.values(coverPathMap)
-  const coverSignedUrls = coverPaths.length > 0 ? await signStoragePathsThumbnail(coverPaths, { width: 600 }) : new Map<string, string>()
+  // Sign via display derivatives where available — transforming a full-res
+  // original past Supabase's render limits 422s and leaves the card blank.
+  const coverRefs = Object.values(coverPathMap).map((path) => ({
+    storage_path: path,
+    display_path: displayPathByStoragePath.get(path) ?? null,
+  }))
+  const coverSignedUrls = await signStoragePathsSized(coverRefs, 'card', { aspect: 'preserve' })
   const coverMap: Record<string, string> = {}
   for (const [eventId, path] of Object.entries(coverPathMap)) {
     const signed = coverSignedUrls.get(path)
