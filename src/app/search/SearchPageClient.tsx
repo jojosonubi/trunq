@@ -527,7 +527,7 @@ function AddToCollectionModal({
   const [newName, setNewName]         = useState('')
   const [busy, setBusy]               = useState(false)
   const [error, setError]             = useState<string | null>(null)
-  const [done, setDone]               = useState<{ id: string; name: string } | null>(null)
+  const [done, setDone]               = useState<{ id: string; name: string; count: number } | null>(null)
 
   useEffect(() => {
     fetch('/api/collections')
@@ -546,7 +546,9 @@ function AddToCollectionModal({
         body: JSON.stringify({ media_ids: mediaIds }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to add')
-      setDone({ id: collectionId, name })
+      // Snapshot the count before onAdded() clears the parent selection —
+      // otherwise the confirmation reads the now-empty mediaIds and shows 0.
+      setDone({ id: collectionId, name, count: mediaIds.length })
       onAdded()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to add')
@@ -585,7 +587,7 @@ function AddToCollectionModal({
           <>
             <h2 className="text-white text-lg font-semibold mb-1.5">Added</h2>
             <p className="text-[#888] text-base mb-5">
-              {mediaIds.length} photo{mediaIds.length !== 1 ? 's' : ''} added to{' '}
+              {done.count} photo{done.count !== 1 ? 's' : ''} added to{' '}
               <span className="text-white font-medium">{done.name}</span>.
             </p>
             <div className="flex gap-3 justify-end">
