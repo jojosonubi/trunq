@@ -599,8 +599,10 @@ export default function GalleryWithSearch({
   return (
     <div>
       {/* ── Row 1: search + filter + download + pick for social ──────────── */}
-      <div className="flex items-center gap-2 mb-3">
-        <div className="relative flex-1">
+      {/* flex-wrap so the action buttons drop to a second line on narrow
+          screens instead of overflowing the viewport (mobile jank). */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#444] pointer-events-none" />
           <input
             type="text"

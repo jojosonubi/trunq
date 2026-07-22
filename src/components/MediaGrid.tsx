@@ -246,9 +246,9 @@ async function saveUsage() {
   const isStarred = stars?.isStarredFn(file.id) ?? false
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row" onClick={onClose}>
       <div
-        className="relative flex-1 flex items-center justify-center bg-[#080808]"
+        className="relative flex-1 flex items-center justify-center bg-[#080808] min-h-[45vh] md:min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
@@ -306,7 +306,8 @@ async function saveUsage() {
       </div>
 
       <div
-        style={{ width: 288, flexShrink: 0, background: 'var(--surface-0)', borderLeft: 'var(--border-rule)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}
+        className="w-full md:w-72 shrink-0 flex flex-col overflow-y-auto max-h-[55vh] md:max-h-none border-t md:border-t-0 md:border-l border-[var(--surface-3)]"
+        style={{ background: 'var(--surface-0)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ padding: '16px 20px', borderBottom: 'var(--border-rule)' }}>

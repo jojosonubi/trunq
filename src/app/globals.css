@@ -115,6 +115,11 @@ hr {
   .main-content {
     padding: 16px 16px 64px !important;
   }
+  /* Safety net: no single toolbar/grid may push the whole page sideways.
+     Paired with per-component wrapping/scroll so content stays reachable. */
+  html, body {
+    overflow-x: hidden;
+  }
 }
 
 /* ─── Navigation sidebar visibility ─────────────────────────────────────── */
