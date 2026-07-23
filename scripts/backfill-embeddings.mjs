@@ -87,33 +87,47 @@ async function fetchPending() {
   return LIMIT > 0 ? rows.slice(0, LIMIT) : rows
 }
 
+// Download the object bytes, retrying transient storage timeouts (Gateway
+// Timeout / undici body-timeout) instead of letting them crash the run.
+async function downloadBytes(path, tries = 3) {
+  let lastErr = 'unknown'
+  for (let t = 0; t < tries; t++) {
+    try {
+      const { data, error } = await supabase.storage.from(MEDIA_BUCKET).download(path)
+      if (error || !data) { lastErr = error?.message ?? 'empty response'; continue }
+      return await data.arrayBuffer()
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : String(err)
+    }
+  }
+  throw new Error(`download: ${lastErr}`)
+}
+
 async function processRow(row) {
   const path = row.display_path ?? row.storage_path
-  const { data: fileData, error: dlErr } = await supabase.storage.from(MEDIA_BUCKET).download(path)
-  if (dlErr || !fileData) return { id: row.id, error: `download: ${dlErr?.message ?? 'empty response'}` }
-
-  let embedding
+  // One guard around the whole row — nothing may escape and kill the process.
   try {
-    const b64 = (await sharp(Buffer.from(await fileData.arrayBuffer()))
+    const bytes = await downloadBytes(path)
+    const b64 = (await sharp(Buffer.from(bytes))
       .rotate()
       .resize({ width: EMBED_PX, height: EMBED_PX, fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 80 })
       .toBuffer()).toString('base64')
-    embedding = await embedImage(b64)
+    const embedding = await embedImage(b64)
+
+    const { error: upErr } = await supabase.from('photo_embeddings')
+      .upsert({ media_file_id: row.id, organisation_id: ORG, embedding: JSON.stringify(embedding) })
+    if (upErr) throw new Error(`upsert: ${upErr.message}`)
+
+    const { error: dbErr } = await supabase.from('media_files')
+      .update({ embedding_status: 'complete', embedding_claimed_at: null })
+      .eq('id', row.id)
+    if (dbErr) throw new Error(`db: ${dbErr.message}`)
+
+    return { id: row.id }
   } catch (err) {
-    return { id: row.id, error: `embed: ${err instanceof Error ? err.message : String(err)}` }
+    return { id: row.id, error: err instanceof Error ? err.message : String(err) }
   }
-
-  const { error: upErr } = await supabase.from('photo_embeddings')
-    .upsert({ media_file_id: row.id, organisation_id: ORG, embedding: JSON.stringify(embedding) })
-  if (upErr) return { id: row.id, error: `upsert: ${upErr.message}` }
-
-  const { error: dbErr } = await supabase.from('media_files')
-    .update({ embedding_status: 'complete', embedding_claimed_at: null })
-    .eq('id', row.id)
-  if (dbErr) return { id: row.id, error: `db: ${dbErr.message}` }
-
-  return { id: row.id }
 }
 
 async function markFailed(id) {
@@ -152,5 +166,11 @@ async function main() {
   console.log(`\nDONE. ok=${ok} failed=${failures.length} of ${rows.length}.`)
   if (failures.length) console.log('Failed rows are embedding_status=failed — re-run to retry.')
 }
+
+// Safety net: undici can emit a late rejection on an already-settled request
+// (socket close after body read). Swallow it so it can't abort the whole run.
+process.on('unhandledRejection', (r) => {
+  console.error(`  [${ts()}] unhandledRejection swallowed:`, r?.message ?? r)
+})
 
 main().catch((err) => { console.error('FATAL:', err); process.exit(1) })
