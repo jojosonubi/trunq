@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2, Shield } from 'lucide-react'
+import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2, Shield, Download, FolderPlus } from 'lucide-react'
 import Pill, { ScorePill } from '@/components/ui/Pill'
 import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
+import AddToCollectionModal from '@/components/AddToCollectionModal'
 import clsx from 'clsx'
 
 // ─── Star props ──────────────────────────────────────────────────────────────
@@ -586,12 +587,25 @@ async function saveUsage() {
 interface ContextMenuState {
   x: number
   y: number
-  fileId: string
-  folderProps: FolderProps
+  file: MediaFileWithTags
+  folderProps: FolderProps | null
 }
 
-function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () => void }) {
+const MENU_ROW = 'flex items-center gap-2.5 w-full text-left px-3 py-2 text-base transition-colors'
+
+function ContextMenu({
+  state,
+  onClose,
+  onAddToCollection,
+  onDelete,
+}: {
+  state: ContextMenuState
+  onClose: () => void
+  onAddToCollection: (id: string) => void
+  onDelete?: (id: string) => void
+}) {
   const menuRef = useRef<HTMLDivElement>(null)
+  const [view, setView] = useState<'root' | 'folder'>('root')
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -606,49 +620,86 @@ function ContextMenu({ state, onClose }: { state: ContextMenuState; onClose: () 
     }
   }, [onClose])
 
-  // Adjust position to stay in viewport
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    top: state.y,
-    left: state.x,
-    zIndex: 9999,
+  const { file } = state
+
+  // Keep the menu inside the viewport (open leftward/upward near edges).
+  const MENU_W = 210, MENU_H = 260
+  const left = Math.min(state.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - MENU_W - 8)
+  const top  = Math.min(state.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - MENU_H - 8)
+
+  function downloadOriginal() {
+    const url = file.signed_url ?? file.public_url
+    if (!url) return
+    // Supabase render/object URLs honour ?download=<name> → forces attachment.
+    const sep = url.includes('?') ? '&' : '?'
+    const href = `${url}${sep}download=${encodeURIComponent(file.filename)}`
+    const a = document.createElement('a')
+    a.href = href
+    a.download = file.filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    onClose()
   }
 
-  const { folders, currentFolderId, onAssign } = state.folderProps
+  const folder = state.folderProps
 
   return createPortal(
     <div
       ref={menuRef}
-      style={style}
-      className="min-w-[160px] bg-surface-0 border border-[#2a2a2a] rounded-lg shadow-2xl py-1 overflow-hidden"
+      style={{ position: 'fixed', top, left, zIndex: 9999, width: MENU_W }}
+      className="bg-surface-0 border border-[#2a2a2a] rounded-lg shadow-2xl py-1 overflow-hidden"
     >
-      <p className="px-3 py-1.5 text-xs text-[#444] uppercase tracking-wider font-medium">
-        Move to folder
-      </p>
-      {folders.map((folder) => (
-        <button
-          key={folder.id}
-          onClick={() => { onAssign(folder.id); onClose() }}
-          className={clsx(
-            'flex items-center gap-2.5 w-full text-left px-3 py-2 text-base transition-colors',
-            currentFolderId === folder.id
-              ? 'text-white bg-white/8'
-              : 'text-[#888] hover:text-white hover:bg-white/4'
+      {view === 'folder' && folder ? (
+        <>
+          <button onClick={() => setView('root')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+            <ChevronLeft size={13} className="shrink-0" /> Back
+          </button>
+          <div className="max-h-52 overflow-y-auto border-t border-[#222] mt-1 pt-1">
+            {folder.folders.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => { folder.onAssign(f.id); onClose() }}
+                className={clsx(MENU_ROW, folder.currentFolderId === f.id ? 'text-white bg-white/8' : 'text-[#888] hover:text-white hover:bg-white/4')}
+              >
+                <FolderIcon size={13} className="shrink-0" />
+                <span className="truncate">{f.name}</span>
+                {folder.currentFolderId === f.id && <Check size={11} className="ml-auto shrink-0 text-emerald-400" />}
+              </button>
+            ))}
+            {folder.currentFolderId != null && (
+              <button
+                onClick={() => { folder.onAssign(null); onClose() }}
+                className={clsx(MENU_ROW, 'text-[#666] hover:text-white hover:bg-white/4 border-t border-[#222] mt-1')}
+              >
+                <FolderInput size={13} className="shrink-0" /> Remove from folder
+              </button>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <button onClick={downloadOriginal} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+            <Download size={13} className="shrink-0" /> Download
+          </button>
+          <button onClick={() => { onAddToCollection(file.id); onClose() }} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+            <FolderPlus size={13} className="shrink-0" /> Add to collection
+          </button>
+          {folder && folder.folders.length > 0 && (
+            <button onClick={() => setView('folder')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+              <FolderIcon size={13} className="shrink-0" /> Move to folder
+              <ChevronRight size={12} className="ml-auto shrink-0 text-[#555]" />
+            </button>
           )}
-        >
-          <FolderIcon size={13} className="shrink-0" />
-          {folder.name}
-          {currentFolderId === folder.id && <Check size={11} className="ml-auto text-emerald-400" />}
-        </button>
-      ))}
-      {currentFolderId !== null && (
-        <button
-          onClick={() => { onAssign(null); onClose() }}
-          className="flex items-center gap-2.5 w-full text-left px-3 py-2 text-base text-[#666] hover:text-white hover:bg-white/4 transition-colors border-t border-[#222] mt-1"
-        >
-          <FolderInput size={13} className="shrink-0" />
-          Remove from folder
-        </button>
+          {onDelete && (
+            <button
+              onClick={() => { onDelete(file.id); onClose() }}
+              className={clsx(MENU_ROW, 'text-red-400/80 hover:text-red-400 hover:bg-white/4 border-t border-[#222] mt-1')}
+            >
+              <Trash2 size={13} className="shrink-0" /> Delete
+            </button>
+          )}
+        </>
       )}
     </div>,
     document.body
@@ -874,6 +925,7 @@ export default function MediaGrid({ files, selection, compact, columns, stars, f
   const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
+  const [collectionForId, setCollectionForId] = useState<string | null>(null)
 
   // Deep-link: open lightbox for the specified photo on first render
   useEffect(() => {
@@ -886,10 +938,8 @@ export default function MediaGrid({ files, selection, compact, columns, stars, f
   const handleClose    = useCallback(() => setLightboxIndex(null), [])
 
   const handleMenuTrigger = useCallback((x: number, y: number, file: MediaFileWithTags) => {
-    if (!folderProps) return
-    const fp = folderProps(file)
-    if (!fp || fp.folders.length === 0) return
-    setContextMenu({ x, y, fileId: file.id, folderProps: fp })
+    const fp = folderProps ? folderProps(file) : undefined
+    setContextMenu({ x, y, file, folderProps: fp && fp.folders.length > 0 ? fp : null })
   }, [folderProps])
 
   if (files.length === 0) return null
@@ -918,7 +968,7 @@ export default function MediaGrid({ files, selection, compact, columns, stars, f
                 : undefined
             }
             stars={stars}
-            onMenuTrigger={folderProps ? handleMenuTrigger : undefined}
+            onMenuTrigger={handleMenuTrigger}
             onQuickSelect={onQuickSelect}
             isProcessing={processingIds?.has(file.id)}
           />
@@ -944,6 +994,17 @@ export default function MediaGrid({ files, selection, compact, columns, stars, f
         <ContextMenu
           state={contextMenu}
           onClose={() => setContextMenu(null)}
+          onAddToCollection={(id) => setCollectionForId(id)}
+          onDelete={onTrash}
+        />
+      )}
+
+      {/* Add-to-collection modal (single photo from the ⋯ menu) */}
+      {collectionForId && (
+        <AddToCollectionModal
+          mediaIds={[collectionForId]}
+          onClose={() => setCollectionForId(null)}
+          onAdded={() => {}}
         />
       )}
     </>
