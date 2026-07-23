@@ -3,6 +3,23 @@ import { requireApiUserWithOrg } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 
+// GET /api/events — list the caller's org events (id, name, date) for pickers.
+export async function GET() {
+  const auth = await requireApiUserWithOrg()
+  if (auth.response) return auth.response
+
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('events')
+    .select('id, name, date')
+    .eq('organisation_id', auth.organisationId)
+    .is('deleted_at', null)
+    .order('date', { ascending: false })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ events: data ?? [] })
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireApiUserWithOrg()
   if (auth.response) return auth.response

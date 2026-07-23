@@ -327,6 +327,26 @@ export default function GalleryWithSearch({
     setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
   }, [])
 
+  // ── ⋯ menu: reassign photographer / event (optimistic) ────────────────────
+  const handleReassignPhotographer = useCallback(async (id: string, photographerId: string, name: string) => {
+    setLoadedFiles((prev) => prev.map((f) => (f.id === id ? { ...f, photographer: name } : f)))
+    await fetch('/api/media/reassign', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [id], photographer_id: photographerId }),
+    })
+  }, [])
+
+  const handleReassignEvent = useCallback(async (id: string, targetEventId: string) => {
+    // Moved to another event → drop it from this event's grid.
+    setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
+    await fetch('/api/media/reassign', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: [id], event_id: targetEventId }),
+    })
+  }, [])
+
   // ── Download (zip with smart renaming) ───────────────────────────────────
   const downloadFiles = useCallback(async (filesToDownload: MediaFileWithTags[]) => {
     if (!filesToDownload.length || downloadingRef.current) return
@@ -1059,6 +1079,9 @@ export default function GalleryWithSearch({
             event={event}
             onTrash={role === 'admin' ? handleTrashPhoto : undefined}
             onQuickSelect={enterFolderSelectModeWith}
+            onReassignPhotographer={role !== 'photographer' ? handleReassignPhotographer : undefined}
+            onReassignEvent={role !== 'photographer' ? handleReassignEvent : undefined}
+            currentEventId={eventId}
           />
 
           {/* Infinite scroll sentinel */}

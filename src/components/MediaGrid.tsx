@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Check, Star, FolderInput, Folder as FolderIcon, Users, Tag as TagIcon, MoreHorizontal, RotateCw, Trash2, Shield, Download, FolderPlus } from 'lucide-react'
 import Pill, { ScorePill } from '@/components/ui/Pill'
-import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Calendar, Camera, MapPin, Building2, Aperture, Maximize2, Sparkles, RotateCcw, Loader2 } from 'lucide-react'
 import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
@@ -55,6 +55,12 @@ interface Props {
   onQuickSelect?: (id: string) => void
   /** IDs of images currently being AI-processed — shows a pulsing overlay */
   processingIds?: Set<string>
+  /** ⋯ menu: reassign a photo to a different photographer (optimistic). */
+  onReassignPhotographer?: (id: string, photographerId: string, name: string) => void
+  /** ⋯ menu: move a photo to a different event (optimistic — leaves this grid). */
+  onReassignEvent?: (id: string, eventId: string) => void
+  /** Current event id — excluded from the "Reassign event" picker. */
+  currentEventId?: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -593,19 +599,31 @@ interface ContextMenuState {
 
 const MENU_ROW = 'flex items-center gap-2.5 w-full text-left px-3 py-2 text-base transition-colors'
 
+interface PhotographerRow { id: string; name: string }
+interface EventRow { id: string; name: string; date: string }
+
 function ContextMenu({
   state,
   onClose,
   onAddToCollection,
   onDelete,
+  onReassignPhotographer,
+  onReassignEvent,
+  currentEventId,
 }: {
   state: ContextMenuState
   onClose: () => void
   onAddToCollection: (id: string) => void
   onDelete?: (id: string) => void
+  onReassignPhotographer?: (id: string, photographerId: string, name: string) => void
+  onReassignEvent?: (id: string, eventId: string) => void
+  currentEventId?: string
 }) {
   const menuRef = useRef<HTMLDivElement>(null)
-  const [view, setView] = useState<'root' | 'folder'>('root')
+  const [view, setView] = useState<'root' | 'folder' | 'photographer' | 'event'>('root')
+  const [photogs, setPhotogs]         = useState<PhotographerRow[] | null>(null)
+  const [photogQuery, setPhotogQuery] = useState('')
+  const [events, setEvents]           = useState<EventRow[] | null>(null)
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -620,10 +638,31 @@ function ContextMenu({
     }
   }, [onClose])
 
+  // Lazy-load the photographer list (re-fetches as the search box changes).
+  useEffect(() => {
+    if (view !== 'photographer') return
+    let active = true
+    const qs = photogQuery.trim() ? `?q=${encodeURIComponent(photogQuery.trim())}` : ''
+    fetch(`/api/photographers${qs}`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setPhotogs(d.photographers ?? []) })
+      .catch(() => { if (active) setPhotogs([]) })
+    return () => { active = false }
+  }, [view, photogQuery])
+
+  // Lazy-load the event list once.
+  useEffect(() => {
+    if (view !== 'event' || events !== null) return
+    fetch('/api/events')
+      .then((r) => r.json())
+      .then((d) => setEvents(d.events ?? []))
+      .catch(() => setEvents([]))
+  }, [view, events])
+
   const { file } = state
 
   // Keep the menu inside the viewport (open leftward/upward near edges).
-  const MENU_W = 210, MENU_H = 260
+  const MENU_W = 220, MENU_H = 320
   const left = Math.min(state.x, (typeof window !== 'undefined' ? window.innerWidth : 9999) - MENU_W - 8)
   const top  = Math.min(state.y, (typeof window !== 'undefined' ? window.innerHeight : 9999) - MENU_H - 8)
 
@@ -644,6 +683,12 @@ function ContextMenu({
 
   const folder = state.folderProps
 
+  const backRow = (
+    <button onClick={() => setView('root')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+      <ChevronLeft size={13} className="shrink-0" /> Back
+    </button>
+  )
+
   return createPortal(
     <div
       ref={menuRef}
@@ -652,9 +697,7 @@ function ContextMenu({
     >
       {view === 'folder' && folder ? (
         <>
-          <button onClick={() => setView('root')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
-            <ChevronLeft size={13} className="shrink-0" /> Back
-          </button>
+          {backRow}
           <div className="max-h-52 overflow-y-auto border-t border-[#222] mt-1 pt-1">
             {folder.folders.map((f) => (
               <button
@@ -677,6 +720,56 @@ function ContextMenu({
             )}
           </div>
         </>
+      ) : view === 'photographer' ? (
+        <>
+          {backRow}
+          <div className="px-2 pt-1 pb-2 border-t border-[#222] mt-1">
+            <input
+              autoFocus
+              value={photogQuery}
+              onChange={(e) => setPhotogQuery(e.target.value)}
+              placeholder="Search photographers…"
+              className="w-full bg-surface-1 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#444]"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {photogs === null ? (
+              <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-[#444]" /></div>
+            ) : photogs.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-[#555]">No photographers found.</p>
+            ) : photogs.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => { onReassignPhotographer?.(file.id, p.id, p.name); onClose() }}
+                className={clsx(MENU_ROW, file.photographer === p.name ? 'text-white bg-white/8' : 'text-[#888] hover:text-white hover:bg-white/4')}
+              >
+                <Camera size={13} className="shrink-0" />
+                <span className="truncate">{p.name}</span>
+                {file.photographer === p.name && <Check size={11} className="ml-auto shrink-0 text-emerald-400" />}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : view === 'event' ? (
+        <>
+          {backRow}
+          <div className="max-h-56 overflow-y-auto border-t border-[#222] mt-1 pt-1">
+            {events === null ? (
+              <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-[#444]" /></div>
+            ) : events.filter((e) => e.id !== currentEventId).length === 0 ? (
+              <p className="px-3 py-2 text-sm text-[#555]">No other events.</p>
+            ) : events.filter((e) => e.id !== currentEventId).map((e) => (
+              <button
+                key={e.id}
+                onClick={() => { onReassignEvent?.(file.id, e.id); onClose() }}
+                className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}
+              >
+                <Calendar size={13} className="shrink-0" />
+                <span className="truncate">{e.name}</span>
+              </button>
+            ))}
+          </div>
+        </>
       ) : (
         <>
           <button onClick={downloadOriginal} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
@@ -688,6 +781,18 @@ function ContextMenu({
           {folder && folder.folders.length > 0 && (
             <button onClick={() => setView('folder')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
               <FolderIcon size={13} className="shrink-0" /> Move to folder
+              <ChevronRight size={12} className="ml-auto shrink-0 text-[#555]" />
+            </button>
+          )}
+          {onReassignPhotographer && (
+            <button onClick={() => setView('photographer')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+              <Camera size={13} className="shrink-0" /> Reassign photographer
+              <ChevronRight size={12} className="ml-auto shrink-0 text-[#555]" />
+            </button>
+          )}
+          {onReassignEvent && (
+            <button onClick={() => setView('event')} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
+              <Calendar size={13} className="shrink-0" /> Reassign event
               <ChevronRight size={12} className="ml-auto shrink-0 text-[#555]" />
             </button>
           )}
@@ -921,7 +1026,7 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
 
 // ─── MediaGrid ───────────────────────────────────────────────────────────────
 
-export default function MediaGrid({ files, selection, compact, columns, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds }: Props) {
+export default function MediaGrid({ files, selection, compact, columns, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds, onReassignPhotographer, onReassignEvent, currentEventId }: Props) {
   const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
@@ -996,6 +1101,9 @@ export default function MediaGrid({ files, selection, compact, columns, stars, f
           onClose={() => setContextMenu(null)}
           onAddToCollection={(id) => setCollectionForId(id)}
           onDelete={onTrash}
+          onReassignPhotographer={onReassignPhotographer}
+          onReassignEvent={onReassignEvent}
+          currentEventId={currentEventId}
         />
       )}
 
