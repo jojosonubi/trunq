@@ -95,23 +95,27 @@ export default function SearchPageClient({ initialQuery }: Props) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [collectModalOpen, setCollectModalOpen] = useState(false)
+  const [mode, setMode] = useState<'keyword' | 'semantic'>('keyword')
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
 
   // ── Fetch results ────────────────────────────────────────────────────────────
 
-  const fetchResults = useCallback(async (q: string, f: Filters) => {
-    if (q.trim().length < 2 && Object.values(f).every((v) => !v)) {
-      setPhotos([])
-      setTotal(null)
-      setLoading(false)
-      return
+  const fetchResults = useCallback(async (q: string, f: Filters, m: 'keyword' | 'semantic') => {
+    // Semantic mode is pure vector similarity on the query text — the structured
+    // filter sidebar doesn't apply, so it only needs q (≥2 chars).
+    if (m === 'semantic') {
+      if (q.trim().length < 2) { setPhotos([]); setTotal(null); setLoading(false); return }
+    } else if (q.trim().length < 2 && Object.values(f).every((v) => !v)) {
+      setPhotos([]); setTotal(null); setLoading(false); return
     }
     setLoading(true)
     try {
-      const params = buildParams(q.trim(), f)
-      const res  = await fetch(`/api/search/full?${params}`)
+      const url = m === 'semantic'
+        ? `/api/search/semantic?q=${encodeURIComponent(q.trim())}`
+        : `/api/search/full?${buildParams(q.trim(), f)}`
+      const res  = await fetch(url)
       const data = await res.json() as { photos: FullPhotoResult[]; total: number }
       setPhotos(data.photos ?? [])
       setTotal(data.total ?? 0)
@@ -126,9 +130,9 @@ export default function SearchPageClient({ initialQuery }: Props) {
   // Debounce every change
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => fetchResults(query, filters), 300)
+    debounceRef.current = setTimeout(() => fetchResults(query, filters, mode), 300)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [query, filters, fetchResults])
+  }, [query, filters, mode, fetchResults])
 
   // ── Filter helpers ────────────────────────────────────────────────────────────
 
@@ -240,7 +244,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleSearchKey}
-              placeholder="Search photos, projects, tags…"
+              placeholder={mode === 'semantic' ? 'Describe a vibe — "euphoric golden hour crowd"…' : 'Search photos, projects, tags…'}
               autoComplete="off"
               className="w-full bg-surface-0 border border-[#1f1f1f] rounded-lg pl-9 pr-8 py-2.5 text-white text-base placeholder:text-[#2a2a2a] focus:outline-none focus:border-[#333] transition-colors"
             />
@@ -255,22 +259,41 @@ export default function SearchPageClient({ initialQuery }: Props) {
             )}
           </div>
 
-          {/* Filters toggle */}
-          <button
-            onClick={() => setFiltersOpen((v) => !v)}
-            className={clsx(
-              'shrink-0 inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
-              hasActiveFilters || filtersOpen
-                ? 'border-white/30 text-white bg-white/8'
-                : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
-            )}
-          >
-            <SlidersHorizontal size={13} />
-            Filters
-            {hasActiveFilters && (
-              <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-            )}
-          </button>
+          {/* Keyword / Semantic mode toggle */}
+          <div className="shrink-0 flex items-center rounded-lg border border-[#1f1f1f] overflow-hidden text-sm">
+            {(['keyword', 'semantic'] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className={clsx(
+                  'px-3 py-2 transition-colors capitalize',
+                  mode === m ? 'bg-white/10 text-white' : 'text-[#555] hover:text-white'
+                )}
+                title={m === 'semantic' ? 'Search by meaning & visual similarity' : 'Match tags, descriptions, filters'}
+              >
+                {m === 'semantic' ? 'Vibe' : 'Keyword'}
+              </button>
+            ))}
+          </div>
+
+          {/* Filters toggle — keyword mode only (semantic ignores structured filters) */}
+          {mode === 'keyword' && (
+            <button
+              onClick={() => setFiltersOpen((v) => !v)}
+              className={clsx(
+                'shrink-0 inline-flex items-center gap-1.5 px-3 py-2 border text-sm rounded-lg transition-all',
+                hasActiveFilters || filtersOpen
+                  ? 'border-white/30 text-white bg-white/8'
+                  : 'border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333]'
+              )}
+            >
+              <SlidersHorizontal size={13} />
+              Filters
+              {hasActiveFilters && (
+                <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+              )}
+            </button>
+          )}
         </div>
       </header>
 
@@ -311,7 +334,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
         <div className="flex gap-8 items-start">
 
           {/* ── Filter sidebar ──────────────────────────────────────────────── */}
-          {filtersOpen && (
+          {mode === 'keyword' && filtersOpen && (
             <aside className="w-56 shrink-0 space-y-5">
 
               <div>
@@ -418,9 +441,14 @@ export default function SearchPageClient({ initialQuery }: Props) {
                   {query.trim() && (
                     <> for <span className="text-white">"{query.trim()}"</span></>
                   )}
+                  {mode === 'semantic' && total > 0 && (
+                    <span className="text-[#444]"> · ranked by similarity</span>
+                  )}
                 </p>
               ) : (
-                <p className="text-[#333] text-base">Type a search query to get started</p>
+                <p className="text-[#333] text-base">
+                  {mode === 'semantic' ? 'Describe what you’re looking for' : 'Type a search query to get started'}
+                </p>
               )}
             </div>
 
