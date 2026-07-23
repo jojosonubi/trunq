@@ -2,11 +2,18 @@
   "crons": [
     { "path": "/api/tag/batch-status", "schedule": "*/5 * * * *" },
     { "path": "/api/rescore/process",  "schedule": "* * * * *"   },
-    { "path": "/api/foto-lab/index",   "schedule": "* * * * *"   }
+    { "path": "/api/foto-lab/index",   "schedule": "* * * * *"   },
+    { "path": "/api/embed/process",    "schedule": "* * * * *"   }
   ],
   "functions": {
     "src/app/api/foto-lab/index/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/embed/process/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/public/semantic-search/route.ts": {
+      "maxDuration": 60
     }
   }
 }

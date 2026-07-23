@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare, LayoutGrid, Loader2 } from 'lucide-react'
+import { Search, X, ImageIcon, Share2, User, Star, Download, FolderInput, Users, Tag as TagIcon, SlidersHorizontal, CheckSquare, LayoutGrid, Loader2, FolderPlus } from 'lucide-react'
 import type { UserRole } from '@/lib/auth'
 import clsx from 'clsx'
 import MediaGrid from '@/components/MediaGrid'
 import BulkRetag from '@/components/BulkRetag'
 import SocialPanel from '@/components/SocialPanel'
+import AddToCollectionModal from '@/components/AddToCollectionModal'
 import { buildZip } from '@/lib/zip'
 import type { MediaFileWithTags, Event, Folder, Performer, Brand } from '@/types'
 
@@ -130,6 +131,11 @@ export default function GalleryWithSearch({
   const [folderSelectMode, setFolderSelectMode]   = useState(false)
   const [folderSelectedIds, setFolderSelectedIds] = useState<Set<string>>(new Set())
   const [assigningFolder, setAssigningFolder]     = useState(false)
+
+  // ── Collection-select state ───────────────────────────────────────────────
+  const [collectionSelectMode, setCollectionSelectMode]   = useState(false)
+  const [collectionSelectedIds, setCollectionSelectedIds] = useState<Set<string>>(new Set())
+  const [collectionModalOpen, setCollectionModalOpen]     = useState(false)
   const cancelDownloadRef = useRef(false)
   const [rotations, setRotations] = useState<Record<string, number>>({})
 
@@ -415,6 +421,26 @@ export default function GalleryWithSearch({
     exitFolderSelectMode()
   }
 
+  // ── Collection-select actions ─────────────────────────────────────────────
+  function enterCollectionSelectMode() {
+    setCollectionSelectedIds(new Set())
+    setCollectionSelectMode(true)
+  }
+
+  function exitCollectionSelectMode() {
+    setCollectionSelectMode(false)
+    setCollectionSelectedIds(new Set())
+  }
+
+  const toggleCollectionSelection = useCallback((id: string) => {
+    setCollectionSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
   // ── Selection actions ─────────────────────────────────────────────────────
   function enterSelectionMode() {
     setSelectedIds(new Set(selectionFiles.slice(0, 5).map((f) => f.id)))
@@ -466,6 +492,70 @@ export default function GalleryWithSearch({
     isStarredFn: (id: string) => starredIds.has(id),
     onToggle: toggleStar,
   }), [starredIds, toggleStar])
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // COLLECTION SELECT MODE LAYOUT
+  // ════════════════════════════════════════════════════════════════════════════
+  if (collectionSelectMode) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-white text-base font-medium">Add to collection</p>
+            <p className="text-[#555] text-sm mt-0.5">
+              {collectionSelectedIds.size === 0
+                ? 'Click photos to select them'
+                : `${collectionSelectedIds.size} selected`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCollectionSelectedIds(new Set(displayFiles.map((f) => f.id)))}
+              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
+            >
+              <CheckSquare size={12} />
+              Select all
+            </button>
+            {collectionSelectedIds.size > 0 && (
+              <button
+                onClick={() => setCollectionModalOpen(true)}
+                className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-all"
+              >
+                <FolderPlus size={12} />
+                Add to collection
+              </button>
+            )}
+            <button
+              onClick={exitCollectionSelectMode}
+              className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
+            >
+              <X size={12} />
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <MediaGrid
+          files={displayFiles}
+          compact
+          selection={{
+            selectedIds: collectionSelectedIds,
+            recommendedIds: new Set(),
+            onToggle: toggleCollectionSelection,
+          }}
+          stars={starsProps}
+        />
+
+        {collectionModalOpen && (
+          <AddToCollectionModal
+            mediaIds={[...collectionSelectedIds]}
+            onClose={() => { setCollectionModalOpen(false); exitCollectionSelectMode() }}
+            onAdded={() => setCollectionSelectedIds(new Set())}
+          />
+        )}
+      </div>
+    )
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // FOLDER SELECT MODE LAYOUT
@@ -738,6 +828,16 @@ export default function GalleryWithSearch({
           >
             <FolderInput size={14} />
             Move
+          </button>
+        )}
+
+        {displayFiles.length > 0 && (
+          <button
+            onClick={enterCollectionSelectMode}
+            className="inline-flex items-center gap-2 px-3 py-2 border border-[#1f1f1f] text-[#555] text-base hover:text-white hover:border-[#333] rounded-lg transition-all shrink-0"
+          >
+            <FolderPlus size={14} />
+            Collect
           </button>
         )}
 
