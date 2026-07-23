@@ -2,8 +2,7 @@
   "crons": [
     { "path": "/api/tag/batch-status", "schedule": "*/5 * * * *" },
     { "path": "/api/rescore/process",  "schedule": "* * * * *"   },
-    { "path": "/api/foto-lab/index",   "schedule": "* * * * *"   },
-    { "path": "/api/embed/process",    "schedule": "* * * * *"   }
+    { "path": "/api/foto-lab/index",   "schedule": "* * * * *"   }
   ],
   "functions": {
     "src/app/api/foto-lab/index/route.ts": {
