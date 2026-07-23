@@ -111,12 +111,12 @@ function segBtnStyle(active: boolean, position: 'first' | 'mid' | 'last'): React
     position === 'last'  ? '0 2px 2px 0' : '0'
 
   return {
-    fontSize:      9,
+    fontSize:      11,
     letterSpacing: '0.06em',
     fontWeight:    active ? 600 : 400,
-    padding:       '3px 8px',
+    padding:       '4px 11px',
     background:    active ? 'var(--accent-bg)' : 'transparent',
-    color:         active ? 'var(--accent)'    : 'var(--text-muted)',
+    color:         active ? 'var(--accent)'    : 'var(--text-secondary)',
     border:        active ? '0.5px solid var(--accent-border)' : 'var(--border-subtle)',
     borderRadius:  radius,
     cursor:        'pointer',
@@ -234,10 +234,10 @@ export default function ProjectsPageClient({
           borderBottom:   'var(--border-rule)',
         }}>
           <p style={{
-            fontSize:      9,
+            fontSize:      11,
             textTransform: 'uppercase',
             letterSpacing: '0.14em',
-            color:         'var(--text-muted)',
+            color:         'var(--text-secondary)',
             margin:        0,
           }}>
             Archive
@@ -245,7 +245,7 @@ export default function ProjectsPageClient({
 
           {/* Sort controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 9, color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
               Sort
             </span>
             <div style={{ display: 'flex' }}>

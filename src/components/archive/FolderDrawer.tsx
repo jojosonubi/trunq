@@ -228,7 +228,7 @@ function ProjectCard({ project }: { project: Project }) {
       </div>
 
       {/* Metadata */}
-      <div className="project-card-meta" style={{ padding: '8px 10px', borderTop: '0.5px solid var(--surface-3)' }}>
+      <div className="project-card-meta" style={{ padding: '10px 12px', borderTop: '0.5px solid var(--surface-3)' }}>
         {renaming ? (
           <input
             autoFocus
@@ -258,8 +258,8 @@ function ProjectCard({ project }: { project: Project }) {
           />
         ) : (
           <p className="project-card-name" style={{
-            fontSize:      11,
-            fontWeight:    500,
+            fontSize:      13,
+            fontWeight:    600,
             color:         'var(--text-primary)',
             letterSpacing: '-0.01em',
             margin:        0,
@@ -271,9 +271,9 @@ function ProjectCard({ project }: { project: Project }) {
           </p>
         )}
         <p className="project-card-date" style={{
-          fontSize:     9,
+          fontSize:     11,
           color:        'var(--text-muted)',
-          marginTop:    3,
+          marginTop:    4,
           marginBottom: 0,
           overflow:     'hidden',
           whiteSpace:   'nowrap',
@@ -401,12 +401,12 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
               onMouseEnter={() => setHoveredTab(folder.id)}
               onMouseLeave={() => setHoveredTab(null)}
               style={{
-                height:        isActive ? 28 : 24,
-                padding:       '0 14px',
+                height:        isActive ? 32 : 28,
+                padding:       '0 16px',
                 borderRadius:  '3px 3px 0 0',
                 border:        isActive ? '0.5px solid var(--surface-3)' : '0.5px solid var(--surface-3)',
                 borderBottom:  'none',
-                fontSize:      10,
+                fontSize:      12,
                 fontWeight:    500,
                 letterSpacing: '0.06em',
                 fontFamily:    'inherit',
@@ -430,9 +430,9 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
             >
               {folder.label}
               <span style={{
-                fontSize:    8,
-                color:       'var(--text-dim)',
-                marginLeft:  6,
+                fontSize:    10,
+                color:       isActive ? 'var(--text-secondary)' : 'var(--text-muted)',
+                marginLeft:  7,
                 fontWeight:  400,
                 letterSpacing: 0,
               }}>
@@ -462,10 +462,10 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
             marginBottom:   12,
           }}>
             <p style={{
-              fontSize:      8,
+              fontSize:      10,
               textTransform: 'uppercase',
               letterSpacing: '0.14em',
-              color:         'var(--text-muted)',
+              color:         'var(--text-secondary)',
               margin:        0,
               fontFamily:    'inherit',
             }}>
@@ -478,11 +478,11 @@ export default function FolderDrawer({ folders, activeFolder, onFolderChange, on
                 style={{
                   background:   'var(--accent)',
                   color:        '#fff',
-                  fontSize:     10,
-                  padding:      '5px 12px',
+                  fontSize:     12,
+                  padding:      '6px 14px',
                   borderRadius: 2,
                   border:       'none',
-                  fontWeight:   500,
+                  fontWeight:   600,
                   cursor:       'pointer',
                   fontFamily:   'inherit',
                   letterSpacing: '0.02em',
