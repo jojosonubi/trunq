@@ -406,11 +406,6 @@ export default function GalleryWithSearch({
     setFolderSelectMode(true)
   }
 
-  function enterFolderSelectModeWith(id: string) {
-    setFolderSelectedIds(new Set([id]))
-    setFolderSelectMode(true)
-  }
-
   function selectAllVisible() {
     setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))
     setFolderSelectMode(true)
@@ -450,6 +445,13 @@ export default function GalleryWithSearch({
   function exitCollect() {
     setCollectMode(false)
     setCollectIds(new Set())
+  }
+
+  // Clicking a card's hover square starts inline collect selection with that
+  // photo — NOT the folder-move mode (which resized the grid).
+  function startCollectWith(id: string) {
+    setCollectMode(true)
+    setCollectIds(new Set([id]))
   }
 
   const toggleCollect = useCallback((id: string) => {
@@ -1022,7 +1024,7 @@ export default function GalleryWithSearch({
             initialOpenPhotoId={initialOpenPhotoId}
             event={event}
             onTrash={role === 'admin' ? handleTrashPhoto : undefined}
-            onQuickSelect={enterFolderSelectModeWith}
+            onQuickSelect={startCollectWith}
             onReassignPhotographer={role !== 'photographer' ? handleReassignPhotographer : undefined}
             onReassignEvent={role !== 'photographer' ? handleReassignEvent : undefined}
             currentEventId={eventId}
