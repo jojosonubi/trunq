@@ -624,6 +624,7 @@ function ContextMenu({
   const [photogs, setPhotogs]         = useState<PhotographerRow[] | null>(null)
   const [photogQuery, setPhotogQuery] = useState('')
   const [events, setEvents]           = useState<EventRow[] | null>(null)
+  const [eventQuery, setEventQuery]   = useState('')
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -751,25 +752,41 @@ function ContextMenu({
           </div>
         </>
       ) : view === 'event' ? (
-        <>
-          {backRow}
-          <div className="max-h-56 overflow-y-auto border-t border-[#222] mt-1 pt-1">
-            {events === null ? (
-              <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-[#444]" /></div>
-            ) : events.filter((e) => e.id !== currentEventId).length === 0 ? (
-              <p className="px-3 py-2 text-sm text-[#555]">No other events.</p>
-            ) : events.filter((e) => e.id !== currentEventId).map((e) => (
-              <button
-                key={e.id}
-                onClick={() => { onReassignEvent?.(file.id, e.id); onClose() }}
-                className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}
-              >
-                <Calendar size={13} className="shrink-0" />
-                <span className="truncate">{e.name}</span>
-              </button>
-            ))}
-          </div>
-        </>
+        (() => {
+          const list = (events ?? []).filter(
+            (e) => e.id !== currentEventId && e.name.toLowerCase().includes(eventQuery.trim().toLowerCase())
+          )
+          return (
+            <>
+              {backRow}
+              <div className="px-2 pt-1 pb-2 border-t border-[#222] mt-1">
+                <input
+                  autoFocus
+                  value={eventQuery}
+                  onChange={(e) => setEventQuery(e.target.value)}
+                  placeholder="Search events…"
+                  className="w-full bg-surface-1 border border-[#2a2a2a] rounded px-2.5 py-1.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#444]"
+                />
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {events === null ? (
+                  <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin text-[#444]" /></div>
+                ) : list.length === 0 ? (
+                  <p className="px-3 py-2 text-sm text-[#555]">No matching events.</p>
+                ) : list.map((e) => (
+                  <button
+                    key={e.id}
+                    onClick={() => { onReassignEvent?.(file.id, e.id); onClose() }}
+                    className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}
+                  >
+                    <Calendar size={13} className="shrink-0" />
+                    <span className="truncate">{e.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )
+        })()
       ) : (
         <>
           <button onClick={downloadOriginal} className={clsx(MENU_ROW, 'text-[#888] hover:text-white hover:bg-white/4')}>
