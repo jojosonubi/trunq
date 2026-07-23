@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Search, X, Loader2, ImageIcon, SlidersHorizontal, ArrowLeft,
   ChevronLeft, ChevronRight, ExternalLink, Tag, Calendar, Camera, Palette,
-  Check, FolderPlus,
+  Check, FolderPlus, Sparkles,
 } from 'lucide-react'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
 import clsx from 'clsx'
@@ -623,6 +623,18 @@ function SearchLightbox({
   const hasNext = index < photos.length - 1
   const imgSrc = photo.full_url ?? photo.signed_url ?? photo.public_url
 
+  // Visually-similar recommendations (by the photo's stored embedding).
+  const [similar, setSimilar] = useState<FullPhotoResult[] | null>(null)
+  useEffect(() => {
+    setSimilar(null)
+    let active = true
+    fetch(`/api/search/similar?id=${photo.id}&limit=12`)
+      .then((r) => r.json())
+      .then((d) => { if (active) setSimilar(d.photos ?? []) })
+      .catch(() => { if (active) setSimilar([]) })
+    return () => { active = false }
+  }, [photo.id])
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/90 flex"
@@ -755,6 +767,38 @@ function SearchLightbox({
             <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Type</p>
             <p className="text-[#555] text-sm uppercase tracking-wide">{photo.file_type}</p>
           </div>
+
+          {/* Visually similar */}
+          {(similar === null || similar.length > 0) && (
+            <div>
+              <p className="text-[#444] text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Sparkles size={11} /> Visually similar
+              </p>
+              {similar === null ? (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="aspect-square rounded bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {similar.map((s) => (
+                    <Link
+                      key={s.id}
+                      href={`/projects/${s.event_id}?photo=${s.id}`}
+                      onClick={onClose}
+                      className="relative aspect-square rounded overflow-hidden border border-[#1a1a1a] hover:border-white/40 transition-colors group"
+                      title={s.event_name}
+                    >
+                      {s.signed_url && (
+                        <Image src={s.signed_url} alt={s.description ?? ''} fill sizes="100px" className="object-cover group-hover:opacity-80 transition-opacity" unoptimized />
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer — open in event */}
