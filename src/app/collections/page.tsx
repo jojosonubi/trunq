@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { requireAuth } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { signStoragePathsSized } from '@/lib/supabase/storage'
 import Navbar from '@/components/layout/Navbar'
 import Sidebar from '@/components/layout/Sidebar'
-import { FolderHeart, ImageIcon } from 'lucide-react'
+import { FolderHeart } from 'lucide-react'
+import CollectionCard from './CollectionCard'
 
 export const revalidate = 0
 
@@ -89,36 +89,16 @@ export default async function CollectionsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {(collections ?? []).map((c) => (
-                <Link
+                <CollectionCard
                   key={c.id}
-                  href={`/collections/${c.id}`}
-                  className="group rounded overflow-hidden transition-all"
-                  style={{ background: 'var(--surface-0)', border: 'var(--border-rule)' }}
-                >
-                  <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    {coverMap[c.id] ? (
-                      <Image
-                        src={coverMap[c.id]}
-                        alt={c.name}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--surface-2)' }}>
-                        <ImageIcon size={28} className="text-white/15" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-base font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                      {c.name}
-                    </h3>
-                    <p className="text-sm mt-1 tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                      {countMap[c.id] ?? 0} photo{(countMap[c.id] ?? 0) !== 1 ? 's' : ''} · {fmtDate(c.created_at)}
-                    </p>
-                  </div>
-                </Link>
+                  collection={{
+                    id:        c.id,
+                    name:      c.name,
+                    coverUrl:  coverMap[c.id] ?? null,
+                    count:     countMap[c.id] ?? 0,
+                    dateLabel: fmtDate(c.created_at),
+                  }}
+                />
               ))}
             </div>
           )}
