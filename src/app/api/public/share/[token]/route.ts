@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { signStoragePathsSized } from '@/lib/supabase/storage'
+import { signStoragePathsSized, signStoragePathSized } from '@/lib/supabase/storage'
+
+// Public no-auth share resolution. Paginated: signs only one page of card-size
+// URLs per request (a whole-archive burst of ~5k transform-signs throttles and
+// silently drops most photos — and takes 6s+). Lightbox full-size URLs are
+// signed one at a time via ?full=<photoId>.
+const PAGE_SIZE = 60
+const URL_TTL   = 3600 // 1h — share page keeps working (re-signs per view); copied image URLs go stale fast
 
 interface SharePhoto {
   id: string
-  event_id: string
   event_name: string
   event_date: string
   card_url: string
-  full_url: string
   description: string | null
 }
 
@@ -17,8 +22,13 @@ function fmtDate(d?: string | null): string {
   return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// GET /api/public/share/[token]  — no-auth: resolve a public share to its gallery.
-export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
+type MediaRow = {
+  id: string; event_id: string; storage_path: string; display_path: string | null
+  description: string | null; events: { name?: string; date?: string } | null
+}
+const MEDIA_SELECT = 'id, event_id, storage_path, display_path, description, events(name, date)'
+
+export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
   const supabase = createServiceClient()
 
   const { data: share } = await supabase
@@ -30,33 +40,78 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 
   if (!share) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // ── Resolve title + the media rows for this target ──────────────────────────
+  // ── Lightbox mode: sign ONE display-size URL on demand ─────────────────────
+  const fullId = req.nextUrl.searchParams.get('full')
+  if (fullId) {
+    let row: { storage_path: string; display_path: string | null } | null = null
+    if (share.kind === 'collection') {
+      const { data } = await supabase
+        .from('collection_items')
+        .select('media_files(storage_path, display_path)')
+        .eq('collection_id', share.target_id)
+        .eq('media_file_id', fullId)
+        .maybeSingle()
+      row = (data?.media_files as unknown as typeof row) ?? null
+    } else {
+      const { data } = await supabase
+        .from('media_files')
+        .select('storage_path, display_path')
+        .eq('id', fullId)
+        .eq('event_id', share.target_id)
+        .is('deleted_at', null)
+        .maybeSingle()
+      row = data ?? null
+    }
+    if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const url = await signStoragePathSized(row, 'full', { aspect: 'preserve' }, URL_TTL)
+    if (!url) return NextResponse.json({ error: 'Failed to sign' }, { status: 500 })
+    return NextResponse.json({ full_url: url })
+  }
+
+  // ── Gallery page mode ───────────────────────────────────────────────────────
+  const page = Math.max(0, Number(req.nextUrl.searchParams.get('page')) || 0)
+  const from = page * PAGE_SIZE
+  const to   = from + PAGE_SIZE - 1
+
   let title = ''
   let subtitle = ''
-  type Row = {
-    id: string; event_id: string; storage_path: string; display_path: string | null
-    description: string | null; events: { name?: string; date?: string } | null
-  }
-  let rows: Row[] = []
-
-  const MEDIA_SELECT = 'id, event_id, storage_path, display_path, description, events(name, date)'
+  let count = 0
+  let rows: MediaRow[] = []
 
   if (share.kind === 'collection') {
     const { data: col } = await supabase.from('collections').select('name').eq('id', share.target_id).maybeSingle()
     if (!col) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     title = col.name
 
+    const { count: total } = await supabase
+      .from('collection_items')
+      .select('media_file_id', { count: 'exact', head: true })
+      .eq('collection_id', share.target_id)
+    count = total ?? 0
+    subtitle = `${count} photo${count !== 1 ? 's' : ''}`
+
     const { data: items } = await supabase
       .from('collection_items')
       .select(`added_at, media_files(${MEDIA_SELECT})`)
       .eq('collection_id', share.target_id)
       .order('added_at', { ascending: true })
-    rows = ((items ?? []) as unknown as { media_files: Row | null }[]).map((i) => i.media_files).filter((r): r is Row => !!r)
+      .range(from, to)
+    rows = ((items ?? []) as unknown as { media_files: MediaRow | null }[])
+      .map((i) => i.media_files)
+      .filter((r): r is MediaRow => !!r)
   } else {
     const { data: ev } = await supabase.from('events').select('name, date, venue').eq('id', share.target_id).is('deleted_at', null).maybeSingle()
     if (!ev) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     title = ev.name
     subtitle = [fmtDate(ev.date), ev.venue].filter(Boolean).join(' · ')
+
+    const { count: total } = await supabase
+      .from('media_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', share.target_id)
+      .is('deleted_at', null)
+      .eq('file_type', 'image')
+    count = total ?? 0
 
     const { data: media } = await supabase
       .from('media_files')
@@ -65,28 +120,30 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       .is('deleted_at', null)
       .eq('file_type', 'image')
       .order('created_at', { ascending: true })
-      .limit(2000)
-    rows = (media ?? []) as unknown as Row[]
+      .order('id', { ascending: true })
+      .range(from, to)
+    rows = (media ?? []) as unknown as MediaRow[]
   }
 
-  if (share.kind === 'collection') subtitle = `${rows.length} photo${rows.length !== 1 ? 's' : ''}`
-
-  // ── Sign card + full URLs ───────────────────────────────────────────────────
+  // Card size only — display derivatives, never originals.
   const refs = rows.map((r) => ({ storage_path: r.storage_path, display_path: r.display_path }))
-  const [cardMap, fullMap] = await Promise.all([
-    signStoragePathsSized(refs, 'card', { aspect: 'preserve' }),
-    signStoragePathsSized(refs, 'full', { aspect: 'preserve' }),
-  ])
+  const cardMap = await signStoragePathsSized(refs, 'card', { aspect: 'preserve' }, URL_TTL)
 
   const photos: SharePhoto[] = rows.map((r) => ({
     id:          r.id,
-    event_id:    r.event_id,
     event_name:  r.events?.name ?? '',
     event_date:  fmtDate(r.events?.date),
     card_url:    cardMap.get(r.storage_path) ?? '',
-    full_url:    fullMap.get(r.storage_path) ?? '',
     description: r.description,
   })).filter((p) => p.card_url)
 
-  return NextResponse.json({ kind: share.kind, title, subtitle, count: photos.length, photos })
+  return NextResponse.json({
+    kind: share.kind,
+    title,
+    subtitle,
+    count,
+    page,
+    hasMore: to + 1 < count,
+    photos,
+  })
 }
