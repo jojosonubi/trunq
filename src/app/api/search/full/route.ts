@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { signStoragePathsSized } from '@/lib/supabase/storage'
 import { requireApiUser } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
-export interface FullPhotoResult {
-  id: string
-  event_id: string
+import type { MediaFile, Tag } from '@/types'
+
+/**
+ * Full media row + event/search context — rich enough for the shared
+ * detailed Lightbox (tags, EXIF, usage) with no follow-up fetches.
+ */
+export interface FullPhotoResult extends MediaFile {
+  tags: Tag[]
   event_name: string
   event_date: string
-  storage_path: string
-  public_url: string
-  signed_url?: string
-  full_url?:   string
-  photographer: string | null
-  description: string | null
   matched_tag: string | null
-  dominant_colours: string[]
-  file_type: string
+  full_url?: string
 }
 
 export async function GET(req: NextRequest) {
@@ -81,7 +79,7 @@ export async function GET(req: NextRequest) {
 
   let mfQ = supabase
     .from('media_files')
-    .select('id, event_id, storage_path, display_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
+    .select('*, tags(*), events(id, name, date)')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(200)
@@ -123,7 +121,7 @@ export async function GET(req: NextRequest) {
     if (missingIds.length > 0) {
       let extraQ = supabase
         .from('media_files')
-        .select('id, event_id, storage_path, display_path, public_url, photographer, description, dominant_colours, file_type, events(id, name, date)')
+        .select('*, tags(*), events(id, name, date)')
         .is('deleted_at', null)
         .in('id', missingIds.slice(0, 200))
 
@@ -144,17 +142,13 @@ export async function GET(req: NextRequest) {
   function addRow(row: any, matchedTag: string | null) {
     if (photoMap.has(row.id)) return
     const ev = row.events as { id?: string; name?: string; date?: string } | null
+    const { events: _ev, ...media } = row
     photoMap.set(row.id, {
-      id:               row.id,
-      event_id:         row.event_id,
+      ...media,
+      tags:             row.tags ?? [],
+      dominant_colours: row.dominant_colours ?? [],
       event_name:       ev?.name ?? '',
       event_date:       ev?.date ?? '',
-      storage_path:     row.storage_path,
-      public_url:       row.public_url,
-      photographer:     row.photographer,
-      description:      row.description,
-      dominant_colours: row.dominant_colours ?? [],
-      file_type:        row.file_type,
       matched_tag:      matchedTag,
     })
     displayPathMap.set(row.id, row.display_path ?? null)

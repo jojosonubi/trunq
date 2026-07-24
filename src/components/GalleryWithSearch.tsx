@@ -9,6 +9,7 @@ import MediaGrid from '@/components/MediaGrid'
 import BulkRetag from '@/components/BulkRetag'
 import SocialPanel from '@/components/SocialPanel'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
+import SelectionBar from '@/components/SelectionBar'
 import { buildZip } from '@/lib/zip'
 import type { MediaFileWithTags, Event, Folder, Performer, Brand } from '@/types'
 import { COLOUR_SWATCHES } from '@/lib/colours'
@@ -413,6 +414,8 @@ export default function GalleryWithSearch({
 
   // ── Folder-select actions ─────────────────────────────────────────────────
   function enterFolderSelectMode() {
+    setCollectMode(false)
+    setCollectIds(new Set())
     setFolderSelectedIds(new Set())
     setFolderSelectMode(true)
   }
@@ -449,6 +452,7 @@ export default function GalleryWithSearch({
 
   // ── Collection selection actions (inline — no layout change) ──────────────
   function enterCollect() {
+    exitFolderSelectMode()
     setCollectIds(new Set())
     setCollectMode(true)
   }
@@ -525,76 +529,6 @@ export default function GalleryWithSearch({
     isStarredFn: (id: string) => starredIds.has(id),
     onToggle: toggleStar,
   }), [starredIds, toggleStar])
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // FOLDER SELECT MODE LAYOUT
-  // ════════════════════════════════════════════════════════════════════════════
-  if (folderSelectMode && folders && onAssignFolder) {
-    return (
-      <div>
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="text-white text-base font-medium">Move to folder</p>
-            <p className="text-[#555] text-sm mt-0.5">
-              {folderSelectedIds.size === 0
-                ? 'Click photos to select them'
-                : `${folderSelectedIds.size} selected`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))}
-              className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all"
-            >
-              <CheckSquare size={12} />
-              Select all
-            </button>
-            {folderSelectedIds.size > 0 && (
-              <>
-                {folders.map((folder) => (
-                  <button
-                    key={folder.id}
-                    onClick={() => doAssignFolder(folder.id)}
-                    disabled={assigningFolder}
-                    className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
-                  >
-                    <FolderInput size={12} />
-                    {folder.name}
-                  </button>
-                ))}
-                <button
-                  onClick={() => doAssignFolder(null)}
-                  disabled={assigningFolder}
-                  className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 border border-[#1f1f1f] text-[#555] hover:text-white hover:border-[#333] rounded-lg transition-all disabled:opacity-40"
-                >
-                  <X size={12} />
-                  Remove from folder
-                </button>
-              </>
-            )}
-            <button
-              onClick={exitFolderSelectMode}
-              className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-white transition-colors px-3 py-1.5 border border-[#1f1f1f] hover:border-[#333] rounded-lg"
-            >
-              <X size={12} />
-              Cancel
-            </button>
-          </div>
-        </div>
-
-        <MediaGrid
-          files={displayFiles}
-          compact
-          selection={{
-            selectedIds: folderSelectedIds,
-            recommendedIds: new Set(),
-            onToggle: toggleFolderSelection,
-          }}
-          stars={starsProps}
-        />
-      </div>
-    )
-  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // SELECTION MODE LAYOUT
@@ -1024,6 +958,8 @@ export default function GalleryWithSearch({
             stars={starsProps}
             selection={collectMode
               ? { selectedIds: collectIds, recommendedIds: new Set(), onToggle: toggleCollect }
+              : folderSelectMode
+              ? { selectedIds: folderSelectedIds, recommendedIds: new Set(), onToggle: toggleFolderSelection }
               : undefined}
             folderProps={folders && onAssignFolder
               ? (file) => ({
@@ -1065,28 +1001,16 @@ export default function GalleryWithSearch({
         </div>
       )}
 
-      {/* ── Collection selection: floating footer bar (mirrors global search) ── */}
+      {/* ── Inline selection footer bars (the app-standard selection UI) ── */}
       {collectMode && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#111] border border-[#2a2a2a] rounded-full pl-5 pr-2 py-2 shadow-2xl">
-          <span className="text-white text-base font-medium tabular-nums whitespace-nowrap">
-            {collectIds.size === 0 ? 'Click photos to select' : `${collectIds.size} selected`}
-          </span>
-          {displayFiles.some((f) => !collectIds.has(f.id)) && (
-            <button
-              onClick={() => setCollectIds(new Set(displayFiles.map((f) => f.id)))}
-              className="text-sm text-[#888] hover:text-white transition-colors whitespace-nowrap"
-            >
-              Select all {displayFiles.length}
-            </button>
-          )}
-          {collectIds.size > 0 && (
-            <button onClick={() => setCollectIds(new Set())} className="text-sm text-[#888] hover:text-white transition-colors">
-              Clear
-            </button>
-          )}
-          <button onClick={exitCollect} className="text-sm text-[#888] hover:text-white transition-colors">
-            Cancel
-          </button>
+        <SelectionBar
+          count={collectIds.size}
+          hasUnselected={displayFiles.some((f) => !collectIds.has(f.id))}
+          selectAllLabel={`Select all ${displayFiles.length}`}
+          onSelectAll={() => setCollectIds(new Set(displayFiles.map((f) => f.id)))}
+          onClear={() => setCollectIds(new Set())}
+          onCancel={exitCollect}
+        >
           <button
             onClick={() => setCollectionModalOpen(true)}
             disabled={collectIds.size === 0}
@@ -1095,7 +1019,34 @@ export default function GalleryWithSearch({
             <FolderPlus size={15} />
             Add to collection
           </button>
-        </div>
+        </SelectionBar>
+      )}
+
+      {folderSelectMode && folders && onAssignFolder && (
+        <SelectionBar
+          count={folderSelectedIds.size}
+          hasUnselected={displayFiles.some((f) => !folderSelectedIds.has(f.id))}
+          selectAllLabel={`Select all ${displayFiles.length}`}
+          onSelectAll={() => setFolderSelectedIds(new Set(displayFiles.map((f) => f.id)))}
+          onClear={() => setFolderSelectedIds(new Set())}
+          onCancel={exitFolderSelectMode}
+        >
+          <select
+            value=""
+            disabled={assigningFolder || folderSelectedIds.size === 0}
+            onChange={(e) => {
+              if (e.target.value === '__unfiled__') doAssignFolder(null)
+              else if (e.target.value) doAssignFolder(e.target.value)
+            }}
+            className="bg-white text-black text-base font-semibold px-3 py-2 rounded-full cursor-pointer disabled:opacity-40"
+          >
+            <option value="">{assigningFolder ? 'Moving…' : 'Move to…'}</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>{f.name}</option>
+            ))}
+            <option value="__unfiled__">Remove from folder</option>
+          </select>
+        </SelectionBar>
       )}
 
       {collectionModalOpen && (

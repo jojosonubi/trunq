@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -9,6 +9,8 @@ import {
   Check, FolderPlus, Sparkles,
 } from 'lucide-react'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
+import Lightbox, { type LightboxFile } from '@/components/Lightbox'
+import SelectionBar from '@/components/SelectionBar'
 import clsx from 'clsx'
 import type { FullPhotoResult } from '@/app/api/search/full/route'
 import { formatDate as fmtDate } from '@/lib/format'
@@ -74,6 +76,13 @@ export default function SearchPageClient({ initialQuery }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [collectModalOpen, setCollectModalOpen] = useState(false)
   const [mode, setMode] = useState<'keyword' | 'semantic'>('keyword')
+
+  // Full-detail lightbox files: full-size image URL + DD/MM/YYYY event date.
+  const lightboxFiles = useMemo<LightboxFile[]>(() => photos.map((p) => ({
+    ...p,
+    signed_url: p.full_url ?? p.signed_url,
+    event_date: fmtDate(p.event_date),
+  })), [photos])
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
@@ -163,26 +172,8 @@ export default function SearchPageClient({ initialQuery }: Props) {
     }
   }
 
-  useEffect(() => {
-    if (lightboxIndex === null) return
-    const idx = lightboxIndex
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape')     { setLightboxIndex(null); return }
-      if (e.key === 'ArrowLeft'  && idx > 0)              setLightboxIndex(idx - 1)
-      if (e.key === 'ArrowRight' && idx < photos.length - 1) setLightboxIndex(idx + 1)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [lightboxIndex, photos.length])
-
-  useEffect(() => {
-    if (lightboxIndex !== null) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [lightboxIndex])
+  // Keyboard nav + body scroll lock live inside the shared <Lightbox> —
+  // duplicating them here would double-fire arrow navigation.
 
   // ── Input field ───────────────────────────────────────────────────────────────
 
@@ -473,34 +464,25 @@ export default function SearchPageClient({ initialQuery }: Props) {
 
       {/* ── Lightbox ─────────────────────────────────────────────────────────── */}
       {lightboxIndex !== null && (
-        <SearchLightbox
-          photos={photos}
+        <Lightbox
+          files={lightboxFiles}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
+          showSimilar
+          openInProject
         />
       )}
 
-      {/* ── Selection action bar ─────────────────────────────────────────────── */}
+      {/* ── Selection action bar (shared inline-selection standard) ──────────── */}
       {selected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-[#111] border border-[#2a2a2a] rounded-full pl-5 pr-2 py-2 shadow-2xl">
-          <span className="text-white text-base font-medium tabular-nums whitespace-nowrap">
-            {selected.size} selected
-          </span>
-          {photos.some((p) => !selected.has(p.id)) && (
-            <button
-              onClick={selectAllResults}
-              className="text-sm text-[#888] hover:text-white transition-colors whitespace-nowrap"
-            >
-              Select all {photos.length}
-            </button>
-          )}
-          <button
-            onClick={() => setSelected(new Set())}
-            className="text-sm text-[#888] hover:text-white transition-colors"
-          >
-            Clear
-          </button>
+        <SelectionBar
+          count={selected.size}
+          hasUnselected={photos.some((p) => !selected.has(p.id))}
+          selectAllLabel={`Select all ${photos.length}`}
+          onSelectAll={selectAllResults}
+          onClear={() => setSelected(new Set())}
+        >
           <button
             onClick={() => setCollectModalOpen(true)}
             className="inline-flex items-center gap-2 bg-white text-black text-base font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-colors whitespace-nowrap"
@@ -508,7 +490,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
             <FolderPlus size={15} />
             Add to collection
           </button>
-        </div>
+        </SelectionBar>
       )}
 
       {/* ── Add-to-collection modal ──────────────────────────────────────────── */}
@@ -584,218 +566,6 @@ function PhotoCard({
         <p className="text-[#555] text-xs mt-0.5 tabular-nums">
           {fmtDate(photo.event_date)}
         </p>
-      </div>
-    </div>
-  )
-}
-
-// ─── Search lightbox ──────────────────────────────────────────────────────────
-
-function SearchLightbox({
-  photos,
-  index,
-  onClose,
-  onNavigate,
-}: {
-  photos: FullPhotoResult[]
-  index: number
-  onClose: () => void
-  onNavigate: (i: number) => void
-}) {
-  const photo   = photos[index]
-  const hasPrev = index > 0
-  const hasNext = index < photos.length - 1
-  const imgSrc = photo.full_url ?? photo.signed_url ?? photo.public_url
-
-  // Visually-similar recommendations (by the photo's stored embedding).
-  const [similar, setSimilar] = useState<FullPhotoResult[] | null>(null)
-  useEffect(() => {
-    setSimilar(null)
-    let active = true
-    fetch(`/api/search/similar?id=${photo.id}&limit=12`)
-      .then((r) => r.json())
-      .then((d) => { if (active) setSimilar(d.photos ?? []) })
-      .catch(() => { if (active) setSimilar([]) })
-    return () => { active = false }
-  }, [photo.id])
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/90 flex"
-      onClick={onClose}
-    >
-      {/* ── Image pane ──────────────────────────────────────────────────────── */}
-      <div
-        className="relative flex-1 flex items-center justify-center bg-[#080808]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-
-        {/* Prev */}
-        {hasPrev && (
-          <button
-            onClick={() => onNavigate(index - 1)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all"
-            aria-label="Previous"
-          >
-            <ChevronLeft size={22} />
-          </button>
-        )}
-
-        {/* Next */}
-        {hasNext && (
-          <button
-            onClick={() => onNavigate(index + 1)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all"
-            aria-label="Next"
-          >
-            <ChevronRight size={22} />
-          </button>
-        )}
-
-        {/* Counter */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-sm tabular-nums">
-          {index + 1} / {photos.length}
-        </div>
-
-        {/* Photo */}
-        <div className="relative w-full h-full">
-          <Image
-            src={imgSrc}
-            alt={photo.description ?? photo.event_name}
-            fill
-            sizes="(min-width: 1024px) 70vw, 100vw"
-            className="object-contain"
-            priority
-            unoptimized
-          />
-        </div>
-      </div>
-
-      {/* ── Detail pane ─────────────────────────────────────────────────────── */}
-      <div
-        className="w-72 shrink-0 bg-surface-0 border-l border-[#1a1a1a] flex flex-col overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-5 space-y-5">
-
-          {/* Event */}
-          <div>
-            <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Event</p>
-            <p className="text-white text-base font-medium leading-snug">{photo.event_name}</p>
-            {photo.event_date && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <Calendar size={11} className="text-[#555] shrink-0" />
-                <p className="text-[#666] text-sm tabular-nums">{fmtDate(photo.event_date)}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Photographer */}
-          {photo.photographer && (
-            <div>
-              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Photographer</p>
-              <div className="flex items-center gap-1.5">
-                <Camera size={11} className="text-[#555] shrink-0" />
-                <p className="text-white text-base">{photo.photographer}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Description */}
-          {photo.description && (
-            <div>
-              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Description</p>
-              <p className="text-[#888] text-sm leading-relaxed">{photo.description}</p>
-            </div>
-          )}
-
-          {/* Matched tag */}
-          {photo.matched_tag && (
-            <div>
-              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Matched tag</p>
-              <span className="inline-flex items-center gap-1 text-sm px-2 py-0.5 rounded-full bg-white/8 border border-white/10 text-[#aaa]">
-                <Tag size={9} />
-                {photo.matched_tag}
-              </span>
-            </div>
-          )}
-
-          {/* Dominant colours */}
-          {photo.dominant_colours?.length > 0 && (
-            <div>
-              <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Colours</p>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <Palette size={11} className="text-[#555] shrink-0" />
-                {photo.dominant_colours.map((c) => (
-                  <span
-                    key={c}
-                    className="text-sm text-[#666] capitalize bg-white/5 px-1.5 py-px rounded"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* File type */}
-          <div>
-            <p className="text-[#444] text-xs uppercase tracking-wider mb-1.5">Type</p>
-            <p className="text-[#555] text-sm uppercase tracking-wide">{photo.file_type}</p>
-          </div>
-
-          {/* Visually similar */}
-          {(similar === null || similar.length > 0) && (
-            <div>
-              <p className="text-[#444] text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Sparkles size={11} /> Visually similar
-              </p>
-              {similar === null ? (
-                <div className="grid grid-cols-3 gap-1.5">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="aspect-square rounded bg-white/5 animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-1.5">
-                  {similar.map((s) => (
-                    <Link
-                      key={s.id}
-                      href={`/projects/${s.event_id}?photo=${s.id}`}
-                      onClick={onClose}
-                      className="relative aspect-square rounded overflow-hidden border border-[#1a1a1a] hover:border-white/40 transition-colors group"
-                      title={s.event_name}
-                    >
-                      {s.signed_url && (
-                        <Image src={s.signed_url} alt={s.description ?? ''} fill sizes="100px" className="object-cover group-hover:opacity-80 transition-opacity" unoptimized />
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer — open in event */}
-        <div className="mt-auto border-t border-[#1a1a1a] px-5 py-4">
-          <Link
-            href={`/projects/${photo.event_id}?photo=${photo.id}`}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-[#888] hover:text-white border border-[#222] hover:border-[#444] rounded-lg transition-colors"
-            onClick={onClose}
-          >
-            <ExternalLink size={12} />
-            Open in project
-          </Link>
-        </div>
       </div>
     </div>
   )

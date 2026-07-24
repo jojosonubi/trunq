@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   const { data: rows } = await supabase
     .from('media_files')
-    .select('id, event_id, storage_path, display_path, public_url, photographer, description, dominant_colours, file_type, events(name, date)')
+    .select('*, tags(*), events(name, date)')
     .in('id', ids)
 
   const byId = new Map((rows ?? []).map((r: any) => [r.id, r]))
@@ -41,17 +41,13 @@ export async function GET(req: NextRequest) {
     .map((row: any) => {
       const ev = row.events as { name?: string; date?: string } | null
       displayPathMap.set(row.id, row.display_path ?? null)
+      const { events: _ev, ...media } = row
       return {
-        id:               row.id,
-        event_id:         row.event_id,
+        ...media,
+        tags:             row.tags ?? [],
+        dominant_colours: row.dominant_colours ?? [],
         event_name:       ev?.name ?? '',
         event_date:       ev?.date ?? '',
-        storage_path:     row.storage_path,
-        public_url:       row.public_url,
-        photographer:     row.photographer,
-        description:      row.description,
-        dominant_colours: row.dominant_colours ?? [],
-        file_type:        row.file_type,
         matched_tag:      null,
       }
     })
