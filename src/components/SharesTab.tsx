@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Copy, Check, Trash2, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { toast } from '@/components/ui/Toast'
 
 interface ShareLinkRow {
   id:             string
@@ -61,11 +63,15 @@ export default function SharesTab({ projectId }: Props) {
     setTimeout(() => setCopied(null), 2000)
   }
 
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+
   async function revoke(id: string) {
     if (revoking) return
     setRevoking(id)
-    await fetch(`/api/share/${id}/revoke`, { method: 'POST' })
+    const res = await fetch(`/api/share/${id}/revoke`, { method: 'POST' })
+    if (!res.ok) { toast('Failed to revoke link', 'error'); setRevoking(null); return }
     setLinks((prev) => prev.map((l) => l.id === id ? { ...l, is_active: false } : l))
+    toast('Share link revoked', 'success')
     setRevoking(null)
   }
 
@@ -162,7 +168,7 @@ export default function SharesTab({ projectId }: Props) {
                 </a>
                 {link.is_active && !expired && (
                   <button
-                    onClick={() => revoke(link.id)}
+                    onClick={() => setConfirmRevokeId(link.id)}
                     disabled={revoking === link.id}
                     style={{
                       display: 'flex', alignItems: 'center', padding: '5px 7px',
@@ -227,6 +233,16 @@ export default function SharesTab({ projectId }: Props) {
           </div>
         )
       })}
+
+      {confirmRevokeId && (
+        <ConfirmDialog
+          title="Revoke share link?"
+          body="Anyone using this link will immediately lose access."
+          confirmLabel="Revoke"
+          onConfirm={() => revoke(confirmRevokeId)}
+          onClose={() => setConfirmRevokeId(null)}
+        />
+      )}
     </div>
   )
 }

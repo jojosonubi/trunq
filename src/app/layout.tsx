@@ -4,6 +4,7 @@ import './globals.css'
 import { EventModeProvider } from '@/context/EventModeContext'
 import TaggingProgress from '@/components/TaggingProgress'
 import NavigationProgress from '@/components/NavigationProgress'
+import { ToastHost } from '@/components/ui/Toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NavigationProgress />
           {children}
           <TaggingProgress />
+          <ToastHost />
         </EventModeProvider>
       </body>
     </html>

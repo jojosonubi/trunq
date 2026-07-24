@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { FolderOpen, Folder as FolderIcon, Plus, Pencil, Trash2, Check, X, Files } from 'lucide-react'
 import type { Folder } from '@/types'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface Props {
   folders: Folder[]
@@ -82,6 +83,8 @@ export default function FolderSidebar({
     try { await onRenameFolder(id, name) } finally { setBusy(false) }
     setRenamingId(null)
   }
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
     if (busy) return
@@ -182,7 +185,7 @@ export default function FolderSidebar({
                 <button onClick={(e) => { e.stopPropagation(); startRename(folder) }} style={iconBtnStyle()} aria-label="Rename">
                   <Pencil size={10} />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(folder.id) }} disabled={busy} style={iconBtnStyle(true)} aria-label="Delete">
+                <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(folder.id) }} disabled={busy} style={iconBtnStyle(true)} aria-label="Delete">
                   <Trash2 size={10} />
                 </button>
               </div>
@@ -214,7 +217,16 @@ export default function FolderSidebar({
           <button onClick={() => { setCreating(false); setCreateValue('') }} style={iconBtnStyle()}>
             <X size={11} />
           </button>
-        </div>
+    
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete folder?"
+          body="Photos inside stay in the project — they just become unfiled."
+          onConfirm={() => handleDelete(confirmDeleteId)}
+          onClose={() => setConfirmDeleteId(null)}
+        />
+      )}
+    </div>
       ) : (
         <button
           onClick={() => setCreating(true)}

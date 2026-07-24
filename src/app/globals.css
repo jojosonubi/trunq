@@ -22,6 +22,16 @@ html {
   box-shadow: none;
 }
 
+/* ─── Keyboard focus ─────────────────────────────────────────────────────────
+   One visible focus ring app-wide. Components use focus:outline-none for
+   mouse users; :focus-visible only fires for keyboard focus, so this restores
+   accessibility without adding rings on click. */
+*:focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* ─── Selection ──────────────────────────────────────────────────────────────  */
 ::selection {
   background: var(--accent);

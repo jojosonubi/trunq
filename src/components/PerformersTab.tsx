@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import FaceReferencePicker from '@/components/FaceReferencePicker'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { toast } from '@/components/ui/Toast'
 import type { Performer, MediaFileWithTags } from '@/types'
 
 interface Props {
@@ -80,9 +82,13 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
 
   // ── Delete performer ──────────────────────────────────────────────────────
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   async function deletePerformer(id: string) {
-    await fetch(`/api/performers/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/performers/${id}`, { method: 'DELETE' })
+    if (!res.ok) { toast('Failed to delete performer', 'error'); return }
     setPerformers((prev) => prev.filter((p) => p.id !== id))
+    toast('Performer deleted', 'success')
     router.refresh()
   }
 
@@ -264,7 +270,7 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
 
                   {/* Delete */}
                   <button
-                    onClick={() => deletePerformer(performer.id)}
+                    onClick={() => setConfirmDeleteId(performer.id)}
                     className="text-[#333] hover:text-red-400 transition-colors shrink-0 mt-0.5"
                     aria-label="Delete performer"
                   >
@@ -334,7 +340,16 @@ export default function PerformersTab({ eventId, initialPerformers, mediaFiles }
           </div>
         )}
 
-      </div>
+  
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete performer?"
+          body="Their reference photos and face tags on photos will be removed."
+          onConfirm={() => deletePerformer(confirmDeleteId)}
+          onClose={() => setConfirmDeleteId(null)}
+        />
+      )}
+    </div>
 
       {/* Reference picker modal */}
       {pickingFor && (

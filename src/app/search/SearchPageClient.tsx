@@ -11,6 +11,8 @@ import {
 import AddToCollectionModal from '@/components/AddToCollectionModal'
 import Lightbox, { type LightboxFile } from '@/components/Lightbox'
 import SelectionBar from '@/components/SelectionBar'
+import Button from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 import clsx from 'clsx'
 import type { FullPhotoResult } from '@/app/api/search/full/route'
 import { formatDate as fmtDate } from '@/lib/format'
@@ -115,6 +117,7 @@ export default function SearchPageClient({ initialQuery }: Props) {
       if (runId !== runIdRef.current) return
       setPhotos([])
       setTotal(0)
+      toast('Search failed — try again', 'error')
     } finally {
       if (runId === runIdRef.current) setLoading(false)
     }
@@ -483,13 +486,10 @@ export default function SearchPageClient({ initialQuery }: Props) {
           onSelectAll={selectAllResults}
           onClear={() => setSelected(new Set())}
         >
-          <button
-            onClick={() => setCollectModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-white text-black text-base font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-colors whitespace-nowrap"
-          >
+          <Button variant="primary" pill onClick={() => setCollectModalOpen(true)}>
             <FolderPlus size={15} />
             Add to collection
-          </button>
+          </Button>
         </SelectionBar>
       )}
 

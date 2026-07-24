@@ -12,6 +12,8 @@
   --accent-dark: #b82c10;
   --accent-bg: #fdf0ee;
   --accent-border: #f0c0b8;
+  --accent-fg: #ffffff;          /* text ON the accent */
+  --focus-ring: rgba(231, 55, 21, 0.55);
 
   --label-bg: #ffffff;
   --label-border: #e0d8cc;
@@ -46,15 +48,17 @@
   --accent-dark: #c8a060;
   --accent-bg: #2e1e00;
   --accent-border: #4a3200;
+  --accent-fg: #141414;          /* text ON the accent */
+  --focus-ring: rgba(255, 237, 194, 0.45);
 
   --label-bg: #2a2416;
   --label-border: #3a3420;
   --label-text: #ffedc2;
 
   --text-primary: #f0f0f0;
-  --text-secondary: #888888;
-  --text-muted: #555555;
-  --text-dim: #3a3a3a;
+  --text-secondary: #999999;
+  --text-muted: #7a7a7a;         /* raised from #555 — was ~2.9:1, WCAG fail */
+  --text-dim: #4a4a4a;
 
   --overlay-bg: rgba(0, 0, 0, 0.7);
 

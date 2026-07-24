@@ -10,6 +10,8 @@ import BulkRetag from '@/components/BulkRetag'
 import SocialPanel from '@/components/SocialPanel'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
 import SelectionBar from '@/components/SelectionBar'
+import Button from '@/components/ui/Button'
+import { toast } from '@/components/ui/Toast'
 import { buildZip } from '@/lib/zip'
 import type { MediaFileWithTags, Event, Folder, Performer, Brand } from '@/types'
 import { COLOUR_SWATCHES } from '@/lib/colours'
@@ -183,6 +185,7 @@ export default function GalleryWithSearch({
       setHasMore(nextCursor !== null)
     } catch (err) {
       console.error('[GalleryWithSearch] fetch failed:', err)
+      toast('Failed to load photos — try again', 'error')
     } finally {
       if (runId === fetchRunIdRef.current) {
         isLoadingRef.current = false
@@ -310,6 +313,7 @@ export default function GalleryWithSearch({
       router.refresh()
     } catch {
       setStarOverrides((prev) => ({ ...prev, [id]: current }))
+      toast('Failed to update star', 'error')
     }
   }, [loadedFiles, starOverrides, router])
 
@@ -321,10 +325,11 @@ export default function GalleryWithSearch({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'photo', id }),
       })
-      if (!res.ok) return // failed — keep the photo visible
+      if (!res.ok) { toast('Failed to move photo to trash', 'error'); return }
       // Remove immediately from loaded state — no full router.refresh() needed
       setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
-    } catch { /* network failure — keep the photo visible */ }
+      toast('Photo moved to trash', 'success')
+    } catch { toast('Failed to move photo to trash', 'error') }
   }, [])
 
   // ── ⋯ menu: reassign photographer / event (optimistic + rollback) ─────────
@@ -340,6 +345,7 @@ export default function GalleryWithSearch({
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     } catch {
       setLoadedFiles((prev) => prev.map((f) => (f.id === id ? { ...f, photographer: prevName } : f)))
+      toast('Failed to reassign photographer', 'error')
     }
   }, [loadedFiles])
 
@@ -356,6 +362,7 @@ export default function GalleryWithSearch({
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
     } catch {
       if (removed) setLoadedFiles((prev) => [removed, ...prev])
+      toast('Failed to move photo to another event', 'error')
     }
   }, [loadedFiles])
 
@@ -1011,14 +1018,10 @@ export default function GalleryWithSearch({
           onClear={() => setCollectIds(new Set())}
           onCancel={exitCollect}
         >
-          <button
-            onClick={() => setCollectionModalOpen(true)}
-            disabled={collectIds.size === 0}
-            className="inline-flex items-center gap-2 bg-white text-black text-base font-semibold px-4 py-2 rounded-full hover:bg-white/90 transition-colors whitespace-nowrap disabled:opacity-40"
-          >
+          <Button variant="primary" pill onClick={() => setCollectionModalOpen(true)} disabled={collectIds.size === 0}>
             <FolderPlus size={15} />
             Add to collection
-          </button>
+          </Button>
         </SelectionBar>
       )}
 
@@ -1038,7 +1041,8 @@ export default function GalleryWithSearch({
               if (e.target.value === '__unfiled__') doAssignFolder(null)
               else if (e.target.value) doAssignFolder(e.target.value)
             }}
-            className="bg-white text-black text-base font-semibold px-3 py-2 rounded-full cursor-pointer disabled:opacity-40"
+            className="text-base font-semibold px-3 py-2 rounded-full cursor-pointer disabled:opacity-40"
+            style={{ background: 'var(--accent)', color: 'var(--accent-fg)' }}
           >
             <option value="">{assigningFolder ? 'Moving…' : 'Move to…'}</option>
             {folders.map((f) => (

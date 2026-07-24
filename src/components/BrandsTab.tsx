@@ -7,6 +7,8 @@ import {
   Trash2, Scan, AlertTriangle, Loader2, Plus, Tag as TagIcon, Upload, CheckCircle2,
 } from 'lucide-react'
 import type { Brand, MediaFileWithTags } from '@/types'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { toast } from '@/components/ui/Toast'
 
 interface Props {
   eventId: string
@@ -70,9 +72,13 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
     }
   }
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
   async function deleteBrand(id: string) {
-    await fetch(`/api/brands/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/brands/${id}`, { method: 'DELETE' })
+    if (!res.ok) { toast('Failed to delete brand', 'error'); return }
     setBrands((prev) => prev.filter((b) => b.id !== id))
+    toast('Brand deleted', 'success')
     router.refresh()
   }
 
@@ -226,7 +232,7 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
                 </div>
 
                 <button
-                  onClick={() => deleteBrand(brand.id)}
+                  onClick={() => setConfirmDeleteId(brand.id)}
                   className="text-[#333] hover:text-red-400 transition-colors shrink-0 mt-0.5"
                   aria-label="Delete brand"
                 >
@@ -296,6 +302,15 @@ export default function BrandsTab({ eventId, initialBrands, mediaFiles }: Props)
             </div>
           )}
         </div>
+      )}
+
+      {confirmDeleteId && (
+        <ConfirmDialog
+          title="Delete brand?"
+          body="Its logo reference and brand tags on photos will be removed."
+          onConfirm={() => deleteBrand(confirmDeleteId)}
+          onClose={() => setConfirmDeleteId(null)}
+        />
       )}
     </div>
   )
