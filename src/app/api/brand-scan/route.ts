@@ -12,22 +12,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@supabase/supabase-js'
 import { signStoragePaths } from '@/lib/supabase/storage'
 import { requireApiUser } from '@/lib/api-auth'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const CONFIDENCE_THRESHOLD = 0.6
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
 interface MatchResult {
   brand_index: number
   confidence: number
@@ -49,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing event_id or media_file_id' }, { status: 400 })
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
 
     const [brandsResult, mediaResult] = await Promise.all([
       supabase

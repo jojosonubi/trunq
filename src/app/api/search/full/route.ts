@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { signStoragePathsSized } from '@/lib/supabase/storage'
 import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+import { createServiceClient } from '@/lib/supabase/service'
 export interface FullPhotoResult {
   id: string
   event_id: string
@@ -42,7 +33,7 @@ export async function GET(req: NextRequest) {
   const colour     = p.get('colour')?.trim() ?? ''
   const fileType   = p.get('file_type')?.trim() ?? ''
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   // ── Step 1: resolve event-level filters to a set of event IDs ──────────────
   let filteredEventIds: string[] | null = null  // null = no event filter

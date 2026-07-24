@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+import { createServiceClient } from '@/lib/supabase/service'
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -25,7 +16,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Missing name' }, { status: 400 })
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
     const { data, error } = await supabase
       .from('folders')
       .update({ name: name.trim() })
@@ -52,7 +43,7 @@ export async function DELETE(
   if (auth.response) return auth.response
 
   try {
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
     const { error } = await supabase
       .from('folders')
       .delete()

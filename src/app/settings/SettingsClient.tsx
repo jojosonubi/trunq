@@ -17,6 +17,7 @@ import type { UserProfile } from '@/lib/auth'
 import type { BackupStats } from '@/app/api/backup/route'
 import type { AuditLog, Event, MediaFile } from '@/types'
 import { transformUrlSized } from '@/lib/supabase/storage'
+import { formatDate, initials } from '@/lib/format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -83,20 +84,9 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 function isExpired(iso: string) { return new Date(iso) < new Date() }
 function daysUntilPurge(deletedAt: string) {
   return Math.max(0, Math.ceil((new Date(deletedAt).getTime() + 30 * 86_400_000 - Date.now()) / 86_400_000))
-}
-function initials(p: UserProfile) {
-  if (p.full_name) {
-    const parts = p.full_name.trim().split(/\s+/)
-    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
-  }
-  return p.email[0].toUpperCase()
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────

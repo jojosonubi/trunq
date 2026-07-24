@@ -6,15 +6,9 @@ import Navbar from '@/components/layout/Navbar'
 import Sidebar from '@/components/layout/Sidebar'
 import { FolderHeart } from 'lucide-react'
 import CollectionCard from './CollectionCard'
+import { formatDate as fmtDate } from '@/lib/format'
 
 export const revalidate = 0
-
-function fmtDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
 export default async function CollectionsPage() {
   const profile = await requireAuth()
   const supabase = createServiceClient()

@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+import { createServiceClient } from '@/lib/supabase/service'
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -24,7 +15,7 @@ export async function PATCH(
     if (name !== undefined) update.name = name.trim()
     if (role !== undefined) update.role = role?.trim() || null
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
     const { data, error } = await supabase
       .from('performers')
       .update(update)
@@ -48,7 +39,7 @@ export async function DELETE(
   if (auth.response) return auth.response
 
   try {
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
 
     // Fetch the performer first to get the storage path for cleanup
     const { data: performer } = await supabase

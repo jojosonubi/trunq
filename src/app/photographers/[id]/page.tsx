@@ -1,29 +1,21 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { requireAuth } from '@/lib/auth'
 import { signMediaFiles } from '@/lib/supabase/storage'
 import { Camera, ArrowLeft, Images, CalendarDays } from 'lucide-react'
 import type { MediaFile } from '@/types'
+import { formatDate as fmtDate } from '@/lib/format'
+import { createServiceClient } from '@/lib/supabase/service'
 
 export const revalidate = 0
-
-function getServiceClient() {
-  return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
 interface Props {
   params: { id: string }
 }
 
 export default async function PhotographerProfilePage({ params }: Props) {
   const profile = await requireAuth()
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   // Org-scope the lookup — service client bypasses RLS.
   const { data: membership } = await supabase
@@ -80,9 +72,6 @@ export default async function PhotographerProfilePage({ params }: Props) {
   const earliest = dates.length ? new Date(Math.min(...dates)) : null
   const latest   = dates.length ? new Date(Math.max(...dates)) : null
 
-  function fmtDate(d: Date) {
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-  }
 
   const eventsSorted = [...uniqueEvents.values()].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

@@ -7,18 +7,12 @@ import { createClient } from '@/lib/supabase/client'
 import { LogOut, Settings, ChevronDown } from 'lucide-react'
 import type { UserProfile } from '@/lib/auth'
 import Pill from '@/components/ui/Pill'
+import { initials } from '@/lib/format'
 
 interface Props {
   profile: UserProfile
 }
 
-function initials(profile: UserProfile): string {
-  if (profile.full_name) {
-    const parts = profile.full_name.trim().split(/\s+/)
-    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase()
-  }
-  return profile.email[0].toUpperCase()
-}
 
 export default function UserMenu({ profile }: Props) {
   const router = useRouter()

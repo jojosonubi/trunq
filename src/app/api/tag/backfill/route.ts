@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
 import { scoreMediaFile } from '@/lib/scoring'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+import { createServiceClient } from '@/lib/supabase/service'
 export async function POST(request: NextRequest) {
   const auth = await requireApiUser()
   if (auth.response) return auth.response
@@ -18,7 +9,7 @@ export async function POST(request: NextRequest) {
   // Optional: limit to a specific event_id
   const body = await request.json().catch(() => ({})) as { event_id?: string }
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   let query = supabase
     .from('media_files')

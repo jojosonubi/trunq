@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@supabase/supabase-js'
 import { signStoragePath } from '@/lib/supabase/storage'
+import { createServiceClient } from '@/lib/supabase/service'
 
 const COLOUR_PALETTE = [
   'red', 'orange', 'yellow', 'green', 'teal', 'blue',
@@ -31,22 +31,13 @@ export interface ScoringResult {
   // gesture_tags and fashion_tags (hair/garment/cultural_dress/accessory) are
   // written as additional rows in the tags table with their respective tag_type values
 }
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
 /**
  * Runs Claude vision scoring on a single image file, writes tags + score to DB.
  * Throws on failure — callers are responsible for retry/error handling.
  */
 export async function scoreMediaFile(mediaFileId: string, opts?: { skipTags?: boolean }): Promise<ScoringResult> {
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
-  const supabase  = getServiceClient()
+  const supabase  = createServiceClient()
 
   const { data: mediaFile, error: fetchErr } = await supabase
     .from('media_files')

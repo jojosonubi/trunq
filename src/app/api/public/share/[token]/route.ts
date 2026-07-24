@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { formatDate as fmtDate } from '@/lib/format'
 
 // Public no-auth share resolution. Paginated; returns same-origin PROXY image
 // paths (/api/public/share/<token>/img/<id>) rather than signed Supabase URLs —
@@ -14,12 +15,6 @@ interface SharePhoto {
   card_url: string
   description: string | null
 }
-
-function fmtDate(d?: string | null): string {
-  if (!d) return ''
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 type MediaRow = {
   id: string; event_id: string; storage_path: string; display_path: string | null
   description: string | null; events: { name?: string; date?: string } | null

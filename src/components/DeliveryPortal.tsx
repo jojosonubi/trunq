@@ -6,6 +6,7 @@ import { Download, Archive, Calendar, MapPin, ShieldOff } from 'lucide-react'
 import type { MediaFile, Event } from '@/types'
 import { transformUrlSized } from '@/lib/supabase/storage'
 import { buildZip } from '@/lib/zip'
+import { formatDate } from '@/lib/format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,13 +22,6 @@ interface Props {
 export default function DeliveryPortal({ event, files, token }: Props) {
   const [downloading, setDownloading] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-
-  function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: 'numeric', month: 'long', year: 'numeric',
-    })
-  }
-
   function downloadUrl(file: MediaFile): string {
     return `/api/download?path=${encodeURIComponent(file.storage_path)}&filename=${encodeURIComponent(file.filename)}&token=${encodeURIComponent(token)}`
   }

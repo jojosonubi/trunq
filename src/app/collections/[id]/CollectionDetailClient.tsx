@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, ExternalLink, ImageIcon, X, Globe } from 'lucide-react'
 import ShareLinkModal from '@/components/ShareLinkModal'
+import { formatDate as fmtDate } from '@/lib/format'
 
 export interface CollectionPhoto {
   id: string
@@ -14,14 +15,6 @@ export interface CollectionPhoto {
   description: string | null
   url: string | null
 }
-
-function fmtDate(dateStr: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
 export default function CollectionDetailClient({
   collectionId,
   name,

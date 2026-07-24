@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser, requireAdminUser } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
 // POST /api/trash — soft-delete an event or media file
 export async function POST(req: NextRequest) {
   const auth = await requireApiUser()
@@ -24,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid type/id' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
   const now      = new Date().toISOString()
   const table    = type === 'event' ? 'events' : 'media_files'
 
@@ -54,7 +44,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid type/id' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
   const table    = type === 'event' ? 'events' : 'media_files'
 
   const { error } = await supabase.from(table).update({ deleted_at: null }).eq('id', id)
@@ -84,7 +74,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid type/id' }, { status: 400 })
   }
 
-  const supabase = getServiceClient()
+  const supabase = createServiceClient()
 
   // Collect ALL storage objects for a media row — original + display
   // derivative + baked thumbnail. Deleting only storage_path orphaned the

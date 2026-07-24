@@ -11,33 +11,11 @@ import {
 import AddToCollectionModal from '@/components/AddToCollectionModal'
 import clsx from 'clsx'
 import type { FullPhotoResult } from '@/app/api/search/full/route'
+import { formatDate as fmtDate } from '@/lib/format'
+import { COLOUR_SWATCHES } from '@/lib/colours'
 
-// ─── Colour palette (matches GalleryWithSearch and tag API) ──────────────────
-
-const COLOUR_SWATCHES = [
-  { name: 'red',    bg: '#ef4444', ring: '#f87171' },
-  { name: 'orange', bg: '#f97316', ring: '#fb923c' },
-  { name: 'yellow', bg: '#eab308', ring: '#fbbf24' },
-  { name: 'green',  bg: '#22c55e', ring: '#4ade80' },
-  { name: 'teal',   bg: '#14b8a6', ring: '#2dd4bf' },
-  { name: 'blue',   bg: '#3b82f6', ring: '#60a5fa' },
-  { name: 'purple', bg: '#a855f7', ring: '#c084fc' },
-  { name: 'pink',   bg: '#ec4899', ring: '#f472b6' },
-  { name: 'white',  bg: '#e5e7eb', ring: '#f3f4f6' },
-  { name: 'black',  bg: '#1f2937', ring: '#374151' },
-  { name: 'grey',   bg: '#6b7280', ring: '#9ca3af' },
-  { name: 'brown',  bg: '#92400e', ring: '#b45309' },
-]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtDate(dateStr: string): string {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
 interface Filters {
   event_name:   string
   venue:        string

@@ -5,13 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Search, X, Calendar, Users, Loader2, ImageIcon } from 'lucide-react'
 import type { SearchResults, EventResult, PhotoResult, PerformerResult } from '@/app/api/search/route'
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
+import { formatDate } from '@/lib/format'
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({ label, hasBorder }: { label: string; hasBorder: boolean }) {

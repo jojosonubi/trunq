@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import type { ExifData } from '@/lib/exif'
 import { requireApiUser } from '@/lib/api-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { writeAudit } from '@/lib/audit'
 import { generateDisplayDerivative } from '@/lib/storage/derivatives'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
 function getFileType(mimeType: string): 'image' | 'video' | 'graphic' {
   if (mimeType.startsWith('video/')) return 'video'
   if (mimeType.startsWith('image/')) return 'image'
@@ -53,7 +43,7 @@ function buildArchiveFilename(
  * Returns { filename, isBase } — isBase is true when no suffix was needed.
  */
 async function resolveUniqueFilename(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof createServiceClient>,
   eventId: string,
   baseFilename: string,
 ): Promise<{ filename: string; isBase: boolean }> {
@@ -116,7 +106,7 @@ export async function POST(request: NextRequest) {
       try { exif = JSON.parse(exifRaw) as ExifData } catch { /* ignore */ }
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
     const ext      = getExtension(file.name)
 
     // ── Buffer file bytes for checksum + upload ───────────────────────────────

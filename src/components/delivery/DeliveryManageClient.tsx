@@ -6,6 +6,7 @@ import { Check, Copy } from 'lucide-react'
 import Sidebar from '@/components/layout/Sidebar'
 import { ScorePill } from '@/components/ui/Pill'
 import { transformUrlSized } from '@/lib/supabase/storage'
+import { formatDate } from '@/lib/format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,11 +54,6 @@ const COLOUR_DOTS = [
 const EXPIRE_OPTIONS = ['7 days', '30 days', 'Never'] as const
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 function deliveryUrl(token: string) {
   if (typeof window === 'undefined') return `/delivery/${token}`
   return `${window.location.origin}/delivery/${token}`

@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { requireApiUser } from '@/lib/api-auth'
-
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
-
+import { createServiceClient } from '@/lib/supabase/service'
 export async function PATCH(request: NextRequest) {
   const auth = await requireApiUser()
   if (auth.response) return auth.response
@@ -22,7 +13,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Missing id or starred' }, { status: 400 })
     }
 
-    const supabase = getServiceClient()
+    const supabase = createServiceClient()
     const { error } = await supabase
       .from('media_files')
       .update({ starred })

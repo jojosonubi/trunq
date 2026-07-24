@@ -6,6 +6,7 @@ import { Pencil, Check, X, Loader2, Copy, Link2, Share2 } from 'lucide-react'
 import type { Event, Folder } from '@/types'
 import type { UserRole } from '@/lib/auth'
 import ShareModal from '@/components/ShareModal'
+import { formatDate } from '@/lib/format'
 
 interface Props {
   event:          Event
@@ -15,13 +16,6 @@ interface Props {
   eventId?:       string
   folders?:       Folder[]
 }
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  })
-}
-
 // ─── Inline editable field ────────────────────────────────────────────────────
 
 function InlineField({

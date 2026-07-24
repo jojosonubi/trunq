@@ -8,6 +8,7 @@ import { MoreHorizontal, Pencil, ImagePlus, Trash2, Camera, Globe } from 'lucide
 import Pill from '@/components/ui/Pill'
 import EventCoverPicker from '@/components/EventCoverPicker'
 import ShareLinkModal from '@/components/ShareLinkModal'
+import { formatDate } from '@/lib/format'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,13 +38,6 @@ interface Props {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
-
 // ─── Menu item style ──────────────────────────────────────────────────────────
 
 const MENU_ITEM: React.CSSProperties = {

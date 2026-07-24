@@ -11,6 +11,7 @@ import type { MediaFileWithTags, Tag, Folder, Event } from '@/types'
 import { transformUrl } from '@/lib/supabase/storage'
 import AddToCollectionModal from '@/components/AddToCollectionModal'
 import clsx from 'clsx'
+import { formatDate } from '@/lib/format'
 
 // ─── Star props ──────────────────────────────────────────────────────────────
 
@@ -64,13 +65,6 @@ interface Props {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  })
-}
-
 function formatGps(lat: number, lng: number): string {
   return `${Math.abs(lat).toFixed(5)}° ${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(5)}° ${lng >= 0 ? 'E' : 'W'}`
 }
