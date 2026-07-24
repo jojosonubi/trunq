@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Download, Archive, Calendar, MapPin, ShieldOff } from 'lucide-react'
 import type { MediaFile, Event } from '@/types'
 import { transformUrlSized } from '@/lib/supabase/storage'
+import { buildZip } from '@/lib/zip'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,17 +35,16 @@ export default function DeliveryPortal({ event, files, token }: Props) {
   async function downloadAll() {
     setDownloading(true)
     try {
-      // Fetch all files and zip them client-side
-      const JSZip = (await import('jszip')).default
-      const zip = new JSZip()
-      await Promise.all(
+      // Fetch all files and zip them client-side with the repo's own zip
+      // builder (same pattern as the gallery + collection downloads).
+      const entries = await Promise.all(
         files.map(async (file) => {
           const res = await fetch(downloadUrl(file))
-          const blob = await res.blob()
-          zip.file(file.filename, blob)
+          if (!res.ok) throw new Error(`Download failed: ${file.filename}`)
+          return { filename: file.filename, data: new Uint8Array(await res.arrayBuffer()) }
         })
       )
-      const blob = await zip.generateAsync({ type: 'blob' })
+      const blob = buildZip(entries)
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
       a.download = `${event.name.replace(/[^a-z0-9]/gi, '_')}_photos.zip`

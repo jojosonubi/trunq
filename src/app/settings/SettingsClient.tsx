@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, User, Users, HardDrive, Trash2, AlertTriangle,
-  Plus, Copy, Check, Clock, Mail, RefreshCw,
+  Plus, Copy, Check, Clock, RefreshCw,
   RotateCcw, Calendar, ImageIcon, CheckCircle2, AlertCircle,
   Pencil, Loader2, Eye, EyeOff, Camera, ShieldCheck, History,
   XCircle, Filter,

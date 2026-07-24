@@ -127,31 +127,6 @@ export async function signStoragePathThumbnail(
   return data.signedUrl
 }
 
-/**
- * Batch sign storage paths via the Supabase render (image transform) endpoint.
- * Falls back gracefully — paths that fail to sign are omitted from the map.
- */
-export async function signStoragePathsThumbnail(
-  paths: string[],
-  options: ThumbnailOptions = {},
-  expiresIn = DEFAULT_TTL,
-): Promise<Map<string, string>> {
-  if (paths.length === 0) return new Map()
-
-  // Supabase's batch API doesn't support transform options, so we sign individually
-  // but in parallel to keep latency low.
-  const results = await Promise.all(
-    paths.map(async (path) => {
-      const url = await signStoragePathThumbnail(path, options, expiresIn)
-      return [path, url] as const
-    })
-  )
-  const map = new Map<string, string>()
-  for (const [path, url] of results) {
-    if (url) map.set(path, url)
-  }
-  return map
-}
 
 // ─── Named thumbnail sizes ────────────────────────────────────────────────────
 

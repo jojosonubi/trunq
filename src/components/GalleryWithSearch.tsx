@@ -136,8 +136,6 @@ export default function GalleryWithSearch({
   const [collectMode, setCollectMode]                 = useState(false)
   const [collectIds, setCollectIds]                   = useState<Set<string>>(new Set())
   const [collectionModalOpen, setCollectionModalOpen] = useState(false)
-  const cancelDownloadRef = useRef(false)
-  const [rotations, setRotations] = useState<Record<string, number>>({})
 
   // ── Infinite scroll state ─────────────────────────────────────────────────
   const [loadedFiles, setLoadedFiles]   = useState<MediaFileWithTags[]>(initialFiles)

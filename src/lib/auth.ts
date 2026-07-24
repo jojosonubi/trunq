@@ -34,12 +34,3 @@ export async function requireAuth(): Promise<UserProfile> {
   return profile
 }
 
-/** Returns the profile if the user has one of the required roles, otherwise redirects. */
-export async function requireRole(
-  roles: UserRole | UserRole[]
-): Promise<UserProfile> {
-  const profile = await requireAuth()
-  const allowed  = Array.isArray(roles) ? roles : [roles]
-  if (!allowed.includes(profile.role)) redirect('/events')
-  return profile
-}

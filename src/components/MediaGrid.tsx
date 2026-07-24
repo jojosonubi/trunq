@@ -1044,7 +1044,6 @@ function MediaCell({ file, onClick, cellSelection, stars, onMenuTrigger, onQuick
 // ─── MediaGrid ───────────────────────────────────────────────────────────────
 
 export default function MediaGrid({ files, selection, compact, columns, stars, folderProps, initialOpenPhotoId, event, onTrash, onQuickSelect, processingIds, onReassignPhotographer, onReassignEvent, currentEventId }: Props) {
-  const [rotation, setRotation] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [contextMenu, setContextMenu]     = useState<ContextMenuState | null>(null)
   const [collectionForId, setCollectionForId] = useState<string | null>(null)

@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import type { CSSProperties } from 'react'
 import type { UserProfile } from '@/lib/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -9,25 +8,9 @@ import GlobalSearch from '@/components/GlobalSearch'
 import UserMenu from '@/components/UserMenu'
 import { useEventMode } from '@/context/EventModeContext'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type StatItem = {
-  label: string
-  value: string | number
-  sub?:  string
-}
-
 interface Props {
   profile: UserProfile
-  stats?:  StatItem[]
 }
-
-// ─── Nav links ────────────────────────────────────────────────────────────────
-
-const NAV_LINKS = [
-  { label: 'Projects', href: '/projects', matchPrefix: '/projects' },
-  { label: 'Search',   href: '/search',   matchPrefix: '/search'   },
-]
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -53,28 +36,6 @@ const wordmark: CSSProperties = {
   flexShrink:    0,
 }
 
-const navArea: CSSProperties = {
-  display:    'flex',
-  alignItems: 'stretch',
-  height:     44,
-  flex:       1,
-}
-
-function navLinkStyle(active: boolean): CSSProperties {
-  return {
-    display:        'inline-flex',
-    alignItems:     'center',
-    fontSize:       11,
-    letterSpacing:  '0.04em',
-    color:          active ? 'var(--accent-dark)' : 'var(--text-muted)',
-    padding:        '0 12px',
-    textDecoration: 'none',
-    borderBottom:   active ? '1.5px solid var(--accent)' : '1.5px solid transparent',
-    transition:     'color 0.15s, border-color 0.15s',
-    whiteSpace:     'nowrap' as const,
-  }
-}
-
 const rightArea: CSSProperties = {
   display:    'flex',
   alignItems: 'center',
@@ -82,93 +43,29 @@ const rightArea: CSSProperties = {
   flexShrink: 0,
 }
 
-const statBar: CSSProperties = {
-  display:    'flex',
-  flexWrap:   'nowrap' as const,
-  width:      '100%',
-  background: 'var(--surface-1)',
-  borderBottom: 'var(--border-rule)',
-}
-
-function statCell(index: number, total: number): CSSProperties {
-  return {
-    flex:       '1 1 0',
-    minWidth:   0,
-    padding:    '8px 16px',
-    borderRight: index < total - 1 ? 'var(--border-rule)' : 'none',
-  }
-}
-
-const statLabel: CSSProperties = {
-  fontSize:      9,
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.14em',
-  color:         'var(--text-dim)',
-  marginBottom:  2,
-  whiteSpace:    'nowrap' as const,
-}
-
-function statValue(first: boolean): CSSProperties {
-  return {
-    fontSize:   22,
-    fontWeight: 500,
-    lineHeight: 1,
-    color:      first ? 'var(--accent-dark)' : 'var(--text-primary)',
-    marginBottom: 1,
-  }
-}
-
-const statSub: CSSProperties = {
-  fontSize: 10,
-  color:    'var(--text-dim)',
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isActive(matchPrefix: string, pathname: string): boolean {
-  return pathname === matchPrefix || pathname.startsWith(matchPrefix + '/')
-}
-
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 
-export default function Navbar({ profile, stats }: Props) {
-  const pathname  = usePathname()
+export default function Navbar({ profile }: Props) {
   const { eventMode } = useEventMode()
 
   return (
-    <>
-      {/* ── Main bar ──────────────────────────────────────────────────────── */}
-      <div style={{ ...bar, borderBottom: eventMode ? '2px solid var(--accent)' : 'var(--border-rule)' }}>
-        {/* Wordmark */}
-        <Link href="/projects" style={wordmark}>TRUNQ</Link>
+    <div style={{ ...bar, borderBottom: eventMode ? '2px solid var(--accent)' : 'var(--border-rule)' }}>
+      {/* Wordmark */}
+      <Link href="/projects" style={wordmark}>TRUNQ</Link>
 
-        {/* Nav spacer — keeps right side pushed right when no links shown */}
-        <div style={{ flex: 1 }} />
+      {/* Nav spacer — keeps right side pushed right */}
+      <div style={{ flex: 1 }} />
 
-        {/* Centred search — desktop only */}
-        <div className="hidden md:block" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
-          <GlobalSearch />
-        </div>
-
-        {/* Right side */}
-        <div style={rightArea}>
-          <ThemeToggle />
-          <UserMenu profile={profile} />
-        </div>
+      {/* Centred search — desktop only */}
+      <div className="hidden md:block" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 320, zIndex: 1 }}>
+        <GlobalSearch />
       </div>
 
-      {/* ── Stat bar ──────────────────────────────────────────────────────── */}
-      {stats && stats.length > 0 && (
-        <div style={statBar}>
-          {stats.map((stat, i) => (
-            <div key={stat.label} style={statCell(i, stats.length)}>
-              <p style={statLabel}>{stat.label}</p>
-              <p style={statValue(i === 0)}>{stat.value}</p>
-              {stat.sub && <p style={statSub}>{stat.sub}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
+      {/* Right side */}
+      <div style={rightArea}>
+        <ThemeToggle />
+        <UserMenu profile={profile} />
+      </div>
+    </div>
   )
 }

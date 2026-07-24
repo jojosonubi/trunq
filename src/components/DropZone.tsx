@@ -105,123 +105,6 @@ function statusLabel(status: QueueItem['status']): string {
   }
 }
 
-// ─── FolderPicker ─────────────────────────────────────────────────────────────
-
-interface FolderPickerProps {
-  folders: Folder[]
-  selectedId: string | null
-  onSelect: (id: string | null) => void
-  onCreate: (name: string) => Promise<Folder>
-  disabled?: boolean
-}
-
-function FolderPicker({ folders, selectedId, onSelect, onCreate, disabled }: FolderPickerProps) {
-  const [creating, setCreating]       = useState(false)
-  const [draftName, setDraftName]     = useState('')
-  const [saving, setSaving]           = useState(false)
-  const inputRef                      = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { if (creating) inputRef.current?.focus() }, [creating])
-
-  async function submit() {
-    const name = draftName.trim()
-    if (!name || saving) return
-    setSaving(true)
-    try {
-      const folder = await onCreate(name)
-      onSelect(folder.id)
-    } finally {
-      setSaving(false)
-    }
-    setDraftName('')
-    setCreating(false)
-  }
-
-  return (
-    <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-[#444] text-xs uppercase tracking-wider shrink-0">
-        <FolderIcon size={10} />
-        Folder
-      </span>
-
-      {/* No folder pill */}
-      <button
-        disabled={disabled}
-        onClick={() => onSelect(null)}
-        className={clsx(
-          'text-sm px-2.5 py-1 rounded-full border transition-all',
-          selectedId === null
-            ? 'bg-white/10 border-white/25 text-white'
-            : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#888]',
-          disabled && 'pointer-events-none opacity-50',
-        )}
-      >
-        No folder
-      </button>
-
-      {/* Existing folder pills */}
-      {folders.map((folder) => (
-        <button
-          key={folder.id}
-          disabled={disabled}
-          onClick={() => onSelect(folder.id)}
-          className={clsx(
-            'text-sm px-2.5 py-1 rounded-full border transition-all',
-            selectedId === folder.id
-              ? 'bg-white/10 border-white/25 text-white'
-              : 'border-[#1f1f1f] text-[#555] hover:border-[#333] hover:text-[#888]',
-            disabled && 'pointer-events-none opacity-50',
-          )}
-        >
-          {folder.name}
-        </button>
-      ))}
-
-      {/* Inline new-folder creator */}
-      {!disabled && (
-        creating ? (
-          <div className="flex items-center gap-1">
-            <input
-              ref={inputRef}
-              value={draftName}
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter')  submit()
-                if (e.key === 'Escape') { setCreating(false); setDraftName('') }
-              }}
-              placeholder="Folder name…"
-              className="bg-surface-0 border border-[#333] text-white text-sm px-2 py-1 rounded-full w-32 placeholder:text-[#444] focus:outline-none focus:border-[#555]"
-            />
-            <button
-              onClick={submit}
-              disabled={saving || !draftName.trim()}
-              className="text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition-colors"
-              aria-label="Create folder"
-            >
-              {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-            </button>
-            <button
-              onClick={() => { setCreating(false); setDraftName('') }}
-              className="text-[#555] hover:text-[#999] transition-colors"
-              aria-label="Cancel"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1 text-sm px-2.5 py-1 rounded-full border border-dashed border-[#2a2a2a] text-[#444] hover:border-[#444] hover:text-[#888] transition-all"
-          >
-            <Plus size={10} />
-            New folder
-          </button>
-        )
-      )}
-    </div>
-  )
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DropZone({ eventId, photographers, initialFolders = [] }: Props) {
@@ -230,7 +113,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
   const [queue, setQueue]               = useState<QueueItem[]>([])
   const [isUploading, setIsUploading]   = useState(false)
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null)
-  const [submittedCount, setSubmittedCount] = useState<number | null>(null)
   const [, setTick] = useState(0)
   const [footerExpanded, setFooterExpanded] = useState(true)
 
@@ -264,7 +146,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
       setIsUploading(false)
       const successCount = queue.filter((i) => i.status === 'done').length
       if (successCount > 0) {
-        setSubmittedCount(successCount)
         window.dispatchEvent(new CustomEvent('uploads-complete'))
       }
       router.refresh()
@@ -560,7 +441,6 @@ export default function DropZone({ eventId, photographers, initialFolders = [] }
 
   function resetForMore() {
     setQueue([])
-    setSubmittedCount(null)
     setPendingFiles(null)
     startedRef.current    = new Set()
     uploadStartRef.current = {}
