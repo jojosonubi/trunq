@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { signStoragePathsSized, signStoragePathSized } from '@/lib/supabase/storage'
 
-// Public no-auth share resolution. Paginated: signs only one page of card-size
-// URLs per request (a whole-archive burst of ~5k transform-signs throttles and
-// silently drops most photos — and takes 6s+). Lightbox full-size URLs are
-// signed one at a time via ?full=<photoId>.
+// Public no-auth share resolution. Paginated; returns same-origin PROXY image
+// paths (/api/public/share/<token>/img/<id>) rather than signed Supabase URLs —
+// no storage URL ever reaches the page, revoking kills every image instantly,
+// and no signing happens at page-build time (see img/[photoId]/route.ts).
 const PAGE_SIZE = 60
-const URL_TTL   = 3600 // 1h — share page keeps working (re-signs per view); copied image URLs go stale fast
 
 interface SharePhoto {
   id: string
@@ -40,35 +38,6 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
 
   if (!share) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // ── Lightbox mode: sign ONE display-size URL on demand ─────────────────────
-  const fullId = req.nextUrl.searchParams.get('full')
-  if (fullId) {
-    let row: { storage_path: string; display_path: string | null } | null = null
-    if (share.kind === 'collection') {
-      const { data } = await supabase
-        .from('collection_items')
-        .select('media_files(storage_path, display_path)')
-        .eq('collection_id', share.target_id)
-        .eq('media_file_id', fullId)
-        .maybeSingle()
-      row = (data?.media_files as unknown as typeof row) ?? null
-    } else {
-      const { data } = await supabase
-        .from('media_files')
-        .select('storage_path, display_path')
-        .eq('id', fullId)
-        .eq('event_id', share.target_id)
-        .is('deleted_at', null)
-        .maybeSingle()
-      row = data ?? null
-    }
-    if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    const url = await signStoragePathSized(row, 'full', { aspect: 'preserve' }, URL_TTL)
-    if (!url) return NextResponse.json({ error: 'Failed to sign' }, { status: 500 })
-    return NextResponse.json({ full_url: url })
-  }
-
-  // ── Gallery page mode ───────────────────────────────────────────────────────
   const page = Math.max(0, Number(req.nextUrl.searchParams.get('page')) || 0)
   const from = page * PAGE_SIZE
   const to   = from + PAGE_SIZE - 1
@@ -125,17 +94,13 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     rows = (media ?? []) as unknown as MediaRow[]
   }
 
-  // Card size only — display derivatives, never originals.
-  const refs = rows.map((r) => ({ storage_path: r.storage_path, display_path: r.display_path }))
-  const cardMap = await signStoragePathsSized(refs, 'card', { aspect: 'preserve' }, URL_TTL)
-
   const photos: SharePhoto[] = rows.map((r) => ({
     id:          r.id,
     event_name:  r.events?.name ?? '',
     event_date:  fmtDate(r.events?.date),
-    card_url:    cardMap.get(r.storage_path) ?? '',
+    card_url:    `/api/public/share/${params.token}/img/${r.id}?size=card`,
     description: r.description,
-  })).filter((p) => p.card_url)
+  }))
 
   return NextResponse.json({
     kind: share.kind,

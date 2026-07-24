@@ -20,6 +20,15 @@ interface SharePage {
   photos: SharePhoto[]
 }
 
+// Casual-copy deterrents: no right-click menu, no drag-out, no iOS long-press
+// save. (Screenshots/DevTools can't be prevented; copied URLs are neutralised
+// server-side by the same-origin proxy's fetch-metadata checks.)
+const noCopyProps = {
+  draggable: false,
+  onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  style: { WebkitTouchCallout: 'none', userSelect: 'none' } as React.CSSProperties,
+}
+
 export default function PublicShareClient({ token }: { token: string }) {
   const [meta, setMeta]       = useState<Pick<SharePage, 'title' | 'subtitle' | 'count'> | null>(null)
   const [photos, setPhotos]   = useState<SharePhoto[]>([])
@@ -30,10 +39,6 @@ export default function PublicShareClient({ token }: { token: string }) {
   const pageRef    = useRef(0)
   const loadingRef = useRef(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
-
-  // Lazy display-size URLs for the lightbox, cached per photo id.
-  const fullUrlsRef = useRef(new Map<string, string>())
-  const [fullUrl, setFullUrl] = useState<string | null>(null)
 
   const loadPage = useCallback(async (page: number) => {
     if (loadingRef.current) return
@@ -66,25 +71,6 @@ export default function PublicShareClient({ token }: { token: string }) {
     io.observe(el)
     return () => io.disconnect()
   }, [hasMore, loadPage, photos.length])
-
-  // Fetch the lightbox's display-size URL on demand (falls back to card).
-  useEffect(() => {
-    if (lightbox === null) { setFullUrl(null); return }
-    const photo = photos[lightbox]
-    if (!photo) return
-    const cached = fullUrlsRef.current.get(photo.id)
-    if (cached) { setFullUrl(cached); return }
-    setFullUrl(null)
-    let active = true
-    fetch(`/api/public/share/${token}?full=${photo.id}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d: { full_url: string }) => {
-        fullUrlsRef.current.set(photo.id, d.full_url)
-        if (active) setFullUrl(d.full_url)
-      })
-      .catch(() => {})
-    return () => { active = false }
-  }, [lightbox, photos, token])
 
   const close = useCallback(() => setLightbox(null), [])
   useEffect(() => {
@@ -146,7 +132,7 @@ export default function PublicShareClient({ token }: { token: string }) {
                 style={{ border: 'var(--border-rule)' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.card_url} alt={p.description ?? p.event_name} loading="lazy" className="w-full h-auto block" />
+                <img src={p.card_url} alt={p.description ?? p.event_name} loading="lazy" className="w-full h-auto block" {...noCopyProps} />
               </button>
             ))}
           </div>
@@ -158,7 +144,7 @@ export default function PublicShareClient({ token }: { token: string }) {
         )}
       </main>
 
-      {/* Lightbox — shows card immediately, swaps to display-size when signed */}
+      {/* Lightbox — display-size streams from the same-origin proxy */}
       {active && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center" onClick={close}>
           <button onClick={close} aria-label="Close" className="absolute top-4 right-4 z-10 w-9 h-9 flex items-center justify-center text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-full">
@@ -176,10 +162,14 @@ export default function PublicShareClient({ token }: { token: string }) {
           )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={fullUrl ?? active.card_url}
+            key={active.id}
+            src={`${active.card_url.split('?')[0]}?size=full`}
             alt={active.description ?? active.event_name}
             className="max-w-[92vw] max-h-[92vh] object-contain"
             onClick={(e) => e.stopPropagation()}
+            style={{ backgroundImage: `url(${active.card_url})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', ...noCopyProps.style }}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
           />
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/40 text-xs tabular-nums">
             {lightbox! + 1} / {photos.length}
