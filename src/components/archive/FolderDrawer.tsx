@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, Pencil, ImagePlus, Trash2, Camera } from 'lucide-react'
+import { MoreHorizontal, Pencil, ImagePlus, Trash2, Camera, Globe } from 'lucide-react'
 import Pill from '@/components/ui/Pill'
 import EventCoverPicker from '@/components/EventCoverPicker'
+import ShareLinkModal from '@/components/ShareLinkModal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ function ProjectCard({ project }: { project: Project }) {
   const [confirmDelete,   setConfirmDelete]   = useState(false)
   const [deleting,        setDeleting]        = useState(false)
   const [coverPickerOpen, setCoverPickerOpen] = useState(false)
+  const [shareOpen,       setShareOpen]       = useState(false)
 
   // Close menu on click outside
   useEffect(() => {
@@ -120,7 +122,7 @@ function ProjectCard({ project }: { project: Project }) {
     }
   }
 
-  const blocked = menuOpen || renaming || confirmDelete || coverPickerOpen
+  const blocked = menuOpen || renaming || confirmDelete || coverPickerOpen || shareOpen
 
   return (
     <div
@@ -198,6 +200,14 @@ function ProjectCard({ project }: { project: Project }) {
               zIndex:       20,
               overflow:     'hidden',
             }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setShareOpen(true) }}
+                style={MENU_ITEM}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--surface-1)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent';       e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                <Globe size={11} /> Share publicly
+              </button>
               <button
                 onClick={(e) => { e.stopPropagation(); startRename() }}
                 style={MENU_ITEM}
@@ -291,6 +301,11 @@ function ProjectCard({ project }: { project: Project }) {
       {/* Cover image picker */}
       {coverPickerOpen && (
         <EventCoverPicker eventId={project.id} onClose={() => setCoverPickerOpen(false)} />
+      )}
+
+      {/* Public share link */}
+      {shareOpen && (
+        <ShareLinkModal kind="event" targetId={project.id} targetName={project.name} onClose={() => setShareOpen(false)} />
       )}
 
       {/* Delete confirm dialog */}

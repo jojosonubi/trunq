@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, ImageIcon, X } from 'lucide-react'
+import { ArrowLeft, ExternalLink, ImageIcon, X, Globe } from 'lucide-react'
+import ShareLinkModal from '@/components/ShareLinkModal'
 
 export interface CollectionPhoto {
   id: string
@@ -31,6 +32,7 @@ export default function CollectionDetailClient({
   initialPhotos: CollectionPhoto[]
 }) {
   const [photos, setPhotos] = useState(initialPhotos)
+  const [shareOpen, setShareOpen] = useState(false)
 
   async function remove(mediaId: string) {
     const prev = photos
@@ -53,7 +55,19 @@ export default function CollectionDetailClient({
         <span className="text-sm tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
           {photos.length} photo{photos.length !== 1 ? 's' : ''}
         </span>
+        <button
+          onClick={() => setShareOpen(true)}
+          className="ml-auto shrink-0 inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-colors"
+          style={{ borderColor: 'var(--surface-3)', color: 'var(--text-secondary)' }}
+        >
+          <Globe size={13} />
+          Share
+        </button>
       </div>
+
+      {shareOpen && (
+        <ShareLinkModal kind="collection" targetId={collectionId} targetName={name} onClose={() => setShareOpen(false)} />
+      )}
 
       {photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center border border-dashed rounded-lg" style={{ borderColor: 'var(--surface-3)' }}>

@@ -6,6 +6,7 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/signup',
   '/delivery',
+  '/s/',                   // public folder/collection view links (no login)
   '/api/tag/process',
   '/api/tag/batch',
   '/api/rescore/process',
