@@ -78,7 +78,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return NextResponse.json({ error: 'No URLs provided' }, { status: 400, headers: CORS_HEADERS })
   }
 
-  const safeUrls = urls.slice(0, MAX_FILES)
+  // SSRF guard: this endpoint is unauthenticated and fetches server-side.
+  // Only signed URLs from our own Supabase storage host are legitimate input.
+  const storageHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host
+  const allowedUrls = urls.filter((u) => {
+    try { return new URL(u).host === storageHost } catch { return false }
+  })
+  if (allowedUrls.length === 0) {
+    return NextResponse.json({ error: 'No valid URLs provided' }, { status: 400, headers: CORS_HEADERS })
+  }
+
+  const safeUrls = allowedUrls.slice(0, MAX_FILES)
   const zipName  = eventLabel.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 80) + '.zip'
 
   // ── Stream setup ──────────────────────────────────────────────────────────

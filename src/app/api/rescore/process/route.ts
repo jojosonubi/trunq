@@ -20,7 +20,7 @@ function isAuthorized(request: NextRequest): boolean {
 
   if (taskSecret && request.headers.get('x-task-secret') === taskSecret) return true
   if (cronSecret && request.headers.get('authorization') === `Bearer ${cronSecret}`) return true
-  if (!taskSecret && !cronSecret) return true
+  // Fail closed: no configured secret means no access (matches foto-lab/index).
   return false
 }
 
@@ -41,14 +41,16 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ processed: 0, remaining: 0 })
   }
 
-  const ids = candidates.map((r: { id: string }) => r.id)
-
-  // Mark as processing (optimistic lock on score_status)
-  await service
+  // Optimistic lock: process ONLY rows this invocation actually claimed.
+  const { data: claimed } = await service
     .from('media_files')
     .update({ score_status: 'processing' })
-    .in('id', ids)
+    .in('id', candidates.map((r: { id: string }) => r.id))
     .eq('score_status', 'queued')
+    .select('id')
+
+  const ids = (claimed ?? []).map((r: { id: string }) => r.id)
+  if (ids.length === 0) return NextResponse.json({ processed: 0, remaining: 0 })
 
   let processed = 0
   await Promise.all(ids.map(async (id: string) => {

@@ -6,11 +6,15 @@ const PUBLIC_PREFIXES = [
   '/login',
   '/signup',
   '/delivery',
+  '/share/',              // gated share portal pages (PIN auth inside)
   '/s/',                   // public folder/collection view links (no login)
   '/api/tag/process',
   '/api/tag/batch',
   '/api/rescore/process',
   '/api/rescore/batch',
+  '/api/embed/',          // embed cron (CRON_SECRET enforced in the route)
+  '/api/invites/',        // invite-code validation during signup
+  '/api/download',        // delivery-portal downloads (token-scoped in the route)
   '/api/foto-lab/',
   '/api/public/',         // public read API (Foto Lab, recess.land)
   '/api/external/',       // machine-to-machine endpoints (shared-secret auth)

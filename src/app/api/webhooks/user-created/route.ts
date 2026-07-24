@@ -36,14 +36,13 @@ interface WebhookPayload {
 }
 
 export async function POST(request: NextRequest) {
-  // Verify the shared secret set in the Supabase webhook config
+  // Verify the shared secret set in the Supabase webhook config.
+  // Fail closed: an unset secret must not turn this into an open mail sender.
   const secret  = process.env.SUPABASE_WEBHOOK_SECRET
   const authHeader = request.headers.get('authorization')
 
-  if (secret) {
-    if (!authHeader || authHeader !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!secret || !authHeader || authHeader !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   let payload: WebhookPayload

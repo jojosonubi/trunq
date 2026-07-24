@@ -71,13 +71,14 @@ export async function POST(request: NextRequest) {
     const brands    = brandsResult.data ?? []
     const mediaFile = mediaResult.data
 
-    // Always mark as scanned so we don't re-process on every refresh
-    await supabase
-      .from('media_files')
-      .update({ brand_scanned: true })
-      .eq('id', media_file_id)
-
+    // Definitively nothing to do → mark scanned and return. For real scans the
+    // flag is set AFTER the vision call succeeds (see face-scan) so a failure
+    // stays retryable.
     if (mediaFile.file_type !== 'image' || !brands.length) {
+      await supabase
+        .from('media_files')
+        .update({ brand_scanned: true })
+        .eq('id', media_file_id)
       return NextResponse.json({ results: [], tags_created: 0 })
     }
 
@@ -171,6 +172,12 @@ export async function POST(request: NextRequest) {
         else console.error('[brand-scan] brand_tag upsert error:', tagErr)
       }
     }
+
+    // Scan completed — safe to mark so we don't re-process on refresh.
+    await supabase
+      .from('media_files')
+      .update({ brand_scanned: true })
+      .eq('id', media_file_id)
 
     return NextResponse.json({ results, tags_created: tagsCreated })
   } catch (err) {

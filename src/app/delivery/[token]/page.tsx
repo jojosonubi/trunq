@@ -57,6 +57,7 @@ export default async function DeliveryPage({ params }: Props) {
     <DeliveryPortal
       event={eventResult.data as Event}
       files={files}
+      token={params.token}
     />
   )
 }

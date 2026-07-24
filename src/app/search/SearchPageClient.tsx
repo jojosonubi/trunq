@@ -99,10 +99,14 @@ export default function SearchPageClient({ initialQuery }: Props) {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef    = useRef<HTMLInputElement>(null)
+  const runIdRef    = useRef(0)
 
   // ── Fetch results ────────────────────────────────────────────────────────────
 
   const fetchResults = useCallback(async (q: string, f: Filters, m: 'keyword' | 'semantic') => {
+    // Monotonic run id: a slow earlier response must never clobber the
+    // results of a later query (classic debounced-search race).
+    const runId = ++runIdRef.current
     // Semantic mode is pure vector similarity on the query text — the structured
     // filter sidebar doesn't apply, so it only needs q (≥2 chars).
     if (m === 'semantic') {
@@ -117,13 +121,15 @@ export default function SearchPageClient({ initialQuery }: Props) {
         : `/api/search/full?${buildParams(q.trim(), f)}`
       const res  = await fetch(url)
       const data = await res.json() as { photos: FullPhotoResult[]; total: number }
+      if (runId !== runIdRef.current) return
       setPhotos(data.photos ?? [])
       setTotal(data.total ?? 0)
     } catch {
+      if (runId !== runIdRef.current) return
       setPhotos([])
       setTotal(0)
     } finally {
-      setLoading(false)
+      if (runId === runIdRef.current) setLoading(false)
     }
   }, [])
 

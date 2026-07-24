@@ -74,12 +74,15 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
     title = ev.name
     subtitle = [fmtDate(ev.date), ev.venue].filter(Boolean).join(' · ')
 
+    // Event shares are public → approved photos only (matches every other
+    // public surface; pending/rejected must not leak).
     const { count: total } = await supabase
       .from('media_files')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', share.target_id)
       .is('deleted_at', null)
       .eq('file_type', 'image')
+      .eq('review_status', 'approved')
     count = total ?? 0
 
     const { data: media } = await supabase
@@ -88,6 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
       .eq('event_id', share.target_id)
       .is('deleted_at', null)
       .eq('file_type', 'image')
+      .eq('review_status', 'approved')
       .order('created_at', { ascending: true })
       .order('id', { ascending: true })
       .range(from, to)

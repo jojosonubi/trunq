@@ -11,11 +11,13 @@ import { transformUrlSized } from '@/lib/supabase/storage'
 interface Props {
   event: Event
   files: MediaFile[]
+  /** Delivery-link token — authorises downloads for logged-out clients. */
+  token: string
 }
 
 // ─── DeliveryPortal ───────────────────────────────────────────────────────────
 
-export default function DeliveryPortal({ event, files }: Props) {
+export default function DeliveryPortal({ event, files, token }: Props) {
   const [downloading, setDownloading] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -26,7 +28,7 @@ export default function DeliveryPortal({ event, files }: Props) {
   }
 
   function downloadUrl(file: MediaFile): string {
-    return `/api/download?path=${encodeURIComponent(file.storage_path)}&filename=${encodeURIComponent(file.filename)}`
+    return `/api/download?path=${encodeURIComponent(file.storage_path)}&filename=${encodeURIComponent(file.filename)}&token=${encodeURIComponent(token)}`
   }
 
   async function downloadAll() {

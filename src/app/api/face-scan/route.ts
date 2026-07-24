@@ -81,14 +81,15 @@ export async function POST(request: NextRequest) {
     const signedUrls = await signStoragePaths(pathsToSign, 3600)
     const mediaSignedUrl = signedUrls.get(mediaFile.storage_path) ?? ''
 
-    // Mark as scanned regardless of outcome — avoids re-scanning on every refresh
-    await supabase
-      .from('media_files')
-      .update({ face_scanned: true })
-      .eq('id', media_file_id)
-
-    // Non-images or events with no reference photos → nothing to do
+    // Non-images or events with no reference photos → definitively nothing to
+    // do: mark scanned and return. NOTE: the scanned flag for real scans is set
+    // AFTER the vision call succeeds — setting it up-front meant one failed
+    // call permanently skipped the photo with no retry path.
     if (mediaFile.file_type !== 'image' || !performers?.length) {
+      await supabase
+        .from('media_files')
+        .update({ face_scanned: true })
+        .eq('id', media_file_id)
       return NextResponse.json({ results: [], tags_created: 0 })
     }
 
@@ -179,6 +180,12 @@ export async function POST(request: NextRequest) {
         else console.error('[face-scan] performer_tag upsert error:', tagErr)
       }
     }
+
+    // Scan completed — safe to mark so we don't re-process on refresh.
+    await supabase
+      .from('media_files')
+      .update({ face_scanned: true })
+      .eq('id', media_file_id)
 
     return NextResponse.json({ results, tags_created: tagsCreated })
   } catch (err) {

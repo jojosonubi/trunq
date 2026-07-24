@@ -25,13 +25,26 @@ export async function GET(request: NextRequest) {
   let   userId: string | null = null
 
   if (token) {
-    const { data: link } = await supabase
+    // Token authorises ONLY files of the link's own event — without this
+    // check any valid token could download any path in the whole archive.
+    const service = createServiceClient()
+    const { data: link } = await service
       .from('delivery_links')
-      .select('id')
+      .select('id, event_id')
       .eq('token', token)
       .single()
     if (!link) {
       return new NextResponse('Invalid delivery token', { status: 403 })
+    }
+    const { data: media } = await service
+      .from('media_files')
+      .select('id')
+      .eq('event_id', link.event_id)
+      .is('deleted_at', null)
+      .or(`storage_path.eq.${storagePath},display_path.eq.${storagePath}`)
+      .maybeSingle()
+    if (!media) {
+      return new NextResponse('File not part of this delivery', { status: 403 })
     }
   } else {
     const { data: { user } } = await supabase.auth.getUser()

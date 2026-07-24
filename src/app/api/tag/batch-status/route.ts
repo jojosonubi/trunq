@@ -19,7 +19,8 @@ type SupabaseClient = ReturnType<typeof createServiceClient>
 
 function isCronAuth(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
-  if (!secret) return true
+  // Fail closed: no configured secret means no access (matches foto-lab/index).
+  if (!secret) return false
   return req.headers.get('authorization') === `Bearer ${secret}`
 }
 

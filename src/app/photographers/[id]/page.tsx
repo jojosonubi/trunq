@@ -22,13 +22,23 @@ interface Props {
 }
 
 export default async function PhotographerProfilePage({ params }: Props) {
-  await requireAuth()
+  const profile = await requireAuth()
   const supabase = getServiceClient()
+
+  // Org-scope the lookup — service client bypasses RLS.
+  const { data: membership } = await supabase
+    .from('organisation_members')
+    .select('organisation_id')
+    .eq('user_id', profile.id)
+    .limit(1)
+    .maybeSingle()
+  if (!membership) notFound()
 
   const { data: photographer } = await supabase
     .from('photographers')
     .select('id, name, created_at')
     .eq('id', params.id)
+    .eq('organisation_id', membership.organisation_id)
     .single()
 
   if (!photographer) notFound()

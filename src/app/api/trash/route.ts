@@ -86,16 +86,22 @@ export async function DELETE(req: NextRequest) {
 
   const supabase = getServiceClient()
 
+  // Collect ALL storage objects for a media row — original + display
+  // derivative + baked thumbnail. Deleting only storage_path orphaned the
+  // derivatives in the bucket forever.
+  const pathsOf = (f: { storage_path?: string | null; display_path?: string | null; thumbnail_url?: string | null }) =>
+    [f.storage_path, f.display_path, f.thumbnail_url].filter(Boolean) as string[]
+
   if (type === 'event') {
-    const { data: mediaFiles } = await supabase
+    const { data: mediaFiles, error: listErr } = await supabase
       .from('media_files')
-      .select('storage_path')
+      .select('storage_path, display_path, thumbnail_url')
       .eq('event_id', id)
+    // If we can't enumerate the files, do NOT delete the rows — that would
+    // permanently leak every object in storage.
+    if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
 
-    const storagePaths = (mediaFiles ?? [])
-      .map((f) => f.storage_path)
-      .filter(Boolean) as string[]
-
+    const storagePaths = (mediaFiles ?? []).flatMap(pathsOf)
     if (storagePaths.length > 0) {
       await supabase.storage.from('media').remove(storagePaths)
     }
@@ -103,17 +109,19 @@ export async function DELETE(req: NextRequest) {
     const { error } = await supabase.from('events').delete().eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   } else {
-    const { data: file } = await supabase
+    const { data: file, error: fileErr } = await supabase
       .from('media_files')
-      .select('storage_path')
+      .select('storage_path, display_path, thumbnail_url')
       .eq('id', id)
       .single()
+    if (fileErr) return NextResponse.json({ error: fileErr.message }, { status: 500 })
 
     const { error } = await supabase.from('media_files').delete().eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    if (file?.storage_path) {
-      await supabase.storage.from('media').remove([file.storage_path])
+    const paths = file ? pathsOf(file) : []
+    if (paths.length > 0) {
+      await supabase.storage.from('media').remove(paths)
     }
   }
 

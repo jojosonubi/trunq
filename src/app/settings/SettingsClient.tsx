@@ -267,7 +267,9 @@ export default function SettingsClient({
   // ── Backup: retry ─────────────────────────────────────────────────────────
   const [retrying,        setRetrying]        = useState<Set<string>>(new Set())
   const [retryingAll,     setRetryingAll]     = useState(false)
-  const [localStats,      setLocalStats]      = useState(backupStats ?? null)
+  // Render from the prop, not state-from-prop: the old useState snapshot never
+  // updated after router.refresh(), so the backup panel stayed stale forever.
+  const localStats = backupStats ?? null
   const [backupsExpanded, setBackupsExpanded] = useState(false)
 
   async function retryOne(id: string) {

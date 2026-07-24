@@ -32,11 +32,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
 
-    const { data: existing } = await supabase
+    // NOTE: selecting a nonexistent column here (was events.expires_at) made
+    // this dedupe select error silently → duplicate delivery_links per event.
+    const { data: existing, error: existingErr } = await supabase
       .from('delivery_links')
-      .select('token, events(name, expires_at)')
+      .select('token, events(name)')
       .eq('event_id', event_id)
       .maybeSingle()
+    if (existingErr) {
+      return NextResponse.json({ error: existingErr.message }, { status: 500 })
+    }
 
     if (existing) {
       // Link already exists — optionally send the email for the existing link

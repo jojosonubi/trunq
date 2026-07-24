@@ -78,6 +78,9 @@ export async function GET(req: NextRequest) {
       .eq('organisation_id', orgId)
       .eq('review_status', 'approved')
       .is('deleted_at', null)
+      // Stable order is REQUIRED for .range() pagination — without it pages
+      // can duplicate/skip rows and scramble the counts.
+      .order('id', { ascending: true })
       .range(from, from + MEDIA_PAGE_SIZE - 1)
 
     if (error) {

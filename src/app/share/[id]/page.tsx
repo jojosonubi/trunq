@@ -41,9 +41,10 @@ export default async function SharePage({ params }: Props) {
     )
   }
 
-  // Fetch project name for display
+  // Fetch project name for display (share_links.project_id points at events —
+  // there is no "projects" table; the old query silently errored to 'Gallery')
   const { data: project } = await supabase
-    .from('projects')
+    .from('events')
     .select('name')
     .eq('id', link.project_id)
     .single()

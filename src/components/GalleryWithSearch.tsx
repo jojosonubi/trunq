@@ -175,8 +175,15 @@ export default function GalleryWithSearch({
   }, [debouncedQuery, activePhotographer, showStarredOnly, activeFileType, activeColour, activePerformerId, activeBrandId, activeFolderId, activePills])
 
   // ── Core fetch function ───────────────────────────────────────────────────
+  // Monotonic run id: a filter change must supersede any in-flight fetch.
+  // The old `if (isLoadingRef.current) return` guard silently DROPPED the
+  // refetch after a filter change while the stale in-flight response then
+  // filled the cleared grid with old-filter results.
+  const fetchRunIdRef = useRef(0)
   const fetchPage = useCallback(async (cursorVal: string | null, append: boolean) => {
-    if (isLoadingRef.current) return
+    // Appends (infinite scroll) may not double-fire; resets always proceed.
+    if (append && isLoadingRef.current) return
+    const runId = ++fetchRunIdRef.current
     isLoadingRef.current = true
     setIsLoading(true)
     try {
@@ -184,14 +191,17 @@ export default function GalleryWithSearch({
       const res    = await fetch(`/api/projects/${eventId}/media?${params}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const { files, nextCursor } = await res.json() as { files: MediaFileWithTags[]; nextCursor: string | null }
+      if (runId !== fetchRunIdRef.current) return // superseded — discard
       setLoadedFiles(prev => append ? [...prev, ...files] : files)
       setCursor(nextCursor)
       setHasMore(nextCursor !== null)
     } catch (err) {
       console.error('[GalleryWithSearch] fetch failed:', err)
     } finally {
-      isLoadingRef.current = false
-      setIsLoading(false)
+      if (runId === fetchRunIdRef.current) {
+        isLoadingRef.current = false
+        setIsLoading(false)
+      }
     }
   }, [eventId, buildParams])
 
@@ -305,11 +315,12 @@ export default function GalleryWithSearch({
     const next    = !current
     setStarOverrides((prev) => ({ ...prev, [id]: next }))
     try {
-      await fetch('/api/star', {
+      const res = await fetch('/api/star', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, starred: next }),
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       router.refresh()
     } catch {
       setStarOverrides((prev) => ({ ...prev, [id]: current }))
@@ -318,34 +329,49 @@ export default function GalleryWithSearch({
 
   // ── Trash photo ───────────────────────────────────────────────────────────
   const handleTrashPhoto = useCallback(async (id: string) => {
-    await fetch('/api/trash', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'photo', id }),
-    })
-    // Remove immediately from loaded state — no full router.refresh() needed
-    setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
+    try {
+      const res = await fetch('/api/trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'photo', id }),
+      })
+      if (!res.ok) return // failed — keep the photo visible
+      // Remove immediately from loaded state — no full router.refresh() needed
+      setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
+    } catch { /* network failure — keep the photo visible */ }
   }, [])
 
-  // ── ⋯ menu: reassign photographer / event (optimistic) ────────────────────
+  // ── ⋯ menu: reassign photographer / event (optimistic + rollback) ─────────
   const handleReassignPhotographer = useCallback(async (id: string, photographerId: string, name: string) => {
+    const prevName = loadedFiles.find((f) => f.id === id)?.photographer ?? null
     setLoadedFiles((prev) => prev.map((f) => (f.id === id ? { ...f, photographer: name } : f)))
-    await fetch('/api/media/reassign', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: [id], photographer_id: photographerId }),
-    })
-  }, [])
+    try {
+      const res = await fetch('/api/media/reassign', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id], photographer_id: photographerId }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch {
+      setLoadedFiles((prev) => prev.map((f) => (f.id === id ? { ...f, photographer: prevName } : f)))
+    }
+  }, [loadedFiles])
 
   const handleReassignEvent = useCallback(async (id: string, targetEventId: string) => {
-    // Moved to another event → drop it from this event's grid.
+    // Moved to another event → drop it from this event's grid (restore on failure).
+    const removed = loadedFiles.find((f) => f.id === id)
     setLoadedFiles((prev) => prev.filter((f) => f.id !== id))
-    await fetch('/api/media/reassign', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: [id], event_id: targetEventId }),
-    })
-  }, [])
+    try {
+      const res = await fetch('/api/media/reassign', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id], event_id: targetEventId }),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    } catch {
+      if (removed) setLoadedFiles((prev) => [removed, ...prev])
+    }
+  }, [loadedFiles])
 
   // ── Download (zip with smart renaming) ───────────────────────────────────
   const downloadFiles = useCallback(async (filesToDownload: MediaFileWithTags[]) => {

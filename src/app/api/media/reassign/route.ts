@@ -57,7 +57,11 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'nothing to update' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('media_files').update(update).in('id', ids)
+  const { error } = await supabase
+    .from('media_files')
+    .update(update)
+    .in('id', ids)
+    .eq('organisation_id', auth.organisationId) // never mutate foreign-org media
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true, updated: ids.length })

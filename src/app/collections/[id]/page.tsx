@@ -12,10 +12,21 @@ export default async function CollectionPage({ params }: { params: { id: string 
   const profile = await requireAuth()
   const supabase = createServiceClient()
 
+  // Org-scope the lookup — the service client bypasses RLS, so without this
+  // any authenticated user could open any org's collection by UUID.
+  const { data: membership } = await supabase
+    .from('organisation_members')
+    .select('organisation_id')
+    .eq('user_id', profile.id)
+    .limit(1)
+    .maybeSingle()
+  if (!membership) notFound()
+
   const { data: collection } = await supabase
     .from('collections')
     .select('id, name, created_at')
     .eq('id', params.id)
+    .eq('organisation_id', membership.organisation_id)
     .maybeSingle()
 
   if (!collection) notFound()

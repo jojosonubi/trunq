@@ -65,6 +65,7 @@ export async function GET(
       .eq('id', params.photoId)
       .eq('event_id', share.target_id)
       .is('deleted_at', null)
+      .eq('review_status', 'approved') // public event share → approved only
       .maybeSingle()
     row = data ?? null
   }

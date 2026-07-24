@@ -140,11 +140,14 @@ export default function FaceReferencePicker({ files, performerName, onConfirm, o
     if (!imageSrc) return
     setExtracting(true)
     try {
-      // Fetch image via proxy to avoid canvas CORS taint
+      // Fetch the signed URL directly and draw from a blob URL to avoid canvas
+      // CORS taint. (The old code proxied via /api/download?url=…, but that
+      // route only accepts ?path= — every call 400'd. Supabase storage sends
+      // Access-Control-Allow-Origin: *, so a direct fetch works.)
       let blobUrl = imageSrc
       let ownedBlobUrl = false
       if (imageSrc.startsWith('http')) {
-        const res = await fetch(`/api/download?url=${encodeURIComponent(imageSrc)}&filename=ref.jpg`)
+        const res = await fetch(imageSrc)
         if (!res.ok) throw new Error('Failed to fetch image')
         blobUrl = URL.createObjectURL(await res.blob())
         ownedBlobUrl = true

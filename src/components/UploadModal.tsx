@@ -61,7 +61,9 @@ function PhotographerAutocomplete({
     if (e.key === 'ArrowDown') { e.preventDefault(); setHi((h) => Math.min(h + 1, suggestions.length - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setHi((h) => Math.max(h - 1, -1)) }
     else if (e.key === 'Enter' && hi >= 0 && suggestions[hi]) { e.preventDefault(); pick(suggestions[hi].name) }
-    else if (e.key === 'Escape') setOpen(false)
+    // stopPropagation: the modal's document-level Escape handler starts an
+    // UNASSIGNED upload — Escape here must only close the suggestion list.
+    else if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
   }
 
   return (
@@ -328,7 +330,9 @@ export default function UploadModal({ files, photographers, folders, onStart, on
                     onChange={(e) => setDraftFolder(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter')  submitFolder()
-                      if (e.key === 'Escape') { setCreatingFolder(false); setDraftFolder('') }
+                      // stopPropagation: see PhotographerAutocomplete — Escape
+                      // must not trigger the modal-level skip-and-upload.
+                      if (e.key === 'Escape') { e.stopPropagation(); setCreatingFolder(false); setDraftFolder('') }
                     }}
                     placeholder="Folder name…"
                     style={{

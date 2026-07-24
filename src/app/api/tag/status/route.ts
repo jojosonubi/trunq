@@ -21,25 +21,29 @@ export async function GET(request: NextRequest) {
   const service = createServiceClient()
   const statusCol = mode === 'rescore' ? 'score_status' : 'tagging_status'
 
-  let query = service
-    .from('media_files')
-    .select(statusCol)
-    .eq('file_type', 'image')
-    .is('deleted_at', null)
+  // Per-status HEAD count queries — fetching rows and counting client-side
+  // silently truncated at PostgREST's 1000-row cap, making the progress
+  // widget wrong on any archive/event above 1000 photos.
+  const statuses = ['untagged', 'queued', 'processing', 'complete', 'failed'] as const
+  const results = await Promise.all(statuses.map((s) => {
+    let q = service
+      .from('media_files')
+      .select('id', { count: 'exact', head: true })
+      .eq('file_type', 'image')
+      .is('deleted_at', null)
+      .eq(statusCol, s)
+    if (eventId) q = q.eq('event_id', eventId)
+    return q
+  }))
 
-  if (eventId) query = query.eq('event_id', eventId)
-
-  const { data, error } = await query
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  const firstErr = results.find((r) => r.error)?.error
+  if (firstErr) {
+    return NextResponse.json({ error: firstErr.message }, { status: 500 })
   }
 
-  const counts = { untagged: 0, queued: 0, processing: 0, complete: 0, failed: 0 }
-  for (const row of (data ?? [])) {
-    const s = (row as Record<string, string>)[statusCol] as keyof typeof counts
-    if (s in counts) counts[s]++
-  }
+  const counts = Object.fromEntries(
+    statuses.map((s, i) => [s, results[i].count ?? 0])
+  ) as Record<(typeof statuses)[number], number>
 
   return NextResponse.json(counts)
 }

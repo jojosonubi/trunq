@@ -19,8 +19,7 @@ function isAuthorized(request: NextRequest): boolean {
 
   if (taskSecret && request.headers.get('x-task-secret') === taskSecret) return true
   if (cronSecret && request.headers.get('authorization') === `Bearer ${cronSecret}`) return true
-  // If neither secret is configured, allow through (dev/local)
-  if (!taskSecret && !cronSecret) return true
+  // Fail closed: no configured secret means no access (matches foto-lab/index).
   return false
 }
 
@@ -41,13 +40,18 @@ async function handle(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ processed: 0, remaining: 0 })
   }
 
-  const ids = candidates.map((r: { id: string }) => r.id)
-
-  await service
+  // Optimistic lock: process ONLY rows this invocation actually claimed — a
+  // concurrent invocation may have taken some; re-processing them double-calls
+  // the vision API.
+  const { data: claimed } = await service
     .from('media_files')
     .update({ tagging_status: 'processing', score_status: 'processing' })
-    .in('id', ids)
-    .eq('tagging_status', 'queued')  // optimistic lock — skip already-claimed rows
+    .in('id', candidates.map((r: { id: string }) => r.id))
+    .eq('tagging_status', 'queued')
+    .select('id')
+
+  const ids = (claimed ?? []).map((r: { id: string }) => r.id)
+  if (ids.length === 0) return NextResponse.json({ processed: 0, remaining: 0 })
 
   // ── Process batch concurrently ────────────────────────────────────────────
   let processed = 0
